@@ -1,0 +1,749 @@
+{
+  "MediEvil II (USA).chd": {
+    "title": "MediEvil II",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/fe80f663-34f3-4acd-a2dc-9c4d985157aa.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/fe80f663-34f3-4acd-a2dc-9c4d985157aa.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/64c96bdd-6185-4589-b0c4-3ca31ca18c24.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/2af2886a-95af-45e6-a9b8-6d9868c4da17.png",
+    "objectId": "10230",
+    "sku": "SCUS-94564"
+  },
+  "Rival Schools - United by Fate (USA) (Disc 1) [Arcade Disc].chd": {
+    "title": "Rival Schools",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/6744592b-f9ad-4d4a-bd76-f0388aae2dd3.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/6744592b-f9ad-4d4a-bd76-f0388aae2dd3.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/f4a14b30-c2ca-4b18-98bd-64eeec8d4228.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/fe711255-f7b7-4248-b26b-d94393a16a43.png",
+    "objectId": "10308",
+    "sku": "SLUS-00771"
+  },
+  "Rival Schools - United by Fate (USA) (Disc 2) (Evolution Disc).chd": {
+    "title": "Rival Schools",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/6744592b-f9ad-4d4a-bd76-f0388aae2dd3.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/6744592b-f9ad-4d4a-bd76-f0388aae2dd3.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/f4a14b30-c2ca-4b18-98bd-64eeec8d4228.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/fe711255-f7b7-4248-b26b-d94393a16a43.png",
+    "objectId": "10308",
+    "sku": "SLUS-00771"
+  },
+  "Dino Crisis 2 (USA).chd": {
+    "title": "Dino Crisis 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/145f48a1-155a-4a4a-acf1-212d9c7a98f8.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/145f48a1-155a-4a4a-acf1-212d9c7a98f8.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/41e3eeea-4863-4d0d-9936-73d975845cac.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/de7b56aa-e280-40bd-9aa4-78d5e2a2056b.png",
+    "objectId": "10346",
+    "sku": "SLUS-01279"
+  },
+  "Resident Evil - Director's Cut (USA).chd": {
+    "title": "Resident Evil: Director's Cut",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/142a2190-3e99-422c-aa72-383e9c9c0606.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/142a2190-3e99-422c-aa72-383e9c9c0606.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/1994f129-d4c7-49ce-acd2-7331931d3ad3.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ce716e3c-962e-47b9-838b-0b45566bb864.png",
+    "objectId": "10364",
+    "sku": "SLUS-00551"
+  },
+  "Medal of Honor (USA).chd": {
+    "title": "Medal of Honor",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/c15c6dbf-451a-4d63-9fb8-f7dab6bada9e.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/c15c6dbf-451a-4d63-9fb8-f7dab6bada9e.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/2009af91-ce50-4f4b-9d2b-c11a8e49c767.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/47195665-8ac0-49b1-8aad-270b8f004b84.png",
+    "objectId": "10418",
+    "sku": "SLUS-00974"
+  },
+  "Tomba! (USA).chd": {
+    "title": "Tomba!",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/bf174ff8-0527-4995-a4bf-9d52c6b4d218.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/bf174ff8-0527-4995-a4bf-9d52c6b4d218.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/4890e420-0cc1-4cc5-a40f-e44b99c2b3e2.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/64817db9-e231-4786-8715-6c9506057b37.png",
+    "objectId": "10708",
+    "sku": "SCUS-94236"
+  },
+  "Loaded (USA).chd": {
+    "title": "Loaded",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/6d45aa9f-d7ee-4926-9380-170fe6382548.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/6d45aa9f-d7ee-4926-9380-170fe6382548.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/e6dc3b91-1352-43b4-926f-c49d7c66bcfe.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/41fb4743-55f5-408a-ab80-e5d336617f97.png",
+    "objectId": "11113",
+    "sku": "SLUS-00076"
+  },
+  "Rayman (USA).chd": {
+    "title": "Rayman",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/86976da1-a3e4-467c-991d-9f62edc6f39e.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/86976da1-a3e4-467c-991d-9f62edc6f39e.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/0525a33e-43db-40d6-ba3c-5b7bfa3e7274.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/65cb3238-b522-4d9a-934c-c17957e67be4.png",
+    "objectId": "11115",
+    "sku": "SLUS-00005"
+  },
+  "Time Crisis - Project Titan (USA).chd": {
+    "title": "Time Crisis: Project Titan",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/6434abc2-5498-42d1-86aa-d90718348a8c.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/6434abc2-5498-42d1-86aa-d90718348a8c.jpg",
+    "heroImageUrl": null,
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/5e22f8fd-30f3-427a-a86e-2ac41f49b32a.png",
+    "objectId": "11243",
+    "sku": "SLUS-01336"
+  },
+  "Ray Tracers (USA).chd": {
+    "title": "Ray Tracers",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/0f44180a-d736-4944-bbff-acd22f8ba525.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/0f44180a-d736-4944-bbff-acd22f8ba525.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/b74b5300-c385-40b0-a3f1-1a8b4272374e.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/191b3ce0-6e82-497c-9a31-bf1c00e18cca.png",
+    "objectId": "11356",
+    "sku": "SLUS-00534"
+  },
+  "RayStorm (USA).chd": {
+    "title": "RayStorm",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/e768dfef-3ab4-4a72-923e-8bbe5d6f8d52.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/e768dfef-3ab4-4a72-923e-8bbe5d6f8d52.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/4d32ab47-709a-40c9-8062-f45b76c56554.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/af64aeea-c953-48b1-8aa8-3ce60c237b20.png",
+    "objectId": "11358",
+    "sku": "SLUS-00482"
+  },
+  "Ridge Racer (USA).chd": {
+    "title": "Ridge Racer",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/7e808a5f-48d0-481d-a4c4-a210b8715439.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/7e808a5f-48d0-481d-a4c4-a210b8715439.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/92fbf2c1-76c5-4b08-b9c7-a01c5a87780b.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ae1f50b9-f660-4b12-aa96-4ddffe5febfc.png",
+    "objectId": "11366",
+    "sku": "SCUS-94300"
+  },
+  "Ridge Racer Revolution (USA).chd": {
+    "title": "Ridge Racer Revolution",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/2589fb8d-7625-45e2-963f-49f7d9d230e0.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/2589fb8d-7625-45e2-963f-49f7d9d230e0.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/6a1cfbff-c2e7-41b2-98c9-b1980c46f56b.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/d6d0f8ef-68c5-452a-94c7-28a0373ad50e.png",
+    "objectId": "11367",
+    "sku": "SLUS-00214"
+  },
+  "Contra - Legacy of War (USA).chd": {
+    "title": "Contra: Legacy of War",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/491f4018-c46d-4589-9efc-cdcb74335f67.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/491f4018-c46d-4589-9efc-cdcb74335f67.jpg",
+    "heroImageUrl": null,
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/dd0d6d48-8ff8-476f-a698-ed1d456990ea.png",
+    "objectId": "11793",
+    "sku": "SLUS-00288"
+  },
+  "Nightmare Creatures (USA).chd": {
+    "title": "Nightmare Creatures",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/7f611d2a-dc68-43d5-a266-4a070bcd0f76.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/7f611d2a-dc68-43d5-a266-4a070bcd0f76.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/5e468433-fdd0-4e16-a7c7-e96ee80ccee3.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/d2420487-0076-43c4-b73c-c77c73151331.png",
+    "objectId": "11836",
+    "sku": "SLUS-00582"
+  },
+  "Pandemonium! 2 (USA).chd": {
+    "title": "Pandemonium 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/d2719bd2-0f01-4f76-bd79-f88a5eb014bc.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/d2719bd2-0f01-4f76-bd79-f88a5eb014bc.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/cf26f3a6-eece-4547-8212-587855cb3508.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/2a055ba2-4d98-4483-ae71-d1f7892dd0d9.png",
+    "objectId": "11839",
+    "sku": "SLUS-00578"
+  },
+  "Thunder Force V - Perfect System (USA).chd": {
+    "title": "Thunder Force V: Perfect System",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/04e70e85-ea30-4c00-bfa4-92ffb2d590de.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/04e70e85-ea30-4c00-bfa4-92ffb2d590de.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/b1e4966e-778d-47dd-832f-66bd962787da.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/fb23cbee-feb4-44b8-a43c-bca9bb2d7c94.png",
+    "objectId": "12125",
+    "sku": "SLUS-00727"
+  },
+  "Heart of Darkness (USA).PBP": {
+    "title": "Heart of Darkness",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/09a181d3-cde1-4466-8ab9-7ecc8525f16a.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/09a181d3-cde1-4466-8ab9-7ecc8525f16a.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_8da1ad98-eda9-4e26-92e1-8d2ba1f44d81.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/r2_b84c3557-c510-46d2-ac14-6dfb2af24e0d.png",
+    "objectId": "12792",
+    "sku": "SLUS-00696"
+  },
+  "Tomb Raider Chronicles (USA).chd": {
+    "title": "Tomb Raider Chronicles",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/b6f04b27-a75c-4e30-82da-a361e3d723bb.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/b6f04b27-a75c-4e30-82da-a361e3d723bb.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/3fe06931-92d8-4bde-9cdc-e56db470c363.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/a8b04ee1-dc70-4a14-bdb5-4da99dc4158e.png",
+    "objectId": "13057",
+    "sku": "SLUS-01311"
+  },
+  "Skullmonkeys (USA).chd": {
+    "title": "Skullmonkeys",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/6fab6651-1160-48b9-892a-0068d393a26c.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/6fab6651-1160-48b9-892a-0068d393a26c.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/aa3fa2e6-6cca-46e7-83db-8c62497982ea.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/864ca84b-8908-4dbe-bd66-aa52d9fcd947.png",
+    "objectId": "13156",
+    "sku": "SLUS-00601"
+  },
+  "Silhouette Mirage (USA).chd": {
+    "title": "Silhouette Mirage",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/9f927dbc-4dcd-43af-9130-dcc705f98e89.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/9f927dbc-4dcd-43af-9130-dcc705f98e89.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/e329b232-4930-4db9-a542-c449e08566a8.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/953c7c57-8646-4b41-815a-1d5369e7fbd9.png",
+    "objectId": "13157",
+    "sku": "SLUS-00728"
+  },
+  "Driver - You Are the Wheelman (USA).chd": {
+    "title": "Driver: You Are the Wheelman",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/c41c6295-8e6b-4c6a-b37f-1df5fcbd7ea0.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/c41c6295-8e6b-4c6a-b37f-1df5fcbd7ea0.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_d9f75edf-578e-4b88-beb3-2871294a65a6.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/4c011191-b271-4746-8ed1-123a3afddb8b.png",
+    "objectId": "1500",
+    "sku": "SLUS-00842"
+  },
+  "Harmful Park (Japan).chd": {
+    "title": "Harmful Park",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/67abb358-ca71-4677-a639-70acc7bb5508.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/67abb358-ca71-4677-a639-70acc7bb5508.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/900b8f5f-3025-482c-a45a-cbf5d94244f7.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ec1a7f36-664e-4499-b23f-952c483b28d8.png",
+    "objectId": "16312",
+    "sku": "SLPS-00498"
+  },
+  "Grand Theft Auto - Mission Pack #1 - London 1969 (USA).PBP": {
+    "title": "Grand Theft Auto: Mission Pack #1: London 1969",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/2ddd9751-1948-4b52-95cf-9be757977de1.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/2ddd9751-1948-4b52-95cf-9be757977de1.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_9ed85204-c52b-441c-a94d-334627b1bd3b.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/r2_4e41f733-93d1-49d3-aa0b-548f52c1353b.png",
+    "objectId": "18605",
+    "sku": "SLUS-00846"
+  },
+  "WipEout 3 - Special Edition (Europe).chd": {
+    "title": "Wipeout 3: Special Edition",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/c9a8282e-9c8d-4aa5-8783-c83b4acf2347.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/c9a8282e-9c8d-4aa5-8783-c83b4acf2347.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/da0d9b00-4b9a-4975-913e-c6c90e438b87.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/05d5ce40-2f94-4185-a428-2bc2709e8d44.png",
+    "objectId": "18607",
+    "sku": "SCES-02845"
+  },
+  "Metal Gear Solid (USA).PBP": {
+    "title": "Metal Gear Solid",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/5e05d377-f292-41ec-a652-1b817ea2f7bb.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/5e05d377-f292-41ec-a652-1b817ea2f7bb.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/303f39ec-057c-491c-bc42-25e164f99e31.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c030fe16-176d-4425-8c85-e9f14baeb7c6.png",
+    "objectId": "187",
+    "sku": "SLUS-00594"
+  },
+  "Oddworld - Abe's Oddysee (USA).chd": {
+    "title": "Oddworld: Abe's Oddysee",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/61e55edb-e95c-44ed-9974-a47e31d66ab0.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/61e55edb-e95c-44ed-9974-a47e31d66ab0.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/ef7e41f4-7748-4138-8361-e755707868e4.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/01c4cc2e-126f-4fd5-b6f2-7aafcc6184ba.png",
+    "objectId": "2296",
+    "sku": "SLUS-00190"
+  },
+  "Zanac x Zanac (Japan).chd": {
+    "title": "Zanac X Zanac",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/5eee322b-ba2f-486f-8b04-4dee5831bd66.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/5eee322b-ba2f-486f-8b04-4dee5831bd66.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/580d31ec-f1a5-43b7-8f7f-0a1655f9f4fa.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ef675b15-0c05-43dd-8b46-905bc839b46c.png",
+    "objectId": "23093",
+    "sku": "SLPS-03354"
+  },
+  "Bloody Roar II (USA).chd": {
+    "title": "Bloody Roar II",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/03bd448a-59a8-43c2-8deb-69b384a8f67d.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/03bd448a-59a8-43c2-8deb-69b384a8f67d.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/30441b28-23a6-4375-a15b-26612047f708.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/639ce357-42e8-4de5-9f18-0901e3d5a20a.png",
+    "objectId": "2377",
+    "sku": "SCUS-94424"
+  },
+  "Bloody Roar (USA).chd": {
+    "title": "Bloody Roar",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/3ee27939-20a4-4dd1-9393-03309fbc1c51.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/3ee27939-20a4-4dd1-9393-03309fbc1c51.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/21a765f7-d415-4f28-9666-aa00954ed4f9.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/0b9e1964-003d-4e0e-b15d-883ddc4c94f0.png",
+    "objectId": "2381",
+    "sku": "SCUS-94199"
+  },
+  "Tekken 3 (USA).chd": {
+    "title": "Tekken 3",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/338d54cc-b688-4362-a30f-d8d366a0d5dd.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/338d54cc-b688-4362-a30f-d8d366a0d5dd.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/dea62f80-32c5-4cba-94bc-7e34024203c5.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/11a9dc11-e5e8-45dc-afa3-808fa4a4a0f4.png",
+    "objectId": "2414",
+    "sku": "SLUS-00402"
+  },
+  "Tomb Raider III - Adventures of Lara Croft (USA).chd": {
+    "title": "Tomb Raider III: Adventures of Lara Croft",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/665bb9d2-97ef-4433-a2d2-db97ebb9757a.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/665bb9d2-97ef-4433-a2d2-db97ebb9757a.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/c84909da-d540-441a-b3f4-1c9b87d6568d.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/3156e12f-e1a4-4eff-bdbd-f1e76c6a38d6.png",
+    "objectId": "2431",
+    "sku": "SLUS-00691"
+  },
+  "Tekken (USA).chd": {
+    "title": "Tekken",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/d61cd6f7-ea47-4479-9a28-0a0e137b408c.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/d61cd6f7-ea47-4479-9a28-0a0e137b408c.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/240aa43a-4b6a-40b2-b980-9389facf4041.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c0fbdb97-36d4-4c52-9a64-7569303959c0.png",
+    "objectId": "2478",
+    "sku": "SLUS-00006"
+  },
+  "Tekken 2 (USA).chd": {
+    "title": "Tekken 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/bed1af7f-38fa-4557-bd90-04e8a2386e77.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/bed1af7f-38fa-4557-bd90-04e8a2386e77.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/58538ebb-c420-43c4-b505-a9724396cb79.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/r2_dc98976f-693a-44e7-8fe5-ac4f87a29c44.png",
+    "objectId": "2479",
+    "sku": "SLUS-00213"
+  },
+  "Soul Blade (USA).chd": {
+    "title": "Soul Blade",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/ac0548b4-ee4f-4991-a9b9-e30ca9bf6e48.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/ac0548b4-ee4f-4991-a9b9-e30ca9bf6e48.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/be94a305-4a38-4516-9133-2945c4f59665.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/6e0ae6f2-28e8-4fa1-811c-b0475d3879aa.png",
+    "objectId": "26182",
+    "sku": "SLUS-00240"
+  },
+  "Tomb Raider (USA).chd": {
+    "title": "Tomb Raider",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/becb4b9f-f438-40bc-8501-c06b188a1630.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/becb4b9f-f438-40bc-8501-c06b188a1630.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/4a3ae71c-8dd7-4339-b211-6ccf4be40efe.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/0804a05f-d67f-405e-b6f1-2d2dfa452249.png",
+    "objectId": "2627",
+    "sku": "SLUS-00152"
+  },
+  "Resident Evil 2 (USA).PBP": {
+    "title": "Resident Evil 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/87d544eb-e65d-4793-bf41-c6a80ad5b5aa.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/87d544eb-e65d-4793-bf41-c6a80ad5b5aa.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/ce7065c3-ff6b-4e1f-a776-57da0ae1e9be.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/0f2cd6d7-06c5-444e-894a-c8d23d7d1feb.png",
+    "objectId": "2783",
+    "sku": "SLUS-00421"
+  },
+  "X2 - No Relief (Japan).chd": {
+    "title": "X2: No Relief",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/fd223bdd-a6fc-4c78-a874-69bb96734497.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/fd223bdd-a6fc-4c78-a874-69bb96734497.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_4f748e4d-3c00-45b6-8c07-5f9c7d7bd1ec.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/01d363d8-a08d-45b4-be93-def15ee08995.png",
+    "objectId": "31102",
+    "sku": "SLPS-00766"
+  },
+  "Nightmare Creatures II (USA).chd": {
+    "title": "Nightmare Creatures II",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/3d92292f-bd2c-4fbc-a198-c53d551e994d.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/3d92292f-bd2c-4fbc-a198-c53d551e994d.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/6e6c97bb-92dc-45cd-bde5-3d556a3a2b54.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ef9aba23-568f-4722-b196-f2d0c045205f.png",
+    "objectId": "31847",
+    "sku": "SLUS-01112"
+  },
+  "Spyro - Year of the Dragon (USA).chd": {
+    "title": "Spyro: Year of the Dragon",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/45b2bdfd-9976-4ca1-bd3f-160b272f8e02.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/45b2bdfd-9976-4ca1-bd3f-160b272f8e02.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/cff430a8-2ac4-419f-9d42-9919abedf331.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ccac4f46-bb06-4004-8c88-b9b61976daf2.png",
+    "objectId": "4731",
+    "sku": "SCUS-94467"
+  },
+  "Ape Escape (USA).chd": {
+    "title": "Ape Escape",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/f5e4e770-50e4-497b-bf37-dfd99566b3d6.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/f5e4e770-50e4-497b-bf37-dfd99566b3d6.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/33e6d6a8-2d70-4805-a6d7-da6dc4f8b09d.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/d1c712d3-3c0a-4d73-9e94-66dafa7c310c.png",
+    "objectId": "4732",
+    "sku": "SCUS-94423"
+  },
+  "Castlevania - Symphony of the Night (USA).chd": {
+    "title": "Castlevania: Symphony of the Night",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/857a9a42-9cf9-4043-a466-55f2cdb3d81e.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/857a9a42-9cf9-4043-a466-55f2cdb3d81e.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/201866c7-d57c-439c-9b68-d9a38a219940.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/e0111472-3f37-441e-b925-3ca1dbce6e4a.png",
+    "objectId": "489",
+    "sku": "SLUS-00067"
+  },
+  "Cool Boarders 2 (USA).chd": {
+    "title": "Cool Boarders 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/e1af9303-4435-4587-9772-1da9ba13db95.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/e1af9303-4435-4587-9772-1da9ba13db95.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/5db6fea4-3fb1-4d6c-93c7-965078e1ebc1.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c1081b76-8690-4e7f-a380-251184d3660f.png",
+    "objectId": "492",
+    "sku": "SCUS-94358"
+  },
+  "Crash Bandicoot - Warped (USA).chd": {
+    "title": "Crash Bandicoot: Warped",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/62058421-e686-46b2-a731-4a7a401bfb07.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/62058421-e686-46b2-a731-4a7a401bfb07.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/ba797b07-cdc8-43cd-ba96-4e783c3aa17c.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/9e389ffc-dcd9-4a1b-925c-c592ad8161ca.png",
+    "objectId": "493",
+    "sku": "SCUS-94244"
+  },
+  "Driver 2 (USA) (Rev 1).PBP": {
+    "title": "Driver 2: The Wheelman Is Back",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/92af4416-0eab-4a0e-bb71-c93fe23fac02.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/92af4416-0eab-4a0e-bb71-c93fe23fac02.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/27124066-4d39-442a-911a-4c08ba103d65.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/48fa84bd-5163-40ab-9321-427d3525bb1b.png",
+    "objectId": "499",
+    "sku": "SLUS-01161"
+  },
+  "Legacy of Kain - Soul Reaver (USA).chd": {
+    "title": "Legacy of Kain: Soul Reaver",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/40cdd97f-aca7-47dc-bbd3-09ad0efc89d8.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/40cdd97f-aca7-47dc-bbd3-09ad0efc89d8.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/a55fe114-6051-434f-8fd3-926fa420aec1.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/d762a4b6-40d0-482c-8ee6-77c3359230c7.png",
+    "objectId": "536",
+    "sku": "SLUS-00708"
+  },
+  "Gran Turismo (USA).chd": {
+    "title": "Gran Turismo",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/45451b57-f9f1-4b26-b0e7-9f6bb27e4eda.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/45451b57-f9f1-4b26-b0e7-9f6bb27e4eda.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_de05b231-4deb-4f25-ba08-7c79f1d0fb4d.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/r2_480f55fe-9592-49f2-a64e-5efd87d41dbd.png",
+    "objectId": "5365",
+    "sku": "SCUS-94194"
+  },
+  "Crash Bandicoot 2 - Cortex Strikes Back (USA).chd": {
+    "title": "Crash Bandicoot 2: Cortex Strikes Back",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/f33ca26b-4d94-4d7d-bbaa-bc05cf5d2869.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/f33ca26b-4d94-4d7d-bbaa-bc05cf5d2869.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/06f7c0c2-7481-4034-8085-4eb9ce8e4448.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/5c5bd83e-49df-4c1f-a2a7-8f0a20e880ef.png",
+    "objectId": "5420",
+    "sku": "SCUS-94154"
+  },
+  "Mega Man X4 (USA).chd": {
+    "title": "Mega Man X4",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/26fb91d3-2722-4d1e-a0ea-5ece05048769.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/26fb91d3-2722-4d1e-a0ea-5ece05048769.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/0c9e1b66-eb0b-4d14-adb9-bca86c7c1b0d.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/64c22e75-d686-4306-9619-8698c4acbb6b.png",
+    "objectId": "544",
+    "sku": "SLUS-00561"
+  },
+  "Pandemonium! (USA).chd": {
+    "title": "Pandemonium!",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/0098e156-00a6-4091-b027-3b9d6531b412.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/0098e156-00a6-4091-b027-3b9d6531b412.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/15d82223-ecd3-4afe-814f-b7a19b39d75a.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/6972c3de-5a4a-4095-8aa0-9309fd315605.png",
+    "objectId": "566",
+    "sku": "SLUS-00232"
+  },
+  "Parasite Eve (USA).PBP": {
+    "title": "Parasite Eve",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/420ea16a-f054-4952-bfbc-0c4da8655b75.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/420ea16a-f054-4952-bfbc-0c4da8655b75.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/d39f12f4-90c5-4bd9-ad94-e30d3fe71942.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/091b1990-a2b2-4ff0-8a0e-28c59ecafdd8.png",
+    "objectId": "567",
+    "sku": "SLUS-00662"
+  },
+  "R4 - Ridge Racer Type 4 (USA) (Disc 1).chd": {
+    "title": "R4: Ridge Racer Type 4",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/e8e6913b-bb67-41d1-9990-1eb8fb4c6512.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/e8e6913b-bb67-41d1-9990-1eb8fb4c6512.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/1528f5eb-d2b4-47d2-9696-dd5d231c0431.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/e0c07efc-a760-4a73-9188-9abe7627c374.png",
+    "objectId": "576",
+    "sku": "SLUS-00797"
+  },
+  "R4 - Ridge Racer Type 4 (USA) (Disc 2).chd": {
+    "title": "R4: Ridge Racer Type 4",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/e8e6913b-bb67-41d1-9990-1eb8fb4c6512.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/e8e6913b-bb67-41d1-9990-1eb8fb4c6512.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/1528f5eb-d2b4-47d2-9696-dd5d231c0431.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/e0c07efc-a760-4a73-9188-9abe7627c374.png",
+    "objectId": "576",
+    "sku": "SLUS-90049"
+  },
+  "Raycrisis - Series Termination (USA).chd": {
+    "title": "RayCrisis: Series Termination",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/221a2857-eb00-4e51-a69c-398dbd632e5a.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/221a2857-eb00-4e51-a69c-398dbd632e5a.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/cd01ac68-7272-429f-bac0-d272fb05cf6b.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/0c412fa8-5b08-401f-9ad1-c5826c2d0d37.png",
+    "objectId": "579",
+    "sku": "SLUS-01217"
+  },
+  "Time Crisis (USA).chd": {
+    "title": "Time Crisis",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/998f9977-d0f5-4787-99da-8d6ae159a0a0.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/998f9977-d0f5-4787-99da-8d6ae159a0a0.jpg",
+    "heroImageUrl": null,
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/5221a89f-625f-4ff0-84ad-202f8c7c060f.png",
+    "objectId": "595",
+    "sku": "SLUS-00405"
+  },
+  "Tomb Raider II - Starring Lara Croft (USA).chd": {
+    "title": "Tomb Raider II",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/2e9a3370-bbfc-4854-8873-d8ebde6a7db8.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/2e9a3370-bbfc-4854-8873-d8ebde6a7db8.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/0a8dbcbd-5d33-4d5b-823d-8f82c1dc39ea.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/6195f703-96b8-45a2-b68e-7c1df709f1a0.png",
+    "objectId": "596",
+    "sku": "SLUS-00437"
+  },
+  "Crash Bash (USA).chd": {
+    "title": "Crash Bash",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/9f3f2d94-3ba3-475b-bbd2-03b5ae32714d.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/9f3f2d94-3ba3-475b-bbd2-03b5ae32714d.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/1401911f-d48d-408c-a7d8-1aab9c26e6f2.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/523da048-2d3a-4551-b7d7-2aef749ae6de.png",
+    "objectId": "6388",
+    "sku": "SCUS-94570"
+  },
+  "Einhander (USA).chd": {
+    "title": "Einhänder",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/2ef85f9a-8092-4275-a043-fd3086d413c0.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/2ef85f9a-8092-4275-a043-fd3086d413c0.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/8f7bba62-525d-4386-b161-734022c97e19.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/fc8af076-d6c4-497d-b305-c8db4fb30c86.png",
+    "objectId": "6532",
+    "sku": "SCUS-94243"
+  },
+  "Gunners Heaven (Japan).chd": {
+    "title": "Rapid Reload",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/db0aaaa2-fca1-46a8-8c8a-7a07e8eae4f1.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/db0aaaa2-fca1-46a8-8c8a-7a07e8eae4f1.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/89b6c862-e3c0-497c-8dc5-b13b34b1846f.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c726215c-8b94-44e8-acc8-95434266b487.png",
+    "objectId": "7466",
+    "sku": "SLPS-00019"
+  },
+  "PaRappa the Rapper (USA).chd": {
+    "title": "PaRappa the Rapper",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/112d19f2-890d-4d7c-947e-caee5fa2fb31.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/112d19f2-890d-4d7c-947e-caee5fa2fb31.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/459701d4-50fb-402b-8095-4eb9fc8f4e6b.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/767d0e8b-8db0-4cdf-a4ef-a7d3a9aa10d5.png",
+    "objectId": "7493",
+    "sku": "SCUS-94183"
+  },
+  "Syphon Filter (USA).chd": {
+    "title": "Syphon Filter",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/840f92dd-4461-410b-8a3e-06d7337e5e5f.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/840f92dd-4461-410b-8a3e-06d7337e5e5f.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/ecee1ca5-3356-45a1-b645-b703f6a14cba.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c065d9a5-0167-43e1-b6cb-91ce51ce6d8f.png",
+    "objectId": "7509",
+    "sku": "SCUS-94240"
+  },
+  "Grand Theft Auto 2 (USA).chd": {
+    "title": "Grand Theft Auto 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/1bad7fab-5f28-43da-9820-3b85208c15aa.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/1bad7fab-5f28-43da-9820-3b85208c15aa.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_f4066573-c623-4366-a645-9d524c37059c.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/69eadc03-70ab-4ed6-bbfd-4dd7a7dc0177.png",
+    "objectId": "7825",
+    "sku": "SLUS-00789"
+  },
+  "Medal of Honor - Underground (USA).chd": {
+    "title": "Medal of Honor: Underground",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/26a99d0b-9b9c-4c26-a740-563a6e53f14e.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/26a99d0b-9b9c-4c26-a740-563a6e53f14e.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/6e4a2964-d0bf-4b72-a526-40ec316a9da6.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/b3885ced-a795-411e-80e1-b0426a1b52da.png",
+    "objectId": "7973",
+    "sku": "SLUS-01270"
+  },
+  "Tomb Raider - The Last Revelation (USA).chd": {
+    "title": "Tomb Raider: The Last Revelation",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/505d411c-6929-41b8-9128-16db01539608.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/505d411c-6929-41b8-9128-16db01539608.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/24822ef5-170d-4298-8d68-b349f57e3cdb.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c49393b2-5b84-4890-93a1-c9bac93e8b22.png",
+    "objectId": "8031",
+    "sku": "SLUS-00885"
+  },
+  "Tenchu - Stealth Assassins (USA).chd": {
+    "title": "Tenchu: Stealth Assassins",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/083a759d-d04b-4206-9d08-a64aad5f8098.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/083a759d-d04b-4206-9d08-a64aad5f8098.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/961a8de2-4a30-43bf-adfe-d78a33044195.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/ea388944-e535-4048-bdbc-47e744991664.png",
+    "objectId": "8032",
+    "sku": "SLUS-00706"
+  },
+  "Mega Man X5 (USA).chd": {
+    "title": "Mega Man X5",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/7ed71ae8-47fc-4fa6-b430-e532f131d007.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/7ed71ae8-47fc-4fa6-b430-e532f131d007.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/7a7885b2-f5f1-4690-aef6-e35b95640525.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/a7f87324-f8fa-4c25-aa57-c87e7f244489.png",
+    "objectId": "8056",
+    "sku": "SLUS-01334"
+  },
+  "Mega Man X6 (USA).chd": {
+    "title": "Mega Man X6",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/948aaf64-cbfd-4731-8964-58f0bcaa0065.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/948aaf64-cbfd-4731-8964-58f0bcaa0065.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/6d9d9ea6-d0b9-4da2-86b0-f76145874cfd.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/9efba83a-f696-49fd-8a73-9ea0e2d21b61.png",
+    "objectId": "8443",
+    "sku": "SLUS-01395"
+  },
+  "Spyro 2 - Ripto's Rage! (USA).chd": {
+    "title": "Spyro 2: Ripto's Rage!",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/5f2e4e99-c00e-4fd9-83ea-674b44f06da1.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/5f2e4e99-c00e-4fd9-83ea-674b44f06da1.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/1fe1fbf3-3f6c-4de0-a254-a7afbae4659b.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/f46299b3-550c-458f-a878-0eb9795b1fa1.png",
+    "objectId": "8985",
+    "sku": "SCUS-94425"
+  },
+  "Tony Hawk's Pro Skater 2 (USA).chd": {
+    "title": "Tony Hawk's Pro Skater 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/63a31c26-ecd0-403b-a16c-49694d3fcabc.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/63a31c26-ecd0-403b-a16c-49694d3fcabc.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/c8a451f6-61a9-4f24-86c5-5d35c25c4e85.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/1112de5d-273a-40d3-999b-671b894dcd58.png",
+    "objectId": "9000",
+    "sku": "SLUS-01066"
+  },
+  "Dino Crisis (USA).chd": {
+    "title": "Dino Crisis",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/c2270543-c5db-4b5b-ae18-2a005714761c.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/c2270543-c5db-4b5b-ae18-2a005714761c.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/24d627f8-89d4-4d4c-885b-360f082ea3d2.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/5c26f825-38f3-416c-89b4-11558f43b031.png",
+    "objectId": "9063",
+    "sku": "SLUS-00922"
+  },
+  "Oddworld - Abe's Exoddus (USA).PBP": {
+    "title": "Oddworld: Abe's Exoddus",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/d682bb22-e435-4c7a-b633-15d4487425eb.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/d682bb22-e435-4c7a-b633-15d4487425eb.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/6410a32d-fd03-4376-bfcd-582f2adbb479.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/1c7297e7-3482-4d52-ae81-90cad28853b8.png",
+    "objectId": "9064",
+    "sku": "SLUS-00710"
+  },
+  "Syphon Filter 2 (USA).PBP": {
+    "title": "Syphon Filter 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/349b3cfd-f196-4214-895c-9dd692a09776.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/349b3cfd-f196-4214-895c-9dd692a09776.jpg",
+    "heroImageUrl": null,
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/43ddd417-d1b4-42ff-83ea-732c3f080204.png",
+    "objectId": "9070",
+    "sku": "SCUS-94451"
+  },
+  "Grand Theft Auto (USA).chd": {
+    "title": "Grand Theft Auto",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/487ce2e2-0c8c-457d-aed3-6d38980878c1.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/487ce2e2-0c8c-457d-aed3-6d38980878c1.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/d53cbc81-6b72-4aee-9c66-c19b5837c2ae.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/c1409db6-14fb-4720-abec-a8de8f072bee.png",
+    "objectId": "9072",
+    "sku": "SLUS-00106"
+  },
+  "Tomba! 2 - The Evil Swine Return (USA).chd": {
+    "title": "Tomba! 2: The Evil Swine Return",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/022d0606-5d8a-4671-960f-4b4571cc75a7.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/022d0606-5d8a-4671-960f-4b4571cc75a7.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/bdc70061-88b6-4446-92eb-9c1e0115a89e.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/13db73e1-a99e-4581-bcdc-e620b53730e9.png",
+    "objectId": "9489",
+    "sku": "SCUS-94454"
+  },
+  "MediEvil (USA).chd": {
+    "title": "MediEvil",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/03f15946-1988-4f6e-a9c0-48c1aa8f93be.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/03f15946-1988-4f6e-a9c0-48c1aa8f93be.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/e73e41cf-7660-40fe-8e8c-6df503d1ea08.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/03a1ce28-8120-4c12-9dc9-b9c007e850cb.png",
+    "objectId": "9638",
+    "sku": "SCUS-94227"
+  },
+  "Crash Bandicoot (USA).chd": {
+    "title": "Crash Bandicoot",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/251b3973-c46c-4c4c-b46a-b34bcd23c860.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/251b3973-c46c-4c4c-b46a-b34bcd23c860.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/5d42c9ab-685f-4feb-8e94-fd836858863f.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/93d9cd45-c6a2-4d51-9edd-0c6020bcfd4b.png",
+    "objectId": "976",
+    "sku": "SCUS-94900"
+  },
+  "CTR - Crash Team Racing (USA).chd": {
+    "title": "CTR: Crash Team Racing",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/539c5c11-afc9-48ab-b5b3-f0516f49728a.png",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/539c5c11-afc9-48ab-b5b3-f0516f49728a.png",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/832f07a8-e980-45be-a299-4a29de472125.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/cd9124d8-68b8-40c8-83d2-1f200a362cee.png",
+    "objectId": "977",
+    "sku": "SCUS-94426"
+  },
+  "Gran Turismo 2 (USA) (Arcade Mode).chd": {
+    "title": "Gran Turismo 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/3135abce-fb7a-433e-bf6c-017b5c69eb67.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/3135abce-fb7a-433e-bf6c-017b5c69eb67.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_f30c503a-f067-4ea5-a584-7439686e616b.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/5d1587f0-4074-447c-86a6-40c87f6e57ed.png",
+    "objectId": "978",
+    "sku": "SCUS-94455"
+  },
+  "Gran Turismo 2 (USA) (Simulation Mode).chd": {
+    "title": "Gran Turismo 2",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/3135abce-fb7a-433e-bf6c-017b5c69eb67.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/3135abce-fb7a-433e-bf6c-017b5c69eb67.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/r2_f30c503a-f067-4ea5-a584-7439686e616b.png",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/5d1587f0-4074-447c-86a6-40c87f6e57ed.png",
+    "objectId": "978",
+    "sku": "SCUS-94488"
+  },
+  "Resident Evil 3 - Nemesis (USA).chd": {
+    "title": "Resident Evil 3: Nemesis",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/687030e3-952a-4225-b8eb-dfd6cfcf804a.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/687030e3-952a-4225-b8eb-dfd6cfcf804a.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/182c96e2-8515-4b7d-bf7c-929c3fca3cf2.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/94fbf5dd-44a1-4c3e-9ddf-47da2e4c63ec.png",
+    "objectId": "983",
+    "sku": "SLUS-00923"
+  },
+  "Blood Omen - Legacy of Kain (USA).chd": {
+    "title": "Blood Omen: Legacy of Kain",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/279d9776-f2bf-4232-a3c0-0d791bb8f756.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/279d9776-f2bf-4232-a3c0-0d791bb8f756.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/d2f36fb1-576f-4401-9ce5-ce2d7988a80c.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/e934a3f9-e512-40d4-a0ee-24961557bb69.png",
+    "objectId": "9861",
+    "sku": "SLUS-00027"
+  },
+  "Tenchu 2 - Birth of the Stealth Assassins (USA).chd": {
+    "title": "Tenchu 2: Birth of the Stealth Assassins",
+    "iconUrl": "https://cdn.losbroxas.org/launchbox/b339ae09-95de-4a54-af10-ac7ade0c80d8.jpg",
+    "coverImageUrl": "https://cdn.losbroxas.org/launchbox/b339ae09-95de-4a54-af10-ac7ade0c80d8.jpg",
+    "heroImageUrl": "https://cdn.losbroxas.org/launchbox/d1b0c2da-6620-4940-8653-3db388dd4831.jpg",
+    "logoImageUrl": "https://cdn.losbroxas.org/launchbox/adf14d4a-b3ef-4411-a9c6-7485dd649f77.png",
+    "objectId": "9863",
+    "sku": "SLUS-00939"
+  }
+}
