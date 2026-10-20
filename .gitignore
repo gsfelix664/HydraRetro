@@ -10,6 +10,14 @@ ROMS/**/*
 !ROMS/PS1/.gitkeep
 !ROMS/GENESIS/
 !ROMS/GENESIS/.gitkeep
+!ROMS/SNES/
+!ROMS/SNES/.gitkeep
+!ROMS/MAME/
+!ROMS/MAME/.gitkeep
+!ROMS/PS2/
+!ROMS/PS2/.gitkeep
+!ROMS/WII/
+!ROMS/WII/.gitkeep
 
 BIOS/**/*
 !BIOS/
@@ -43,3 +51,19 @@ emulators/retroarch/content_image_history.lpl
 emulators/retroarch/content_music_history.lpl
 emulators/retroarch/content_video_history.lpl
 emulators/retroarch/retroarch-core-options.cfg
+
+emulators/pcsx2/memcards/
+emulators/pcsx2/sstates/
+emulators/pcsx2/snapshots/
+emulators/pcsx2/cache/
+emulators/pcsx2/logs/
+emulators/pcsx2/*.log
+
+emulators/dolphin/User/Dump/
+emulators/dolphin/User/Load/
+emulators/dolphin/User/Logs/
+emulators/dolphin/User/StateSaves/
+emulators/dolphin/User/Cache/
+emulators/dolphin/User/Wii/title/
+emulators/dolphin/User/Wii/shared2/
+emulators/dolphin/User/GC/

@@ -1,3 +1,77 @@
+
+const ARCADE_TITLES = {
+  mslug: 'Metal Slug',
+  mslug2: 'Metal Slug 2',
+  mslugx: 'Metal Slug X',
+  mslug3: 'Metal Slug 3',
+  mslug4: 'Metal Slug 4',
+  mslug5: 'Metal Slug 5',
+  kof94: "The King of Fighters '94",
+  kof95: "The King of Fighters '95",
+  kof96: "The King of Fighters '96",
+  kof97: "The King of Fighters '97",
+  kof98: "The King of Fighters '98",
+  kof99: "The King of Fighters '99",
+  kof2000: "The King of Fighters 2000",
+  kof2001: "The King of Fighters 2001",
+  kof2002: "The King of Fighters 2002",
+  sf2: 'Street Fighter II: The World Warrior',
+  sf2ce: 'Street Fighter II: Champion Edition',
+  sf2hf: 'Street Fighter II: Hyper Fighting',
+  ssf2: 'Super Street Fighter II',
+  ssf2t: 'Super Street Fighter II Turbo',
+  sfa: 'Street Fighter Alpha',
+  sfa2: 'Street Fighter Alpha 2',
+  sfa3: 'Street Fighter Alpha 3',
+  sfiii: 'Street Fighter III: New Generation',
+  sfiii2: 'Street Fighter III: 2nd Impact',
+  sfiii3: 'Street Fighter III: 3rd Strike',
+  cadillacs: 'Cadillacs and Dinosaurs',
+  dino: 'Cadillacs and Dinosaurs',
+  punisher: 'The Punisher',
+  captcomm: 'Captain Commando',
+  ffight: 'Final Fight',
+  ffightae: 'Final Fight 30th Anniversary',
+  tmnt: 'Teenage Mutant Ninja Turtles',
+  tmnt2: 'Teenage Mutant Ninja Turtles: Turtles in Time',
+  simpsons: 'The Simpsons',
+  xmen: 'X-Men',
+  avsp: 'Alien vs. Predator',
+  pacman: 'Pac-Man',
+  mspacman: 'Ms. Pac-Man',
+  galaxian: 'Galaxian',
+  galaga: 'Galaga',
+  donkeykong: 'Donkey Kong',
+  dkong: 'Donkey Kong',
+  mario: 'Mario Bros.',
+  garou: 'Garou: Mark of the Wolves',
+  samsho: 'Samurai Shodown',
+  samsho2: 'Samurai Shodown II',
+  samsho3: 'Samurai Shodown III',
+  samsho4: 'Samurai Shodown IV',
+  samsho5: 'Samurai Shodown V',
+  fatfursp: 'Fatal Fury Special',
+  rbffspec: 'Real Bout Fatal Fury Special',
+  wakuwak7: 'Waku Waku 7',
+  neobombe: 'Neo Bomberman',
+  shocktro: 'Shock Troopers',
+  shocktr2: 'Shock Troopers: 2nd Squad',
+  blazstar: 'Blazing Star',
+  pulstar: 'Pulstar',
+  aerofgt: 'Aero Fighters',
+  sonicwi: 'Aero Fighters',
+  sonicwi2: 'Aero Fighters 2',
+  sonicwi3: 'Aero Fighters 3',
+  mvsc: 'Marvel vs. Capcom: Clash of Super Heroes',
+  mshvsf: 'Marvel Super Heroes vs. Street Fighter',
+  xmvsf: 'X-Men vs. Street Fighter',
+  msh: 'Marvel Super Heroes',
+  '1941': '1941: Counter Attack',
+  '1942': '1942',
+  '1943': '1943: The Battle of Midway',
+  '1944': '1944: The Loop Master',
+  '19xx': '19XX: The War Against Destiny'
+};
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
@@ -10,7 +84,9 @@ const APP_ROOT = path.basename(__dirname).toLowerCase() === 'src'
   : __dirname;
 
 const DATA_DIR = path.join(APP_ROOT, 'data');
-const UI_DIR = path.join(APP_ROOT, 'ui');
+const UI_DIR = fs.existsSync(path.join(APP_ROOT, 'ui'))
+  ? path.join(APP_ROOT, 'ui')
+  : path.join(__dirname, 'ui');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 const PS1_META_FILE = path.join(DATA_DIR, 'ps1_hydra_metadata.json');
 const GAMES_META_FILE = path.join(DATA_DIR, 'games_metadata.json');
@@ -20,6 +96,10 @@ const BIOS_DIR = path.join(APP_ROOT, 'BIOS');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(path.join(ROMS_DIR, 'PS1'), { recursive: true });
 fs.mkdirSync(path.join(ROMS_DIR, 'GENESIS'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'SNES'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'MAME'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'PS2'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'WII'), { recursive: true });
 fs.mkdirSync(BIOS_DIR, { recursive: true });
 
 const DEFAULT_CONFIG = {
@@ -57,6 +137,62 @@ const DEFAULT_CONFIG = {
       extensions: ['.zip', '.md', '.gen', '.smd', '.bin', '.7z'],
       coinOpsCollection: 'Genesis Official',
       libretroThumbRepo: 'Sega - Mega Drive - Genesis'
+    },
+    SNES: {
+      id: 'SNES',
+      name: 'Super Nintendo',
+      shortName: 'SNES',
+      manufacturer: 'Nintendo',
+      releaseYear: 1990,
+      romFolder: path.join(ROMS_DIR, 'SNES'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'snes9x_libretro.dll'),
+      launchArgs: '-f -L "{CORE}" "{ROM}"',
+      extensions: ['.sfc', '.smc', '.zip', '.7z', '.fig', '.swc'],
+      coinOpsCollection: 'Super Nintendo',
+      libretroThumbRepo: 'Nintendo - Super Nintendo Entertainment System'
+    },
+    MAME: {
+      id: 'MAME',
+      name: 'Arcade (MAME / FBNeo)',
+      shortName: 'Arcade',
+      manufacturer: 'Arcade',
+      releaseYear: 1980,
+      romFolder: path.join(ROMS_DIR, 'MAME'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'fbneo_libretro.dll'),
+      launchArgs: '-f -L "{CORE}" "{ROM}"',
+      extensions: ['.zip', '.7z'],
+      coinOpsCollection: 'Arcade',
+      libretroThumbRepo: 'FBNeo - Arcade Games'
+    },
+    PS2: {
+      id: 'PS2',
+      name: 'PlayStation 2',
+      shortName: 'PS2',
+      manufacturer: 'Sony',
+      releaseYear: 2000,
+      romFolder: path.join(ROMS_DIR, 'PS2'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'pcsx2', 'pcsx2-qt.exe'),
+      corePath: '',
+      launchArgs: '-batch -fullscreen -nogui -- "{ROM}"',
+      extensions: ['.chd', '.iso', '.cso', '.bin', '.gz', '.mdf', '.nrg'],
+      coinOpsCollection: 'PlayStation 2 Official',
+      libretroThumbRepo: 'Sony - PlayStation 2'
+    },
+    WII: {
+      id: 'WII',
+      name: 'Nintendo Wii',
+      shortName: 'Wii',
+      manufacturer: 'Nintendo',
+      releaseYear: 2006,
+      romFolder: path.join(ROMS_DIR, 'WII'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'dolphin', 'Dolphin.exe'),
+      corePath: '',
+      launchArgs: '-b -e "{ROM}"',
+      extensions: ['.rvz', '.wbfs', '.iso', '.ciso', '.gcm'],
+      coinOpsCollection: 'Nintendo Wii',
+      libretroThumbRepo: 'Nintendo - Wii'
     }
   }
 };
@@ -174,13 +310,15 @@ let activeSession = null;
 let shutdownTimer = null;
 
 function cleanTitle(rawName) {
-  return rawName
+  let cleaned = rawName
     .replace(/\s*\((Disc|Disco)\s*\d+\).*$/i, '')
     .replace(/\s*\[Arcade Disc\]/i, '')
     .replace(/\s*\(Evolution Disc\)/i, '')
-    .replace(/\s*\((USA|Europe|Japan|World|Brazil|Asia|Korea|Unl|Rev\s*[A-Z0-9]+|Alt\s*[0-9]*|Beta|Proto|Virtual Console|Sega Channel|Switch Online|Arcade Mode|Simulation Mode|Translated[^)]*)[^)]*\)/gi, '')
+    .replace(/\s*\((USA|Europe|Japan|World|Brazil|Asia|Korea|Unl|Rev\s*[A-Z0-9]+|Alt\s*[0-9]*|Beta|Proto|Virtual Console|Sega Channel|Switch Online|Arcade Mode|Simulation Mode|Translated[^)]*|U|E|J|W|UE|JU|B|BR|F|G|I|S|PD|M\d+|En[^)]*|V\d+(\.\d+)?|\!)[^)]*\)/gi, '')
     .replace(/\s*\[[^\]]*\]/g, '')
-    .trim() || rawName;
+    .replace(/\s*\([^)]*\)\s*$/g, '')
+    .trim();
+  return cleaned || rawName;
 }
 
 function libretroUrl(repo, type, baseName) {
@@ -266,7 +404,10 @@ function scanLibrary() {
 
       const baseName = path.basename(file, path.extname(file));
       const hydraMeta = consoleId === 'PS1' ? ps1HydraMeta[file] : null;
-      const title = (hydraMeta && hydraMeta.title) ? hydraMeta.title : cleanTitle(baseName);
+      let title = (hydraMeta && hydraMeta.title) ? hydraMeta.title : cleanTitle(baseName);
+      if (consoleId === 'MAME' && ARCADE_TITLES[baseName.toLowerCase()]) {
+        title = ARCADE_TITLES[baseName.toLowerCase()];
+      }
       const groupId = `${consoleId}::${title.toLowerCase()}`;
 
       if (!groups.has(groupId)) {
@@ -329,12 +470,51 @@ function scanLibrary() {
         logoUrl = localLogo || libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', effectiveBase);
       }
 
-      const curated = gamesMeta[g.title] || gamesMeta[cleanTitle(g.title)] || null;
-      const description = curated?.description || (g.hydraMeta?.description) || null;
-      const developer = curated?.developer || (cCfg.manufacturer === 'Sega' ? 'Sega' : 'PlayStation Studios');
-      const publisher = curated?.publisher || (cCfg.manufacturer === 'Sega' ? 'Sega' : 'Sony Computer Entertainment');
+      // Smart metadata lookup: exact, cleaned, stripped, or fuzzy
+      const curated = (() => {
+        if (gamesMeta[g.title]) return gamesMeta[g.title];
+        const cl = cleanTitle(g.title);
+        if (gamesMeta[cl]) return gamesMeta[cl];
+        const baseCl = cleanTitle(primaryBase);
+        if (gamesMeta[baseCl]) return gamesMeta[baseCl];
+        const noParen = g.title.replace(/\s*\([^)]*\)/g, '').trim();
+        if (gamesMeta[noParen]) return gamesMeta[noParen];
+        const lowerCl = cl.toLowerCase();
+        for (const [k, v] of Object.entries(gamesMeta)) {
+          if (k.toLowerCase() === lowerCl || cleanTitle(k).toLowerCase() === lowerCl || k.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase() === lowerCl) {
+            return v;
+          }
+        }
+        return null;
+      })();
+
+      // Use clean polished title if curated exists
+      if (curated && curated.title) {
+        g.title = curated.title;
+      }
+
+      const defaultDevMap = {
+        PS1: 'PlayStation Studios',
+        GENESIS: 'Sega',
+        SNES: 'Nintendo',
+        MAME: 'Arcade',
+        PS2: 'Sony Interactive Entertainment',
+        WII: 'Nintendo'
+      };
+      const defaultGenreMap = {
+        PS1: ['PlayStation', 'Clássico 32-Bit'],
+        GENESIS: ['Mega Drive', 'Clássico 16-Bit'],
+        SNES: ['Super Nintendo', 'Clássico 16-Bit'],
+        MAME: ['Arcade', 'Fliperama'],
+        PS2: ['PlayStation 2', 'Clássico 128-Bit'],
+        WII: ['Nintendo Wii', 'Aventura 3D']
+      };
+
+      const developer = curated?.developer || defaultDevMap[consoleId] || cCfg.manufacturer || 'Desconhecida';
+      const publisher = curated?.publisher || defaultDevMap[consoleId] || cCfg.manufacturer || 'Desconhecida';
       const releaseYear = curated?.releaseYear || cCfg.releaseYear;
-      const genres = curated?.genres || (cCfg.id === 'GENESIS' ? ['Clássico 16-Bit', 'Mega Drive'] : ['Clássico 32-Bit', 'PlayStation']);
+      const genres = curated?.genres || defaultGenreMap[consoleId] || ['Clássico Retrô', cCfg.name || cCfg.shortName];
+      const description = curated?.description || (g.hydraMeta?.description) || `Um clássico atemporal de ${cCfg.name || cCfg.shortName} pronto para ser jogado em tela cheia com comandos responsivos.`;
       const players = curated?.players || '1-2 Jogadores';
       const rating = curated?.rating || 4.8;
 
@@ -418,63 +598,12 @@ function scanLibrary() {
 }
 
 // Generate deterministic RetroAchievements / Classic Milestones for any game + support real RetroAchievements API
+// Only return real achievements if synced from RetroAchievements API (no hardcoded fake achievements)
 function getGameAchievements(game) {
-  const playSec = game.playTimeSeconds || 0;
-  const playCount = game.playCount || 0;
-  const isFav = Boolean(game.favorite);
-
-  const builtIn = [
-    {
-      id: 'first_boot',
-      title: 'Ficha Inserida!',
-      description: `Iniciou ${game.title} pela primeira vez.`,
-      points: 10,
-      unlocked: playCount >= 1,
-      icon: '🎮'
-    },
-    {
-      id: 'play_15m',
-      title: 'Aquecendo os Controles',
-      description: 'Jogou por pelo menos 15 minutos acumulados.',
-      points: 25,
-      unlocked: playSec >= 900,
-      icon: '⚡'
-    },
-    {
-      id: 'play_1h',
-      title: 'Clássico Viciante',
-      description: 'Completou 1 hora de gameplay neste clássico.',
-      points: 50,
-      unlocked: playSec >= 3600,
-      icon: '🔥'
-    },
-    {
-      id: 'play_5h',
-      title: 'Mestre da Locadora',
-      description: 'Acumulou mais de 5 horas dominando este jogo.',
-      points: 100,
-      unlocked: playSec >= 18000,
-      icon: '👑'
-    },
-    {
-      id: 'veteran_sessions',
-      title: 'Frequência Garantida',
-      description: 'Abriu este jogo em 5 sessões diferentes.',
-      points: 30,
-      unlocked: playCount >= 5,
-      icon: '🕹️'
-    },
-    {
-      id: 'favorite_star',
-      title: 'Relíquia Favorita',
-      description: 'Marcou este clássico na sua coleção de Favoritos.',
-      points: 15,
-      unlocked: isFav,
-      icon: '⭐'
-    }
-  ];
-
-  return builtIn;
+  if (game.raAchievements && Array.isArray(game.raAchievements) && game.raAchievements.length > 0) {
+    return game.raAchievements;
+  }
+  return [];
 }
 
 function runFocusHelper(args) {
@@ -508,8 +637,12 @@ function launchGame(gameId, discIndex = 0) {
   let args = [];
   if (game.consoleId === 'PS1') {
     args = ['-batch', '-fullscreen', '--', targetDisc.path];
-  } else if (game.consoleId === 'GENESIS') {
-    args = ['-L', cCfg.corePath, targetDisc.path];
+  } else if (game.consoleId === 'PS2') {
+    args = ['-batch', '-fullscreen', '-nogui', '--', targetDisc.path];
+  } else if (game.consoleId === 'WII') {
+    args = ['-b', '-e', targetDisc.path];
+  } else if (cCfg.corePath) {
+    args = ['-f', '-L', cCfg.corePath, targetDisc.path];
   } else {
     args = [targetDisc.path];
   }

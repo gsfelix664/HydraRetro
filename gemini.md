@@ -31,21 +31,34 @@ HydraRetro/
 ├── ROMS/                            # Pasta para ROMs dos consoles [Ignorada no Git, exceto .gitkeep]
 │   ├── PS1/                         # .chd, .cue/.bin, .pbp, .iso
 │   │   └── .gitkeep
-│   └── GENESIS/                     # .zip, .md, .gen, .bin, .7z
+│   ├── GENESIS/                     # .zip, .md, .gen, .bin, .7z
+│   │   └── .gitkeep
+│   ├── SNES/                        # .sfc, .smc, .zip, .7z
+│   │   └── .gitkeep
+│   ├── MAME/                        # .zip, .7z (Arcade)
+│   │   └── .gitkeep
+│   ├── PS2/                         # .chd, .iso, .cso, .gz
+│   │   └── .gitkeep
+│   └── WII/                         # .rvz, .wbfs, .iso, .ciso
 │       └── .gitkeep
 ├── emulators/                       # Emuladores pré-configurados [Commitados no Git]
-│   ├── duckstation/                 # DuckStation x64 Release
-│   │   ├── duckstation-qt-x64-ReleaseLTCG.exe
-│   │   ├── portable.txt             # Ativa modo portátil
-│   │   ├── settings.ini             # Fullscreen + Mapeamento Xbox Controller + Caminho da BIOS
-│   │   └── bios/
-│   │       └── .gitkeep
-│   └── retroarch/                   # RetroArch x64
+│   ├── duckstation/                 # DuckStation x64 Release (PS1)
+│   ├── pcsx2/                       # PCSX2 x64 Qt (PS2)
+│   │   ├── pcsx2-qt.exe
+│   │   ├── portable.txt
+│   │   └── inis/PCSX2.ini
+│   ├── dolphin/                     # Dolphin x64 Release (Wii)
+│   │   ├── Dolphin.exe
+│   │   ├── portable.txt
+│   │   └── User/Config/Dolphin.ini
+│   └── retroarch/                   # RetroArch x64 (Mega Drive, SNES, Arcade)
 │       ├── retroarch.exe
 │       ├── retroarch.cfg            # Fullscreen + XInput Controller + Caminho da BIOS
 │       ├── autoconfig/              # Perfis de controle
 │       ├── cores/
-│       │   └── genesis_plus_gx_libretro.dll  # Core Mega Drive
+│       │   ├── genesis_plus_gx_libretro.dll  # Core Mega Drive
+│       │   ├── snes9x_libretro.dll           # Core Super Nintendo
+│       │   └── fbneo_libretro.dll            # Core Arcade / MAME
 │       └── system/
 │           └── .gitkeep
 ├── data/
@@ -93,6 +106,38 @@ HydraRetro/
   - `input_joypad_driver = "xinput"`
   - `input_autodetect_enable = "true"`
   - Botões mapeados diretamente para controle Xbox via XInput e teclado como fallback.
+
+### Super Nintendo — RetroArch (Core Snes9x)
+- **Executável:** `emulators/retroarch/retroarch.exe`
+- **Core:** `emulators/retroarch/cores/snes9x_libretro.dll`
+- **Linha de Comando:** `-f -L "{CORE}" "{ROM}"`
+- **Configuração:** Usa o mesmo `retroarch.cfg` compartilhado com suporte nativo a fullscreen e controle XInput.
+
+### Arcade / MAME — RetroArch (Core FinalBurn Neo)
+- **Executável:** `emulators/retroarch/retroarch.exe`
+- **Core:** `emulators/retroarch/cores/fbneo_libretro.dll`
+- **Linha de Comando:** `-f -L "{CORE}" "{ROM}"`
+- **Configuração:** Usa o mesmo `retroarch.cfg` compartilhado. Compatível com Neo Geo, Capcom CPS1/CPS2/CPS3 e títulos clássicos MAME.
+
+### PlayStation 2 — PCSX2 (Versão Qt x64 Portable)
+- **Executável:** `emulators/pcsx2/pcsx2-qt.exe`
+- **Modo Portátil:** Arquivo `portable.txt` na raiz da pasta.
+- **Linha de Comando:** `-batch -fullscreen -nogui -- "{ROM}"`
+- **Configuração:** `inis/PCSX2.ini`:
+  - Fullscreen ativado (`StartFullscreen = true`)
+  - Sem prompts de confirmação ao fechar (`ConfirmShutdown = false`)
+  - Diretório de BIOS apontado para `../../BIOS`
+  - Mapeamento nativo Xbox Controller (Pad1 via SDL/XInput).
+
+### Nintendo Wii — Dolphin Emulator (x64 Portable)
+- **Executável:** `emulators/dolphin/Dolphin.exe`
+- **Modo Portátil:** Arquivo `portable.txt` na raiz da pasta.
+- **Linha de Comando:** `-b -e "{ROM}"`
+- **Configuração:** `User/Config/Dolphin.ini` e perfis de controle `GCPadNew.ini` / `WiimoteNew.ini`:
+  - Fullscreen ativado (`Fullscreen = True`)
+  - Sem tela de confirmação de saída (`ConfirmStop = False`)
+  - Suporte total a formatos compactados modernos (`.rvz`, `.wbfs`, `.iso`).
+  - Mapeamento automático de controle Xbox emulando Wiimote + Nunchuk e Classic Controller.
 
 ---
 

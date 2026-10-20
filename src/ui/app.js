@@ -93,6 +93,14 @@ function updateSidebarStats() {
   document.getElementById('badge-recent').textContent = games.filter(g => g.lastPlayedAt).length;
   document.getElementById('badge-ps1').textContent = games.filter(g => g.consoleId === 'PS1').length;
   document.getElementById('badge-genesis').textContent = games.filter(g => g.consoleId === 'GENESIS').length;
+  const snesBadge = document.getElementById('badge-snes');
+  if (snesBadge) snesBadge.textContent = games.filter(g => g.consoleId === 'SNES').length;
+  const mameBadge = document.getElementById('badge-mame');
+  if (mameBadge) mameBadge.textContent = games.filter(g => g.consoleId === 'MAME').length;
+  const ps2Badge = document.getElementById('badge-ps2');
+  if (ps2Badge) ps2Badge.textContent = games.filter(g => g.consoleId === 'PS2').length;
+  const wiiBadge = document.getElementById('badge-wii');
+  if (wiiBadge) wiiBadge.textContent = games.filter(g => g.consoleId === 'WII').length;
 
   const totalSec = appState.stats?.totalPlayTimeSeconds || 0;
   document.getElementById('global-playtime').textContent = formatPlaytime(totalSec);
@@ -124,7 +132,7 @@ function getFilteredGames() {
     list = list.filter(g => g.favorite);
   } else if (currentTab === 'RECENT') {
     list = list.filter(g => Boolean(g.lastPlayedAt));
-  } else if (currentTab === 'PS1' || currentTab === 'GENESIS') {
+  } else if (currentTab !== 'ALL' && currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS') {
     list = list.filter(g => g.consoleId === currentTab);
   }
 
@@ -165,7 +173,11 @@ function renderCatalogue() {
     FAVORITES: ['⭐ Meus Favoritos', `${filtered.length} clássicos marcados como favoritos`],
     RECENT: ['🕒 Últimos Jogados', `${filtered.length} jogos com histórico recente`],
     PS1: ['PlayStation 1 (DuckStation)', `${filtered.length} jogos em alta definição • Capas Oficiais Hydra`],
-    GENESIS: ['Sega Mega Drive (Genesis Plus GX)', `${filtered.length} jogos clássicos 16-bits • Capas Oficiais`]
+    GENESIS: ['Sega Mega Drive (Genesis Plus GX)', `${filtered.length} jogos clássicos 16-bits • Capas Oficiais`],
+    SNES: ['Super Nintendo (Snes9x)', `${filtered.length} jogos clássicos 16-bits • Cores Vibrantes`],
+    MAME: ['Arcade / MAME (FBNeo)', `${filtered.length} sucessos de fliperama • NeoGeo, Capcom & mais`],
+    PS2: ['PlayStation 2 (PCSX2)', `${filtered.length} sucessos em 3D • Gráficos em Alta Definição`],
+    WII: ['Nintendo Wii (Dolphin)', `${filtered.length} clássicos da Nintendo • Mapeamento Xbox Controller`]
   };
 
   const [hTitle, hSub] = titlesMap[currentTab] || ['Catálogo', ''];
@@ -211,7 +223,7 @@ function renderCatalogue() {
     const badges = document.createElement('div');
     badges.className = 'card-top-badges';
     badges.innerHTML = `
-      <span class="card-console-tag ${game.consoleId}">${game.consoleId === 'GENESIS' ? 'MD' : game.consoleId}</span>
+      <span class="card-console-tag ${game.consoleId}">${game.consoleId === 'GENESIS' ? 'MD' : (game.consoleId === 'MAME' ? 'ARC' : game.consoleId)}</span>
       ${game.favorite ? '<span class="card-fav-star">★</span>' : ''}
     `;
     artWrap.appendChild(badges);
@@ -236,7 +248,7 @@ function renderCatalogue() {
     info.innerHTML = `
       <div class="card-title" title="${game.title}">${game.title}</div>
       <div class="card-meta">
-        <span>${game.consoleId === 'PS1' ? 'PlayStation' : 'Mega Drive'}</span>
+        <span>${appState.config?.consoles?.[game.consoleId]?.name || game.consoleId}</span>
         <span class="${game.playTimeSeconds > 0 ? 'card-playtime' : ''}">${ptText}</span>
       </div>
     `;
@@ -322,7 +334,8 @@ function selectGame(game) {
     logo.classList.add('hidden');
   }
 
-  document.getElementById('details-console-badge').textContent = game.consoleId === 'PS1' ? 'PLAYSTATION 1' : 'SEGA MEGA DRIVE';
+  const cName = appState.config?.consoles?.[game.consoleId]?.name || (game.consoleId === 'PS1' ? 'PlayStation 1' : 'Sega Mega Drive');
+  document.getElementById('details-console-badge').textContent = cName.toUpperCase();
   document.getElementById('details-size-badge').textContent = formatSize(game.sizeBytes);
   document.getElementById('details-year-badge').textContent = game.releaseYear || '---';
   document.getElementById('details-rating-badge').textContent = `⭐ ${(game.rating || 4.8).toFixed(1)}`;
@@ -407,21 +420,31 @@ function updateDetailsLiveStats(game) {
 
   const achList = document.getElementById('details-ach-list');
   const achs = game.achievements || [];
-  const unlockedCount = achs.filter(a => a.unlocked).length;
-  document.getElementById('details-ach-Summary').textContent = `${unlockedCount} / ${achs.length} desbloqueadas`;
-
-  achList.innerHTML = achs.map(a => `
-    <div class="ach-item ${a.unlocked ? 'unlocked' : ''}">
-      <span class="ach-icon">${a.icon}</span>
-      <div class="ach-info">
-        <div class="ach-title">${a.title}</div>
-        <div class="ach-desc">${a.description}</div>
+  const achSummary = document.getElementById('details-ach-Summary');
+  if (achs.length === 0) {
+    achSummary.textContent = '0 / 0';
+    achList.innerHTML = `
+      <div style="padding:14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.1);color:#9ca3af;font-size:12px;text-align:center;line-height:1.6;">
+        <span style="font-size:18px;display:block;margin-bottom:4px;">🏆</span>
+        Sem conquistas pré-fabricadas.<br>
+        Conecte seu usuário e Web API Key do <strong>RetroAchievements.org</strong> nas <em>Configurações</em> para sincronizar troféus oficiais.
       </div>
-      <span class="ach-pts">+${a.points} PTS</span>
-    </div>
-  `).join('');
+    `;
+  } else {
+    const unlockedCount = achs.filter(a => a.unlocked).length;
+    achSummary.textContent = `${unlockedCount} / ${achs.length} desbloqueadas`;
+    achList.innerHTML = achs.map(a => `
+      <div class="ach-item ${a.unlocked ? 'unlocked' : ''}">
+        <span class="ach-icon">${a.icon ? `<img src="${a.icon}" width="28" height="28" style="border-radius:4px;">` : '🏆'}</span>
+        <div class="ach-info">
+          <div class="ach-title">${a.title}</div>
+          <div class="ach-desc">${a.description}</div>
+        </div>
+        <span class="ach-pts">+${a.points || 0} PTS</span>
+      </div>
+    `).join('');
+  }
 }
-
 async function launchSelectedGame(gameId, discIndex = 0) {
   try {
     showToast('Iniciando jogo em tela cheia...');

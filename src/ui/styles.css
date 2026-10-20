@@ -191,6 +191,30 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.4);
 }
 
+.console-pill.snes {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.console-pill.mame {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.console-pill.ps2 {
+  background: rgba(37, 99, 235, 0.25);
+  color: #38bdf8;
+  border: 1px solid rgba(37, 99, 235, 0.45);
+}
+
+.console-pill.wii {
+  background: rgba(20, 184, 166, 0.2);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.4);
+}
+
 .sidebar-footer {
   margin-top: auto;
   display: flex;
@@ -542,6 +566,10 @@ body {
 
 .card-console-tag.PS1 { color: #60a5fa; }
 .card-console-tag.GENESIS { color: #fbbf24; }
+.card-console-tag.SNES { color: #c084fc; }
+.card-console-tag.MAME { color: #f87171; }
+.card-console-tag.PS2 { color: #38bdf8; }
+.card-console-tag.WII { color: #2dd4bf; }
 
 .card-fav-star {
   background: rgba(12, 15, 23, 0.78);

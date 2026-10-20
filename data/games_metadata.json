@@ -4,7 +4,11 @@
     "developer": "Sega AM7",
     "publisher": "Sega",
     "releaseYear": 1989,
-    "genres": ["Hack and Slash", "Beat 'em Up", "Fantasia"],
+    "genres": [
+      "Hack and Slash",
+      "Beat 'em Up",
+      "Fantasia"
+    ],
     "players": "1-2 Jogadores (Co-op)",
     "rating": 4.7,
     "description": "O terrível Death Adder invadiu o reino de Yuria, sequestrou o rei e sua filha e tomou posse do lendário Machado Dourado. Três corajosos guerreiros — Ax Battler, Tyris Flare e Gilius Thunderhead — partem em uma jornada épica repleta de magia elemental, montarias místicas e combates intensos para libertar a terra."
@@ -14,7 +18,11 @@
     "developer": "Sega / Ancient",
     "publisher": "Sega",
     "releaseYear": 1994,
-    "genres": ["Beat 'em Up", "Ação", "Luta"],
+    "genres": [
+      "Beat 'em Up",
+      "Ação",
+      "Luta"
+    ],
     "players": "1-2 Jogadores (Co-op)",
     "rating": 4.8,
     "description": "O Sindicato do Crime liderado pelo maligno Sr. X ressurge com um plano sinistro: substituir chefes de estado por clones robóticos e utilizar uma nova substância radioativa chamada Rakushin. Axel Stone, Blaze Fielding, Skate Hunter e o ciborgue Dr. Zan unem forças para desmantelar a conspiração pelas ruas da metrópole."
@@ -24,7 +32,10 @@
     "developer": "Sonic Team",
     "publisher": "Sega",
     "releaseYear": 1991,
-    "genres": ["Plataforma", "Velocidade"],
+    "genres": [
+      "Plataforma",
+      "Velocidade"
+    ],
     "players": "1 Jogador",
     "rating": 4.9,
     "description": "O marco histórico dos videogames de 16-bits. Controle Sonic the Hedgehog em uma corrida frenética através de loopings e cenários coloridos de South Island para resgatar os animais aprisionados e frustrar os planos do maquiavélico Dr. Ivo Robotnik em busca das lendárias Esmeraldas do Caos."
@@ -34,9 +45,12 @@
     "developer": "Sonic Team / Sega Technical Institute",
     "publisher": "Sega",
     "releaseYear": 1992,
-    "genres": ["Plataforma", "Velocidade"],
+    "genres": [
+      "Plataforma",
+      "Velocidade"
+    ],
     "players": "1-2 Jogadores",
-    "rating": 5.0,
+    "rating": 5,
     "description": "A aclamada sequência que introduziu o fiel companheiro Miles 'Tails' Prower e o icônico movimento Spin Dash. Sonic e Tails correm por West Side Island contra o tempo para impedir o lançamento da colossal estação espacial bélica de Robotnik, o Death Egg."
   },
   "Sonic & Knuckles + Sonic The Hedgehog 3": {
@@ -44,9 +58,12 @@
     "developer": "Sonic Team / STI",
     "publisher": "Sega",
     "releaseYear": 1994,
-    "genres": ["Plataforma", "Aventura"],
+    "genres": [
+      "Plataforma",
+      "Aventura"
+    ],
     "players": "1-2 Jogadores",
-    "rating": 5.0,
+    "rating": 5,
     "description": "A obra-prima definitiva do Mega Drive combinando Sonic 3 e a tecnologia Lock-On de Sonic & Knuckles. Uma aventura monumental através de Angel Island com múltiplos caminhos, trilha sonora inesquecível e três personagens jogáveis com habilidades únicas: Sonic, Tails e Knuckles the Echidna."
   },
   "Crash Bandicoot": {
@@ -54,7 +71,10 @@
     "developer": "Naughty Dog",
     "publisher": "Sony Computer Entertainment",
     "releaseYear": 1996,
-    "genres": ["Plataforma 3D", "Ação"],
+    "genres": [
+      "Plataforma 3D",
+      "Ação"
+    ],
     "players": "1 Jogador",
     "rating": 4.8,
     "description": "Criado nos laboratórios dos cientistas Dr. Neo Cortex e Dr. Nitrus Brio através do raio Evolvo, Crash recusa-se a ser submetido ao controle da mente e escapa. Agora, o marsupial precisa atravessar três ilhas paradisíacas repletas de perigos, quebrar caixas de maçãs wumpa e resgatar sua amada Tawna."
@@ -64,7 +84,10 @@
     "developer": "Naughty Dog",
     "publisher": "Sony Computer Entertainment",
     "releaseYear": 1997,
-    "genres": ["Plataforma 3D", "Ação"],
+    "genres": [
+      "Plataforma 3D",
+      "Ação"
+    ],
     "players": "1 Jogador",
     "rating": 4.9,
     "description": "Após sua derrota, o Dr. Neo Cortex descobre uma nova fonte de energia: os Cristais Mestres. Ele tenta enganar Crash para coletar 25 cristais pelas salas de teletransporte (Warp Rooms), enquanto Coco Bandicoot tenta alertar o irmão sobre a verdadeira armadilha."
@@ -74,9 +97,12 @@
     "developer": "Naughty Dog",
     "publisher": "Sony Computer Entertainment",
     "releaseYear": 1998,
-    "genres": ["Plataforma 3D", "Ação"],
+    "genres": [
+      "Plataforma 3D",
+      "Ação"
+    ],
     "players": "1 Jogador",
-    "rating": 5.0,
+    "rating": 5,
     "description": "A máscara do mal Uka Uka é libertada e alia-se a Cortex e ao Dr. Nefarious Tropy, mestre do tempo. Crash e Coco viajam através de épocas históricas — Idade Média, Antigo Egito, Grande Muralha da China e o Futuro — em uma corrida temporal inesquecível."
   },
   "Castlevania: Symphony of the Night": {
@@ -84,9 +110,13 @@
     "developer": "Konami",
     "publisher": "Konami",
     "releaseYear": 1997,
-    "genres": ["Metroidvania", "Ação", "RPG"],
+    "genres": [
+      "Metroidvania",
+      "Ação",
+      "RPG"
+    ],
     "players": "1 Jogador",
-    "rating": 5.0,
+    "rating": 5,
     "description": "Quatro anos após a vitória de Richter Belmont, o castelo do Conde Drácula ressurge misteriosamente e Richter desaparece. O meio-vampiro Alucard desperta de seu sono profundo para investigar o castelo invertido, inaugurando o aclamado gênero Metroidvania com elementos profundos de RPG e trilha sonora lendária."
   },
   "Resident Evil": {
@@ -94,7 +124,10 @@
     "developer": "Capcom",
     "publisher": "Capcom",
     "releaseYear": 1996,
-    "genres": ["Survival Horror", "Ação"],
+    "genres": [
+      "Survival Horror",
+      "Ação"
+    ],
     "players": "1 Jogador",
     "rating": 4.9,
     "description": "Membros da equipe Alpha dos S.T.A.R.S. — incluindo Chris Redfield e Jill Valentine — são encurralados em uma misteriosa mansão nas montanhas Arklay infestada de mortos-vivos e criaturas geneticamente modificadas criadas secretamente pela corporação Umbrella."
@@ -104,9 +137,12 @@
     "developer": "Capcom",
     "publisher": "Capcom",
     "releaseYear": 1998,
-    "genres": ["Survival Horror", "Ação"],
+    "genres": [
+      "Survival Horror",
+      "Ação"
+    ],
     "players": "1 Jogador",
-    "rating": 5.0,
+    "rating": 5,
     "description": "O pesadelo biológico se espalha para Raccoon City. O policial novato Leon S. Kennedy e a estudante universitária Claire Redfield chegam à cidade em pleno apocalipse zumbi e precisam desvendar os segredos da delegacia e dos laboratórios subterrâneos da Umbrella."
   },
   "Silent Hill": {
@@ -114,7 +150,10 @@
     "developer": "Team Silent / Konami",
     "publisher": "Konami",
     "releaseYear": 1999,
-    "genres": ["Terror Psicológico", "Survival Horror"],
+    "genres": [
+      "Terror Psicológico",
+      "Survival Horror"
+    ],
     "players": "1 Jogador",
     "rating": 4.9,
     "description": "Harry Mason viaja de férias com sua filha Cheryl para a pacata cidade turística de Silent Hill. Após um acidente de carro, Harry acorda em uma cidade deserta, coberta por névoa densa e neve fora de época, onde uma realidade alternativa grotesca espreita a cada esquina."
@@ -124,9 +163,244 @@
     "developer": "Namco",
     "publisher": "Namco",
     "releaseYear": 1998,
-    "genres": ["Luta 3D", "Artes Marciais"],
+    "genres": [
+      "Luta 3D",
+      "Artes Marciais"
+    ],
     "players": "1-2 Jogadores",
-    "rating": 5.0,
+    "rating": 5,
     "description": "Dezenove anos após o The King of Iron Fist Tournament 2, a criatura ancestral Ogre ataca os maiores mestres de artes marciais do mundo. Heihachi Mishima organiza o terceiro torneio para atrair a criatura, enquanto o jovem Jin Kazama busca vingança pela morte de sua mãe, Jun."
+  },
+  "Super Mario World": {
+    "title": "Super Mario World",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 1990,
+    "genres": [
+      "Plataforma",
+      "Aventura"
+    ],
+    "players": "1-2 Jogadores",
+    "rating": 5,
+    "description": "Um dos maiores clássicos de todos os tempos. Mario e Luigi viajam para a Terra dos Dinossauros para resgatar a Princesa Peach e os ovos de Yoshi das garras de Bowser e seus Koopalings. Apresenta dezenas de fases secretas, múltiplos caminhos e a estreia inesquecível do dinossauro Yoshi."
+  },
+  "Donkey Kong Country": {
+    "title": "Donkey Kong Country",
+    "developer": "Rare",
+    "publisher": "Nintendo",
+    "releaseYear": 1994,
+    "genres": [
+      "Plataforma",
+      "Ação"
+    ],
+    "players": "1-2 Jogadores",
+    "rating": 4.9,
+    "description": "Revolucionário marco gráfico em computação gráfica pré-renderizada (ACM). Donkey Kong e Diddy Kong embarcam em uma perigosa jornada pela Donkey Kong Island para recuperar sua preciosa reserva de bananas roubada pelo malévolo King K. Rool e seus Kremlings."
+  },
+  "Chrono Trigger": {
+    "title": "Chrono Trigger",
+    "developer": "Square",
+    "publisher": "Square",
+    "releaseYear": 1995,
+    "genres": [
+      "RPG",
+      "Aventura",
+      "Viagem no Tempo"
+    ],
+    "players": "1 Jogador",
+    "rating": 5,
+    "description": "Desenvolvido pelo 'Dream Team' formado por Hironobu Sakaguchi, Yuji Horii e Akira Toriyama. Crono e seus amigos viajam através de múltiplas eras da história para impedir que o parasita alienígena Lavos destrua o planeta no futuro distante. Um dos RPGs mais aclamados da história."
+  },
+  "The Legend of Zelda: A Link to the Past": {
+    "title": "The Legend of Zelda: A Link to the Past",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 1991,
+    "genres": [
+      "Ação",
+      "Aventura",
+      "RPG"
+    ],
+    "players": "1 Jogador",
+    "rating": 5,
+    "description": "Link desperta em uma noite tempestuosa para resgatar a Princesa Zelda do misterioso mago Agahnim. Explorando os mundos da Luz e das Trevas (Dark World), Link deve empunhar a lendária Master Sword para derrotar o temível lorde demônio Ganon."
+  },
+  "Super Metroid": {
+    "title": "Super Metroid",
+    "developer": "Nintendo R&D1",
+    "publisher": "Nintendo",
+    "releaseYear": 1994,
+    "genres": [
+      "Metroidvania",
+      "Ação",
+      "Ficção Científica"
+    ],
+    "players": "1 Jogador",
+    "rating": 5,
+    "description": "A caçadora de recompensas Samus Aran retorna ao planeta hostil Zebes para resgatar o último espécime de Metroid, roubado pelo líder dos Piratas Espaciais, Ridley. Obra-prima em atmosfera, exploração não-linear e design de som."
+  },
+  "Metal Slug": {
+    "title": "Metal Slug",
+    "developer": "Nazca Corporation",
+    "publisher": "SNK",
+    "releaseYear": 1996,
+    "genres": [
+      "Run and Gun",
+      "Ação",
+      "Arcade"
+    ],
+    "players": "1-2 Jogadores (Co-op)",
+    "rating": 4.9,
+    "description": "O ápice da ação frenética em 2D dos arcades Neo Geo. Controle Marco Rossi e Tarma Roving enfrentando o exército do General Morden através de cenários destrutíveis com pixel art detalhada e tanques Super Vehicle-001 armados até os dentes."
+  },
+  "Cadillacs and Dinosaurs": {
+    "title": "Cadillacs and Dinosaurs",
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "releaseYear": 1993,
+    "genres": [
+      "Beat 'em Up",
+      "Arcade",
+      "Ação"
+    ],
+    "players": "1-3 Jogadores (Co-op)",
+    "rating": 5,
+    "description": "Um dos beat 'em ups mais jogados nos botecos e fliperamas do Brasil. No século 26, dinossauros voltam a vagar pela Terra enquanto uma gangue de caçadores ilegais os enfurece. Jack Tenrec, Hannah Dundee, Mustapha Cairo e Mess O'Bradovich lutam para restabelecer o equilíbrio ecológico."
+  },
+  "The King of Fighters '98": {
+    "title": "The King of Fighters '98",
+    "developer": "SNK",
+    "publisher": "SNK",
+    "releaseYear": 1998,
+    "genres": [
+      "Luta",
+      "Arcade"
+    ],
+    "players": "1-2 Jogadores (Versus)",
+    "rating": 5,
+    "description": "Considerado o ápice competitivo da era Neo Geo. Uma 'Dream Match' reunindo mais de 50 lutadores lendários, equilíbrio refinado de jogabilidade e modos Advanced e Extra para combates inesquecíveis entre trios."
+  },
+  "Street Fighter II: The World Warrior": {
+    "title": "Street Fighter II: The World Warrior",
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "releaseYear": 1991,
+    "genres": [
+      "Luta",
+      "Arcade"
+    ],
+    "players": "1-2 Jogadores (Versus)",
+    "rating": 5,
+    "description": "O fenômeno mundial dos fliperamas que definiu para sempre o gênero de jogos de luta competitiva. Escolha entre 8 mestres das artes marciais de diferentes nações e enfrente os chefes da organização Shadaloo liderada por M. Bison."
+  },
+  "God of War": {
+    "title": "God of War",
+    "developer": "Santa Monica Studio",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2005,
+    "genres": [
+      "Ação",
+      "Hack and Slash",
+      "Aventura"
+    ],
+    "players": "1 Jogador",
+    "rating": 5,
+    "description": "A épica jornada de vingança de Kratos, o Fantasma de Esparta, contra Ares, o Deus da Guerra. Armado com as Lâminas do Caos e magia divina concedida pelos Deuses do Olimpo, Kratos enfrenta hordas mitológicas e a colossal Caixa de Pandora para redimir seu passado sangrento."
+  },
+  "God of War II": {
+    "title": "God of War II",
+    "developer": "Santa Monica Studio",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2007,
+    "genres": [
+      "Ação",
+      "Hack and Slash",
+      "Aventura"
+    ],
+    "players": "1 Jogador",
+    "rating": 5,
+    "description": "Considerado o ápice técnico e gráfico do PlayStation 2. Traído por Zeus e despojado de seus poderes divinos, Kratos viaja até os confins da Terra para encontrar os Corcéis do Tempo e as Irmãs do Destino, determinado a mudar o passado e destruir o próprio Olimpo."
+  },
+  "Shadow of the Colossus": {
+    "title": "Shadow of the Colossus",
+    "developer": "Team Ico",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2005,
+    "genres": [
+      "Aventura",
+      "Ação",
+      "Fantasia"
+    ],
+    "players": "1 Jogador",
+    "rating": 5,
+    "description": "Uma das maiores obras de arte interativa da história dos videogames. Wander viaja pelas Terras Proibidas montado em seu fiel cavalo Agro, desafiando 16 colossos monumentais para trazer de volta a vida da jovem Mono."
+  },
+  "Grand Theft Auto: San Andreas": {
+    "title": "Grand Theft Auto: San Andreas",
+    "developer": "Rockstar North",
+    "publisher": "Rockstar Games",
+    "releaseYear": 2004,
+    "genres": [
+      "Mundo Aberto",
+      "Ação",
+      "Crime"
+    ],
+    "players": "1-2 Jogadores",
+    "rating": 5,
+    "description": "O fenômeno cultural dos anos 2000. Carl 'CJ' Johnson retorna a Los Santos no início dos anos 90 após a morte de sua mãe, apenas para ser arrastado de volta ao submundo das gangues de rua, corrupção policial e guerras de território por todo o estado de San Andreas."
+  },
+  "Super Mario Galaxy": {
+    "title": "Super Mario Galaxy",
+    "developer": "Nintendo EAD Tokyo",
+    "publisher": "Nintendo",
+    "releaseYear": 2007,
+    "genres": [
+      "Plataforma 3D",
+      "Aventura",
+      "Espaço"
+    ],
+    "players": "1-2 Jogadores (Co-op)",
+    "rating": 5,
+    "description": "Uma revolução no design de plataformas tridimensionais com física de gravidade esférica. Mario é lançado através do cosmos para resgatar a Princesa Peach e as Superestrelas roubadas por Bowser, com o auxílio da misteriosa princesa estelar Rosalina e sua nave cometa."
+  },
+  "Super Mario Galaxy 2": {
+    "title": "Super Mario Galaxy 2",
+    "developer": "Nintendo EAD Tokyo",
+    "publisher": "Nintendo",
+    "releaseYear": 2010,
+    "genres": [
+      "Plataforma 3D",
+      "Aventura"
+    ],
+    "players": "1-2 Jogadores",
+    "rating": 5,
+    "description": "Aclamada sequência que expande a genialidade gravitacional com novas mecânicas de fases dinâmicas, o retorno adorado de Yoshi com poderes de frutas elementares e desafios de precisão espacial inesquecíveis."
+  },
+  "The Legend of Zelda: Twilight Princess": {
+    "title": "The Legend of Zelda: Twilight Princess",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 2006,
+    "genres": [
+      "Ação",
+      "Aventura",
+      "Fantasia Sombria"
+    ],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Uma das aventuras mais sombrias e cinematográficas da saga Zelda. Quando o Reino do Crepúsculo consome Hyrule, Link é transformado em lobo e se une à criatura crepuscular Midna para derrotar Zant e restaurar a Luz."
+  },
+  "Donkey Kong Country Returns": {
+    "title": "Donkey Kong Country Returns",
+    "developer": "Retro Studios",
+    "publisher": "Nintendo",
+    "releaseYear": 2010,
+    "genres": [
+      "Plataforma",
+      "Ação"
+    ],
+    "players": "1-2 Jogadores (Co-op)",
+    "rating": 4.9,
+    "description": "O retorno triunfal dos reis da selva pelas mãos da Retro Studios. Donkey Kong e Diddy Kong enfrentam a Tribo Tiki Tak, hipnotizadores musicais que roubaram todas as bananas da ilha, em fases intensas com barris-foguete e carrinhos de mina."
   }
 }
