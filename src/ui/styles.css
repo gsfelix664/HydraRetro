@@ -215,6 +215,48 @@ body {
   border: 1px solid rgba(20, 184, 166, 0.4);
 }
 
+.console-pill.ps3 {
+  background: rgba(225, 29, 72, 0.2);
+  color: #fb7185;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+}
+
+.console-pill.psp {
+  background: rgba(6, 182, 212, 0.2);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.console-pill.gc {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.console-pill.n64 {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.console-pill.gba {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.console-pill.gbc {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.4);
+}
+
+.console-pill.gb {
+  background: rgba(132, 204, 22, 0.2);
+  color: #a3e635;
+  border: 1px solid rgba(132, 204, 22, 0.4);
+}
+
 .sidebar-footer {
   margin-top: auto;
   display: flex;
@@ -570,6 +612,13 @@ body {
 .card-console-tag.MAME { color: #f87171; }
 .card-console-tag.PS2 { color: #38bdf8; }
 .card-console-tag.WII { color: #2dd4bf; }
+.card-console-tag.PS3 { color: #fb7185; }
+.card-console-tag.PSP { color: #22d3ee; }
+.card-console-tag.GC { color: #818cf8; }
+.card-console-tag.N64 { color: #facc15; }
+.card-console-tag.GBA { color: #a78bfa; }
+.card-console-tag.GBC { color: #f472b6; }
+.card-console-tag.GB { color: #a3e635; }
 
 .card-fav-star {
   background: rgba(12, 15, 23, 0.78);

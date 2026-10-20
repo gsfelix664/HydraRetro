@@ -88,19 +88,26 @@ async function fetchState() {
 
 function updateSidebarStats() {
   const games = appState.games || [];
-  document.getElementById('badge-all').textContent = games.length;
-  document.getElementById('badge-fav').textContent = games.filter(g => g.favorite).length;
-  document.getElementById('badge-recent').textContent = games.filter(g => g.lastPlayedAt).length;
-  document.getElementById('badge-ps1').textContent = games.filter(g => g.consoleId === 'PS1').length;
-  document.getElementById('badge-genesis').textContent = games.filter(g => g.consoleId === 'GENESIS').length;
-  const snesBadge = document.getElementById('badge-snes');
-  if (snesBadge) snesBadge.textContent = games.filter(g => g.consoleId === 'SNES').length;
-  const mameBadge = document.getElementById('badge-mame');
-  if (mameBadge) mameBadge.textContent = games.filter(g => g.consoleId === 'MAME').length;
-  const ps2Badge = document.getElementById('badge-ps2');
-  if (ps2Badge) ps2Badge.textContent = games.filter(g => g.consoleId === 'PS2').length;
-  const wiiBadge = document.getElementById('badge-wii');
-  if (wiiBadge) wiiBadge.textContent = games.filter(g => g.consoleId === 'WII').length;
+  const setBadge = (id, count) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = count;
+  };
+  setBadge('badge-all', games.length);
+  setBadge('badge-fav', games.filter(g => g.favorite).length);
+  setBadge('badge-recent', games.filter(g => g.lastPlayedAt).length);
+  setBadge('badge-ps1', games.filter(g => g.consoleId === 'PS1').length);
+  setBadge('badge-genesis', games.filter(g => g.consoleId === 'GENESIS').length);
+  setBadge('badge-snes', games.filter(g => g.consoleId === 'SNES').length);
+  setBadge('badge-mame', games.filter(g => g.consoleId === 'MAME').length);
+  setBadge('badge-ps2', games.filter(g => g.consoleId === 'PS2').length);
+  setBadge('badge-wii', games.filter(g => g.consoleId === 'WII').length);
+  setBadge('badge-gc', games.filter(g => g.consoleId === 'GC').length);
+  setBadge('badge-psp', games.filter(g => g.consoleId === 'PSP').length);
+  setBadge('badge-ps3', games.filter(g => g.consoleId === 'PS3').length);
+  setBadge('badge-n64', games.filter(g => g.consoleId === 'N64').length);
+  setBadge('badge-gba', games.filter(g => g.consoleId === 'GBA').length);
+  setBadge('badge-gbc', games.filter(g => g.consoleId === 'GBC').length);
+  setBadge('badge-gb', games.filter(g => g.consoleId === 'GB').length);
 
   const totalSec = appState.stats?.totalPlayTimeSeconds || 0;
   document.getElementById('global-playtime').textContent = formatPlaytime(totalSec);
@@ -172,12 +179,19 @@ function renderCatalogue() {
     ALL: ['Todos os Jogos', `${filtered.length} jogos prontos para iniciar com 1 clique`],
     FAVORITES: ['⭐ Meus Favoritos', `${filtered.length} clássicos marcados como favoritos`],
     RECENT: ['🕒 Últimos Jogados', `${filtered.length} jogos com histórico recente`],
-    PS1: ['PlayStation 1 (DuckStation)', `${filtered.length} jogos em alta definição • Capas Oficiais Hydra`],
-    GENESIS: ['Sega Mega Drive (Genesis Plus GX)', `${filtered.length} jogos clássicos 16-bits • Capas Oficiais`],
-    SNES: ['Super Nintendo (Snes9x)', `${filtered.length} jogos clássicos 16-bits • Cores Vibrantes`],
-    MAME: ['Arcade / MAME (FBNeo)', `${filtered.length} sucessos de fliperama • NeoGeo, Capcom & mais`],
-    PS2: ['PlayStation 2 (PCSX2)', `${filtered.length} sucessos em 3D • Gráficos em Alta Definição`],
-    WII: ['Nintendo Wii (Dolphin)', `${filtered.length} clássicos da Nintendo • Mapeamento Xbox Controller`]
+    PS1: ['PlayStation 1 (DuckStation)', `${filtered.length} jogos em alta definição • DuckStation`],
+    GENESIS: ['Sega Mega Drive (Genesis Plus GX)', `${filtered.length} jogos clássicos 16-bits • Genesis Plus GX`],
+    SNES: ['Super Nintendo (Snes9x)', `${filtered.length} jogos clássicos 16-bits • Snes9x`],
+    MAME: ['Arcade / MAME (FBNeo)', `${filtered.length} sucessos de fliperama • FBNeo`],
+    PS2: ['PlayStation 2 (PCSX2)', `${filtered.length} sucessos em 3D • PCSX2 Qt`],
+    WII: ['Nintendo Wii (Dolphin)', `${filtered.length} clássicos Nintendo • Dolphin Emulator`],
+    GC: ['Nintendo GameCube (Dolphin)', `${filtered.length} clássicos GameCube • Dolphin Emulator`],
+    PSP: ['PlayStation Portable (PPSSPP)', `${filtered.length} sucessos portáteis • PPSSPP`],
+    PS3: ['PlayStation 3 (RPCS3)', `${filtered.length} títulos PlayStation 3 • RPCS3`],
+    N64: ['Nintendo 64 (Mupen64Plus-Next)', `${filtered.length} clássicos 64-bits • Mupen64Plus`],
+    GBA: ['Game Boy Advance (mGBA)', `${filtered.length} portáteis 32-bits • mGBA`],
+    GBC: ['Game Boy Color (Gambatte)', `${filtered.length} clássicos coloridos • Gambatte`],
+    GB: ['Game Boy (Gambatte)', `${filtered.length} clássicos atemporais • Gambatte`]
   };
 
   const [hTitle, hSub] = titlesMap[currentTab] || ['Catálogo', ''];
@@ -334,7 +348,7 @@ function selectGame(game) {
     logo.classList.add('hidden');
   }
 
-  const cName = appState.config?.consoles?.[game.consoleId]?.name || (game.consoleId === 'PS1' ? 'PlayStation 1' : 'Sega Mega Drive');
+  const cName = appState.config?.consoles?.[game.consoleId]?.name || game.consoleId;
   document.getElementById('details-console-badge').textContent = cName.toUpperCase();
   document.getElementById('details-size-badge').textContent = formatSize(game.sizeBytes);
   document.getElementById('details-year-badge').textContent = game.releaseYear || '---';

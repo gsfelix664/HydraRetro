@@ -402,5 +402,345 @@
     "players": "1-2 Jogadores (Co-op)",
     "rating": 4.9,
     "description": "O retorno triunfal dos reis da selva pelas mãos da Retro Studios. Donkey Kong e Diddy Kong enfrentam a Tribo Tiki Tak, hipnotizadores musicais que roubaram todas as bananas da ilha, em fases intensas com barris-foguete e carrinhos de mina."
+  },
+  "Super Smash Bros. Melee": {
+    "title": "Super Smash Bros. Melee",
+    "developer": "HAL Laboratory",
+    "publisher": "Nintendo",
+    "releaseYear": 2001,
+    "genres": ["Luta", "Party Game", "Ação"],
+    "players": "1-4 Jogadores",
+    "rating": 5.0,
+    "description": "O clássico supremo de luta da Nintendo. Com física rápida e combate competitivo lendário, reúna Mario, Link, Fox, Marth e dezenas de ícones em arenas caóticas com itens dinâmicos."
+  },
+  "The Legend of Zelda: The Wind Waker": {
+    "title": "The Legend of Zelda: The Wind Waker",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 2002,
+    "genres": ["Ação", "Aventura", "Fantasia"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Navegue pelo Grande Oceano a bordo do barco falante King of Red Lions em um estilo de arte cel-shading deslumbrante. Link empunha a Batuta dos Ventos para desvendar os segredos da lendária Hyrule submersa."
+  },
+  "Super Mario Sunshine": {
+    "title": "Super Mario Sunshine",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 2002,
+    "genres": ["Plataforma 3D", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 4.8,
+    "description": "Mario viaja para a tropical Isle Delfino para descansar, mas é falsamente acusado de poluir o paraíso. Equipado com a FLUDD (bomba d'água mecânica), explore cenários ensolarados para coletar Shines e resgatar Peach."
+  },
+  "Metroid Prime": {
+    "title": "Metroid Prime",
+    "developer": "Retro Studios",
+    "publisher": "Nintendo",
+    "releaseYear": 2002,
+    "genres": ["Ação e Aventura", "Tiro em Primeira Pessoa", "Ficção Científica"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "Uma revolução no gênero de tiro e exploração. Samus Aran pousa no planeta hostil Tallon IV para desvendar as experiências dos Piratas do Espaço com a perigosa substância mutagênica Phazon."
+  },
+  "Mario Kart: Double Dash!!": {
+    "title": "Mario Kart: Double Dash!!",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 2003,
+    "genres": ["Corrida", "Party Game"],
+    "players": "1-4 Jogadores",
+    "rating": 4.9,
+    "description": "A edição única de Mario Kart onde cada veículo leva dois pilotos ao mesmo tempo: um pilota com drift de alta precisão enquanto o outro dispara cascos, bombas e itens especiais."
+  },
+  "God of War: Chains of Olympus": {
+    "title": "God of War: Chains of Olympus",
+    "developer": "Ready at Dawn / Santa Monica Studio",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2008,
+    "genres": ["Ação", "Hack and Slash", "Mitologia"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Durante seus anos de servidão aos deuses do Olimpo, Kratos é enviado para a cidade de Ática e desce aos confins do Submundo após o deus Hélio ser arrancado do céu, mergulhando a Grécia na escuridão eterna de Morfeu."
+  },
+  "God of War: Ghost of Sparta": {
+    "title": "God of War: Ghost of Sparta",
+    "developer": "Ready at Dawn / Santa Monica Studio",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2010,
+    "genres": ["Ação", "Hack and Slash", "Mitologia"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Como o novo Deus da Guerra, Kratos é atormentado por visões de seu passado mortal e parte em uma busca desesperada pela cidade submersa de Atlântida para resgatar seu irmão Deimos dos domínios da Morte."
+  },
+  "Crisis Core: Final Fantasy VII": {
+    "title": "Crisis Core: Final Fantasy VII",
+    "developer": "Square Enix",
+    "publisher": "Square Enix",
+    "releaseYear": 2007,
+    "genres": ["RPG de Ação", "Fantasia"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "A emocionante história de Zack Fair, um jovem guerreiro da SOLDIER de 2ª Classe que sonha em se tornar um herói. Descubra a origem da lendária Buster Sword e os trágicos eventos que antecedem Final Fantasy VII."
+  },
+  "Grand Theft Auto: Vice City Stories": {
+    "title": "Grand Theft Auto: Vice City Stories",
+    "developer": "Rockstar Leeds / Rockstar North",
+    "publisher": "Rockstar Games",
+    "releaseYear": 2006,
+    "genres": ["Mundo Aberto", "Ação", "Crime"],
+    "players": "1 Jogador",
+    "rating": 4.8,
+    "description": "Vice City, 1984. O militar Vic Vance é expulso do exército e precisa construir um império do crime nas ruas ensolaradas e corruptas da cidade para salvar sua família doente."
+  },
+  "Tekken 5: Dark Resurrection": {
+    "title": "Tekken 5: Dark Resurrection",
+    "developer": "Bandai Namco",
+    "publisher": "Bandai Namco",
+    "releaseYear": 2006,
+    "genres": ["Luta 3D", "Artes Marciais"],
+    "players": "1-2 Jogadores",
+    "rating": 4.9,
+    "description": "Uma das versões mais polidas de Tekken com taxa de quadros fluida a 60 FPS, dezenas de lutadores lendários, novos cenários e golpes balanceados para competições de alto nível."
+  },
+  "Demon's Souls": {
+    "title": "Demon's Souls",
+    "developer": "FromSoftware",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2009,
+    "genres": ["RPG de Ação", "Dark Fantasy", "Soulslike"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "O pioneiro que deu origem ao gênero Soulslike. O rei Allant despertou o Antigo e uma névoa espessa isolou o reino de Boletaria. Enfrente desafios implacáveis e criaturas aterrorizantes para acumular almas e salvar o reino."
+  },
+  "The Last of Us": {
+    "title": "The Last of Us",
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2013,
+    "genres": ["Ação e Aventura", "Sobrevivência", "Drama"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "Em uma civilização devastada pela infecção do fungo Cordyceps, Joel é contratado para contrabandear Ellie, uma jovem imune de 14 anos, para fora de uma zona militarizada de quarentena através de uma jornada comovente pelos EUA."
+  },
+  "God of War III": {
+    "title": "God of War III",
+    "developer": "Santa Monica Studio",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2010,
+    "genres": ["Ação", "Hack and Slash", "Mitologia"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "O grandioso desfecho da trilogia grega de Kratos. Montado nas costas dos titãs, o Fantasma de Esparta escala o Monte Olimpo com a Caixa de Pandora para exterminar Zeus, Poseidon, Hades e todos os deuses que o traíram."
+  },
+  "Red Dead Redemption": {
+    "title": "Red Dead Redemption",
+    "developer": "Rockstar San Diego",
+    "publisher": "Rockstar Games",
+    "releaseYear": 2010,
+    "genres": ["Mundo Aberto", "Faroeste", "Ação"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "América, 1911. A era do Velho Oeste está chegando ao fim. O ex-fora-da-lei John Marston é forçado por agentes federais a caçar os membros remanescentes de sua antiga gangue para salvar sua esposa e filho."
+  },
+  "Uncharted 2: Among Thieves": {
+    "title": "Uncharted 2: Among Thieves",
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 2009,
+    "genres": ["Ação e Aventura", "Tiro em Terceira Pessoa", "Cinemático"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "Nathan Drake é atraído de volta ao mundo traiçoeiro dos caçadores de tesouros para rastrear a frota perdida de Marco Polo e a mítica Pedra Cintamani no reino lendário de Shambhala."
+  },
+  "Super Mario 64": {
+    "title": "Super Mario 64",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 1996,
+    "genres": ["Plataforma 3D", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "O marco revolucionário que definiu os jogos tridimensionais na história. Pule através das pinturas mágicas do castelo da Princesa Peach para coletar 120 Power Stars e derrotar Bowser em arenas flutuantes."
+  },
+  "The Legend of Zelda: Ocarina of Time": {
+    "title": "The Legend of Zelda: Ocarina of Time",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 1998,
+    "genres": ["Ação e Aventura", "Fantasia"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "Frequentemente aclamado como o melhor videogame de todos os tempos. O jovem Link viaja através do tempo empunhando a Master Sword e a mágica Ocarina do Tempo para impedir que Ganondorf conquiste a sagrada Triforce."
+  },
+  "The Legend of Zelda: Majora's Mask": {
+    "title": "The Legend of Zelda: Majora's Mask",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 2000,
+    "genres": ["Ação e Aventura", "Fantasia Sombria"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Uma experiência única e psicológica de 72 horas. Link cai no mundo paralelo de Termina, onde a Lua ameaça colidir com a terra sob a influência maligna de Skull Kid e a nefasta Máscara de Majora."
+  },
+  "Mario Kart 64": {
+    "title": "Mario Kart 64",
+    "developer": "Nintendo EAD",
+    "publisher": "Nintendo",
+    "releaseYear": 1996,
+    "genres": ["Corrida", "Party Game"],
+    "players": "1-4 Jogadores",
+    "rating": 4.8,
+    "description": "A estreia da série em pistas 3D completas com elevações, pontes e curvas ousadas. Dispare cascos azuis e vermelhos e enfrente amigos nas lendárias pistas Rainbow Road e Block Fort."
+  },
+  "GoldenEye 007": {
+    "title": "GoldenEye 007",
+    "developer": "Rare",
+    "publisher": "Nintendo",
+    "releaseYear": 1997,
+    "genres": ["Tiro em Primeira Pessoa", "Espionagem"],
+    "players": "1-4 Jogadores",
+    "rating": 4.9,
+    "description": "O lendário shooter de espionagem da Rareware que redefiniu os jogos de tiro nos consoles. Controle James Bond em missões furtivas e aproveite o icônico modo multijogador em tela dividida para até 4 jogadores."
+  },
+  "Super Smash Bros.": {
+    "title": "Super Smash Bros.",
+    "developer": "HAL Laboratory",
+    "publisher": "Nintendo",
+    "releaseYear": 1999,
+    "genres": ["Luta", "Party Game"],
+    "players": "1-4 Jogadores",
+    "rating": 4.8,
+    "description": "Onde tudo começou! Mario, Donkey Kong, Link, Samus, Yoshi, Kirby, Fox e Pikachu duelam em arenas inspiradas em clássicos da Nintendo onde o objetivo é lançar os oponentes para fora do cenário."
+  },
+  "Banjo-Kazooie": {
+    "title": "Banjo-Kazooie",
+    "developer": "Rare",
+    "publisher": "Nintendo",
+    "releaseYear": 1998,
+    "genres": ["Plataforma 3D", "Coleta", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "O carismático urso Banjo e a atrevida pássaro Kazooie partem pelo covil da bruxa Gruntilda para resgatar a irmãzinha Tooty, aprendendo transformações mágicas com Mumbo Jumbo e coletando peças de quebra-cabeça (Jiggies)."
+  },
+  "Pokémon Emerald": {
+    "title": "Pokémon Emerald",
+    "developer": "Game Freak",
+    "publisher": "Nintendo / The Pokémon Company",
+    "releaseYear": 2004,
+    "genres": ["RPG", "Aventura", "Monstros de Bolso"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "A versão definitiva da terceira geração na vibrante região de Hoenn. Enfrente as conspirações das equipes Magma e Aqua e desperte o lendário Rayquaza para apaziguar o cataclismo entre Groudon e Kyogre, culminando no épico desafio da Battle Frontier."
+  },
+  "Pokémon FireRed": {
+    "title": "Pokémon FireRed",
+    "developer": "Game Freak",
+    "publisher": "Nintendo",
+    "releaseYear": 2004,
+    "genres": ["RPG", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "O remake definitivo dos clássicos do Game Boy original com gráficos coloridos de 32-bits, sistema de itens moderno e as misteriosas Ilhas Sevii prontas para exploração após a Liga Pokémon de Kanto."
+  },
+  "The Legend of Zelda: The Minish Cap": {
+    "title": "The Legend of Zelda: The Minish Cap",
+    "developer": "Capcom / Flagship",
+    "publisher": "Nintendo",
+    "releaseYear": 2004,
+    "genres": ["Ação e Aventura", "Fantasia"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Com a ajuda de Ezlo, um chapéu falante mágico, Link pode encolher até o tamanho minúsculo dos Picori (Minish) para explorar o reino de Hyrule a partir de uma perspectiva microscópica encantadora."
+  },
+  "Metroid Fusion": {
+    "title": "Metroid Fusion",
+    "developer": "Nintendo R&D1",
+    "publisher": "Nintendo",
+    "releaseYear": 2002,
+    "genres": ["Metroidvania", "Ação", "Ficção Científica"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Infectada pelo parasita mortal X no planeta SR388, Samus Aran é salva por uma vacina feita do DNA do Metroid bebê. A bordo de uma estação de pesquisa abandonada, ela é caçada por um clone aterrador de si mesma: a SA-X."
+  },
+  "Castlevania: Aria of Sorrow": {
+    "title": "Castlevania: Aria of Sorrow",
+    "developer": "Konami",
+    "publisher": "Konami",
+    "releaseYear": 2003,
+    "genres": ["Metroidvania", "Ação", "Fantasia Gótica"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "No ano de 2035, o jovem Soma Cruz é transportado para o castelo do Drácula durante um eclipse solar. Com o poder único de absorver as almas e habilidades dos monstros derrotados, descubra sua verdadeira linhagem sombria."
+  },
+  "Pokémon Crystal": {
+    "title": "Pokémon Crystal",
+    "developer": "Game Freak",
+    "publisher": "Nintendo",
+    "releaseYear": 2000,
+    "genres": ["RPG", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "A obra-prima da segunda geração no Game Boy Color. Introduziu animações fluidas para os monstrinhos no início dos combates, a possibilidade de jogar como treinadora feminina e a lenda do cão lendário Suicune."
+  },
+  "The Legend of Zelda: Oracle of Ages": {
+    "title": "The Legend of Zelda: Oracle of Ages",
+    "developer": "Capcom / Flagship",
+    "publisher": "Nintendo",
+    "releaseYear": 2001,
+    "genres": ["Ação e Aventura", "Quebra-cabeças"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Link viaja para a terra de Labrynna e utiliza a Harpa das Eras para alternar entre o passado e o presente, resolvendo quebra-cabeças temporais intrincados para salvar Nayru, o Oráculo das Eras."
+  },
+  "The Legend of Zelda: Oracle of Seasons": {
+    "title": "The Legend of Zelda: Oracle of Seasons",
+    "developer": "Capcom / Flagship",
+    "publisher": "Nintendo",
+    "releaseYear": 2001,
+    "genres": ["Ação e Aventura", "Ação"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Empunhando a Batuta das Estações na terra de Holodrum, Link pode alterar o clima entre primavera, verão, outono e inverno para congelar rios, florescer trepadeiras e salvar Din, o Oráculo das Estações."
+  },
+  "Pokémon Red": {
+    "title": "Pokémon Red",
+    "developer": "Game Freak",
+    "publisher": "Nintendo",
+    "releaseYear": 1996,
+    "genres": ["RPG", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "O fenômeno cultural que deu início a tudo. Escolha entre Bulbasaur, Charmander ou Squirtle em Pallet Town, derrote os 8 Líderes de Ginásio de Kanto, desmantele a Equipe Rocket e torne-se o Campeão da Liga Pokémon."
+  },
+  "Pokémon Blue": {
+    "title": "Pokémon Blue",
+    "developer": "Game Freak",
+    "publisher": "Nintendo",
+    "releaseYear": 1996,
+    "genres": ["RPG", "Aventura"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "Capture, treine e batalhe com os 151 monstrinhos originais na clássica aventura de Kanto que conquistou o mundo no Game Boy portátil original."
+  },
+  "Tetris": {
+    "title": "Tetris",
+    "developer": "Nintendo / Alexey Pajitnov",
+    "publisher": "Nintendo",
+    "releaseYear": 1989,
+    "genres": ["Quebra-cabeça", "Lógica"],
+    "players": "1-2 Jogadores",
+    "rating": 5.0,
+    "description": "O jogo de quebra-cabeça mais influente de todos os tempos. Encaixe as peças geométricas descendentes ao som da inesquecível canção folclórica Korobeiniki (Type-A) para limpar linhas e bater recordes."
+  },
+  "Super Mario Land": {
+    "title": "Super Mario Land",
+    "developer": "Nintendo R&D1",
+    "publisher": "Nintendo",
+    "releaseYear": 1989,
+    "genres": ["Plataforma", "Ação"],
+    "players": "1 Jogador",
+    "rating": 4.7,
+    "description": "A estreia portátil de Mario no reino exótico de Sarasaland. Pilote o submarino Marine Pop e o avião Sky Pop para derrotar o invasor espacial alienígena Tatanga e resgatar a Princesa Daisy."
   }
 }

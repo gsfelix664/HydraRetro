@@ -100,6 +100,13 @@ fs.mkdirSync(path.join(ROMS_DIR, 'SNES'), { recursive: true });
 fs.mkdirSync(path.join(ROMS_DIR, 'MAME'), { recursive: true });
 fs.mkdirSync(path.join(ROMS_DIR, 'PS2'), { recursive: true });
 fs.mkdirSync(path.join(ROMS_DIR, 'WII'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'GC'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'PSP'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'PS3'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'N64'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'GBA'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'GBC'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'GB'), { recursive: true });
 fs.mkdirSync(BIOS_DIR, { recursive: true });
 
 const DEFAULT_CONFIG = {
@@ -193,6 +200,104 @@ const DEFAULT_CONFIG = {
       extensions: ['.rvz', '.wbfs', '.iso', '.ciso', '.gcm'],
       coinOpsCollection: 'Nintendo Wii',
       libretroThumbRepo: 'Nintendo - Wii'
+    },
+    GC: {
+      id: 'GC',
+      name: 'Nintendo GameCube',
+      shortName: 'GameCube',
+      manufacturer: 'Nintendo',
+      releaseYear: 2001,
+      romFolder: path.join(ROMS_DIR, 'GC'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'dolphin', 'Dolphin.exe'),
+      corePath: '',
+      launchArgs: '-b -e "{ROM}"',
+      extensions: ['.rvz', '.gcm', '.iso', '.ciso', '.wbfs'],
+      coinOpsCollection: 'Nintendo GameCube',
+      libretroThumbRepo: 'Nintendo - GameCube'
+    },
+    PSP: {
+      id: 'PSP',
+      name: 'PlayStation Portable',
+      shortName: 'PSP',
+      manufacturer: 'Sony',
+      releaseYear: 2004,
+      romFolder: path.join(ROMS_DIR, 'PSP'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'ppsspp', 'PPSSPPWindows64.exe'),
+      corePath: '',
+      launchArgs: '--fullscreen "{ROM}"',
+      extensions: ['.iso', '.cso', '.chd', '.pbp'],
+      coinOpsCollection: 'Sony PSP Official',
+      libretroThumbRepo: 'Sony - PlayStation Portable'
+    },
+    PS3: {
+      id: 'PS3',
+      name: 'PlayStation 3',
+      shortName: 'PS3',
+      manufacturer: 'Sony',
+      releaseYear: 2006,
+      romFolder: path.join(ROMS_DIR, 'PS3'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'rpcs3', 'rpcs3.exe'),
+      corePath: '',
+      launchArgs: '--no-gui "{ROM}"',
+      extensions: ['.iso', '.pkg', '.bin', '.self', '.eboot'],
+      coinOpsCollection: 'PlayStation 3',
+      libretroThumbRepo: 'Sony - PlayStation 3'
+    },
+    N64: {
+      id: 'N64',
+      name: 'Nintendo 64',
+      shortName: 'Nintendo 64',
+      manufacturer: 'Nintendo',
+      releaseYear: 1996,
+      romFolder: path.join(ROMS_DIR, 'N64'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'mupen64plus_next_libretro.dll'),
+      launchArgs: '-f -L "{CORE}" "{ROM}"',
+      extensions: ['.z64', '.n64', '.v64', '.zip', '.7z'],
+      coinOpsCollection: 'Nintendo 64',
+      libretroThumbRepo: 'Nintendo - Nintendo 64'
+    },
+    GBA: {
+      id: 'GBA',
+      name: 'Game Boy Advance',
+      shortName: 'GBA',
+      manufacturer: 'Nintendo',
+      releaseYear: 2001,
+      romFolder: path.join(ROMS_DIR, 'GBA'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'mgba_libretro.dll'),
+      launchArgs: '-f -L "{CORE}" "{ROM}"',
+      extensions: ['.gba', '.zip', '.7z'],
+      coinOpsCollection: 'Game Boy Advance',
+      libretroThumbRepo: 'Nintendo - Game Boy Advance'
+    },
+    GBC: {
+      id: 'GBC',
+      name: 'Game Boy Color',
+      shortName: 'GBC',
+      manufacturer: 'Nintendo',
+      releaseYear: 1998,
+      romFolder: path.join(ROMS_DIR, 'GBC'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'gambatte_libretro.dll'),
+      launchArgs: '-f -L "{CORE}" "{ROM}"',
+      extensions: ['.gbc', '.zip', '.7z'],
+      coinOpsCollection: 'Game Boy Color',
+      libretroThumbRepo: 'Nintendo - Game Boy Color'
+    },
+    GB: {
+      id: 'GB',
+      name: 'Game Boy',
+      shortName: 'Game Boy',
+      manufacturer: 'Nintendo',
+      releaseYear: 1989,
+      romFolder: path.join(ROMS_DIR, 'GB'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'gambatte_libretro.dll'),
+      launchArgs: '-f -L "{CORE}" "{ROM}"',
+      extensions: ['.gb', '.zip', '.7z'],
+      coinOpsCollection: 'Game Boy',
+      libretroThumbRepo: 'Nintendo - Game Boy'
     }
   }
 };
@@ -499,7 +604,14 @@ function scanLibrary() {
         SNES: 'Nintendo',
         MAME: 'Arcade',
         PS2: 'Sony Interactive Entertainment',
-        WII: 'Nintendo'
+        WII: 'Nintendo',
+        GC: 'Nintendo',
+        PSP: 'Sony Interactive Entertainment',
+        PS3: 'Sony Interactive Entertainment',
+        N64: 'Nintendo',
+        GBA: 'Nintendo',
+        GBC: 'Nintendo',
+        GB: 'Nintendo'
       };
       const defaultGenreMap = {
         PS1: ['PlayStation', 'Clássico 32-Bit'],
@@ -507,7 +619,14 @@ function scanLibrary() {
         SNES: ['Super Nintendo', 'Clássico 16-Bit'],
         MAME: ['Arcade', 'Fliperama'],
         PS2: ['PlayStation 2', 'Clássico 128-Bit'],
-        WII: ['Nintendo Wii', 'Aventura 3D']
+        WII: ['Nintendo Wii', 'Aventura 3D'],
+        GC: ['GameCube', 'Clássico 128-Bit'],
+        PSP: ['PlayStation Portable', 'Portátil Sony'],
+        PS3: ['PlayStation 3', 'Alta Definição'],
+        N64: ['Nintendo 64', 'Clássico 64-Bit'],
+        GBA: ['Game Boy Advance', 'Portátil 32-Bit'],
+        GBC: ['Game Boy Color', 'Portátil Colorido'],
+        GB: ['Game Boy', 'Portátil Clássico']
       };
 
       const developer = curated?.developer || defaultDevMap[consoleId] || cCfg.manufacturer || 'Desconhecida';
@@ -639,8 +758,12 @@ function launchGame(gameId, discIndex = 0) {
     args = ['-batch', '-fullscreen', '--', targetDisc.path];
   } else if (game.consoleId === 'PS2') {
     args = ['-batch', '-fullscreen', '-nogui', '--', targetDisc.path];
-  } else if (game.consoleId === 'WII') {
+  } else if (game.consoleId === 'WII' || game.consoleId === 'GC') {
     args = ['-b', '-e', targetDisc.path];
+  } else if (game.consoleId === 'PSP') {
+    args = ['--fullscreen', targetDisc.path];
+  } else if (game.consoleId === 'PS3') {
+    args = ['--no-gui', targetDisc.path];
   } else if (cCfg.corePath) {
     args = ['-f', '-L', cCfg.corePath, targetDisc.path];
   } else {

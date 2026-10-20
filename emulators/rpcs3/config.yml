@@ -1,0 +1,7 @@
+Core:
+  Start games in fullscreen mode: true
+Video:
+  Resolution: 1280x720
+  Aspect ratio: 16:9
+Miscellaneous:
+  Exit RPCS3 when process finishes: true

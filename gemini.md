@@ -39,7 +39,21 @@ HydraRetro/
 │   │   └── .gitkeep
 │   ├── PS2/                         # .chd, .iso, .cso, .gz
 │   │   └── .gitkeep
-│   └── WII/                         # .rvz, .wbfs, .iso, .ciso
+│   ├── WII/                         # .rvz, .wbfs, .iso, .ciso
+│   │   └── .gitkeep
+│   ├── GC/                          # .rvz, .gcm, .iso, .ciso, .wbfs (GameCube)
+│   │   └── .gitkeep
+│   ├── PSP/                         # .iso, .cso, .chd, .pbp
+│   │   └── .gitkeep
+│   ├── PS3/                         # .iso, .pkg, .bin
+│   │   └── .gitkeep
+│   ├── N64/                         # .z64, .n64, .v64, .zip
+│   │   └── .gitkeep
+│   ├── GBA/                         # .gba, .zip
+│   │   └── .gitkeep
+│   ├── GBC/                         # .gbc, .zip
+│   │   └── .gitkeep
+│   └── GB/                          # .gb, .zip
 │       └── .gitkeep
 ├── emulators/                       # Emuladores pré-configurados [Commitados no Git]
 │   ├── duckstation/                 # DuckStation x64 Release (PS1)
@@ -47,18 +61,26 @@ HydraRetro/
 │   │   ├── pcsx2-qt.exe
 │   │   ├── portable.txt
 │   │   └── inis/PCSX2.ini
-│   ├── dolphin/                     # Dolphin x64 Release (Wii)
+│   ├── dolphin/                     # Dolphin x64 Release (Wii e GameCube)
 │   │   ├── Dolphin.exe
 │   │   ├── portable.txt
 │   │   └── User/Config/Dolphin.ini
-│   └── retroarch/                   # RetroArch x64 (Mega Drive, SNES, Arcade)
+│   ├── ppsspp/                      # PPSSPP x64 Release (PSP)
+│   │   ├── PPSSPPWindows64.exe
+│   │   └── installed.txt
+│   ├── rpcs3/                       # RPCS3 x64 Release (PS3)
+│   │   └── rpcs3.exe
+│   └── retroarch/                   # RetroArch x64 (Mega Drive, SNES, Arcade, N64, GBA, GBC, GB)
 │       ├── retroarch.exe
 │       ├── retroarch.cfg            # Fullscreen + XInput Controller + Caminho da BIOS
 │       ├── autoconfig/              # Perfis de controle
 │       ├── cores/
-│       │   ├── genesis_plus_gx_libretro.dll  # Core Mega Drive
-│       │   ├── snes9x_libretro.dll           # Core Super Nintendo
-│       │   └── fbneo_libretro.dll            # Core Arcade / MAME
+│       │   ├── genesis_plus_gx_libretro.dll    # Core Mega Drive
+│       │   ├── snes9x_libretro.dll             # Core Super Nintendo
+│       │   ├── fbneo_libretro.dll              # Core Arcade / MAME
+│       │   ├── mupen64plus_next_libretro.dll   # Core Nintendo 64
+│       │   ├── mgba_libretro.dll               # Core Game Boy Advance
+│       │   └── gambatte_libretro.dll           # Core Game Boy & Game Boy Color
 │       └── system/
 │           └── .gitkeep
 ├── data/
@@ -129,15 +151,49 @@ HydraRetro/
   - Diretório de BIOS apontado para `../../BIOS`
   - Mapeamento nativo Xbox Controller (Pad1 via SDL/XInput).
 
-### Nintendo Wii — Dolphin Emulator (x64 Portable)
+### Nintendo Wii & GameCube — Dolphin Emulator (x64 Portable)
 - **Executável:** `emulators/dolphin/Dolphin.exe`
 - **Modo Portátil:** Arquivo `portable.txt` na raiz da pasta.
 - **Linha de Comando:** `-b -e "{ROM}"`
 - **Configuração:** `User/Config/Dolphin.ini` e perfis de controle `GCPadNew.ini` / `WiimoteNew.ini`:
   - Fullscreen ativado (`Fullscreen = True`)
   - Sem tela de confirmação de saída (`ConfirmStop = False`)
-  - Suporte total a formatos compactados modernos (`.rvz`, `.wbfs`, `.iso`).
-  - Mapeamento automático de controle Xbox emulando Wiimote + Nunchuk e Classic Controller.
+  - Suporte total a formatos compactados modernos (`.rvz`, `.wbfs`, `.iso`, `.gcm`).
+  - Mapeamento automático de controle Xbox emulando Wiimote + Nunchuk, Classic Controller e GameCube Pad nativo.
+
+### PlayStation Portable (PSP) — PPSSPP (x64 Portable)
+- **Executável:** `emulators/ppsspp/PPSSPPWindows64.exe`
+- **Modo Portátil:** Arquivo `installed.txt` na raiz da pasta.
+- **Linha de Comando:** `--fullscreen "{ROM}"`
+- **Configuração:** `memstick/PSP/SYSTEM/ppsspp.ini`:
+  - Fullscreen ativado (`FullScreen = True`)
+  - Suporte total a `.iso`, `.cso`, `.chd`, `.pbp`.
+  - Mapeamento nativo Xbox Controller (XInput).
+
+### PlayStation 3 (PS3) — RPCS3 (x64 Portable)
+- **Executável:** `emulators/rpcs3/rpcs3.exe`
+- **Linha de Comando:** `--no-gui "{ROM}"`
+- **Configuração:** `config.yml` e `GuiConfigs/CurrentSettings.ini`:
+  - Fullscreen ativado (`Start games in fullscreen mode: true`)
+  - Suporte a `.iso`, `.pkg`, `.bin`, `.self`, `.eboot`.
+
+### Nintendo 64 — RetroArch (Core Mupen64Plus-Next)
+- **Executável:** `emulators/retroarch/retroarch.exe`
+- **Core:** `emulators/retroarch/cores/mupen64plus_next_libretro.dll`
+- **Linha de Comando:** `-f -L "{CORE}" "{ROM}"`
+- **Formatos Suportados:** `.z64`, `.n64`, `.v64`, `.zip`, `.7z`.
+
+### Game Boy Advance — RetroArch (Core mGBA)
+- **Executável:** `emulators/retroarch/retroarch.exe`
+- **Core:** `emulators/retroarch/cores/mgba_libretro.dll`
+- **Linha de Comando:** `-f -L "{CORE}" "{ROM}"`
+- **Formatos Suportados:** `.gba`, `.zip`, `.7z`.
+
+### Game Boy & Game Boy Color — RetroArch (Core Gambatte)
+- **Executável:** `emulators/retroarch/retroarch.exe`
+- **Core:** `emulators/retroarch/cores/gambatte_libretro.dll`
+- **Linha de Comando:** `-f -L "{CORE}" "{ROM}"`
+- **Formatos Suportados:** `.gb`, `.gbc`, `.zip`, `.7z`.
 
 ---
 

@@ -12,6 +12,13 @@ if not exist "C:\games\HydraRetro\ROMS\SNES" mkdir "C:\games\HydraRetro\ROMS\SNE
 if not exist "C:\games\HydraRetro\ROMS\MAME" mkdir "C:\games\HydraRetro\ROMS\MAME"
 if not exist "C:\games\HydraRetro\ROMS\PS2" mkdir "C:\games\HydraRetro\ROMS\PS2"
 if not exist "C:\games\HydraRetro\ROMS\WII" mkdir "C:\games\HydraRetro\ROMS\WII"
+if not exist "C:\games\HydraRetro\ROMS\GC" mkdir "C:\games\HydraRetro\ROMS\GC"
+if not exist "C:\games\HydraRetro\ROMS\PSP" mkdir "C:\games\HydraRetro\ROMS\PSP"
+if not exist "C:\games\HydraRetro\ROMS\PS3" mkdir "C:\games\HydraRetro\ROMS\PS3"
+if not exist "C:\games\HydraRetro\ROMS\N64" mkdir "C:\games\HydraRetro\ROMS\N64"
+if not exist "C:\games\HydraRetro\ROMS\GBA" mkdir "C:\games\HydraRetro\ROMS\GBA"
+if not exist "C:\games\HydraRetro\ROMS\GBC" mkdir "C:\games\HydraRetro\ROMS\GBC"
+if not exist "C:\games\HydraRetro\ROMS\GB" mkdir "C:\games\HydraRetro\ROMS\GB"
 if not exist "C:\games\HydraRetro\BIOS" mkdir "C:\games\HydraRetro\BIOS"
 if not exist "C:\games\HydraRetro\emulators" mkdir "C:\games\HydraRetro\emulators"
 
