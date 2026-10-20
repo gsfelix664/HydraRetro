@@ -111,6 +111,8 @@ HydraRetro/
    - Caminhos resolvidos dinamicamente relativos a `APP_ROOT` (funciona tanto em `C:\PROJETOS\HydraRetro` quanto em `C:\games\HydraRetro`).
    - Monitoramento automático de pastas com `fs.watch` (hot-plug de ROMs).
    - Metadados, capas, banners e logos obtidos automaticamente do Libretro CDN e fallback para LaunchBox/CoinOPS.
+   - Suporte a **SteamGridDB API**: busca de grids verticais (600x900), banners hero e logos transparentes via API Key.
+   - Metadados curados (`data/games_metadata.json`): sinopse completa em português, ano, desenvolvedora, publicadora, gêneros, jogadores e avaliação por estrelas.
    - Rastreamento em tempo real de horas jogadas e conquistas locais (estilo Hydra/Steam).
 
 ---
