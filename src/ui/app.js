@@ -188,12 +188,23 @@ function renderCatalogue() {
     img.loading = 'lazy';
     img.alt = game.title;
     img.src = game.coverUrl || game.fallbackCoverUrl || '';
+    let candIdx = 0;
     img.onerror = () => {
+      if (game.coverCandidates && candIdx < game.coverCandidates.length) {
+        const next = game.coverCandidates[candIdx++];
+        if (next && next !== img.src) {
+          img.src = next;
+          return;
+        }
+      }
       if (game.fallbackCoverUrl && img.src !== window.location.origin + game.fallbackCoverUrl) {
         img.src = game.fallbackCoverUrl;
       } else {
         img.style.display = 'none';
       }
+    };
+    img.onload = () => {
+      game.coverUrl = img.src;
     };
     artWrap.appendChild(img);
 
@@ -252,10 +263,31 @@ function selectGame(game) {
   panel.classList.remove('hidden');
 
   const backdrop = document.getElementById('hero-backdrop');
-  backdrop.style.backgroundImage = `url("${game.heroUrl || game.coverUrl || game.fallbackCoverUrl || ''}")`;
-
   const hero = document.getElementById('details-hero');
-  hero.style.backgroundImage = `url("${game.heroUrl || game.coverUrl || game.fallbackCoverUrl || ''}")`;
+  const initialBg = game.heroUrl || game.coverUrl || game.fallbackCoverUrl || '';
+  backdrop.style.backgroundImage = `url("${initialBg}")`;
+  hero.style.backgroundImage = `url("${initialBg}")`;
+
+  const heroTest = new Image();
+  heroTest.src = game.heroUrl || '';
+  let heroCandIdx = 0;
+  heroTest.onerror = () => {
+    if (game.heroCandidates && heroCandIdx < game.heroCandidates.length) {
+      const next = game.heroCandidates[heroCandIdx++];
+      if (next && next !== heroTest.src) {
+        heroTest.src = next;
+        return;
+      }
+    }
+    const fallback = game.coverUrl || '';
+    backdrop.style.backgroundImage = `url("${fallback}")`;
+    hero.style.backgroundImage = `url("${fallback}")`;
+  };
+  heroTest.onload = () => {
+    backdrop.style.backgroundImage = `url("${heroTest.src}")`;
+    hero.style.backgroundImage = `url("${heroTest.src}")`;
+    game.heroUrl = heroTest.src;
+  };
 
   const video = document.getElementById('details-video');
   if (game.videoUrl) {
@@ -271,7 +303,15 @@ function selectGame(game) {
   if (game.logoUrl || game.fallbackLogoUrl) {
     logo.src = game.logoUrl || game.fallbackLogoUrl;
     logo.classList.remove('hidden');
+    let logoCandIdx = 0;
     logo.onerror = () => {
+      if (game.logoCandidates && logoCandIdx < game.logoCandidates.length) {
+        const next = game.logoCandidates[logoCandIdx++];
+        if (next && next !== logo.src) {
+          logo.src = next;
+          return;
+        }
+      }
       if (game.fallbackLogoUrl && logo.src !== window.location.origin + game.fallbackLogoUrl) {
         logo.src = game.fallbackLogoUrl;
       } else {

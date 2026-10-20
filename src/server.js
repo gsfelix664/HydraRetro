@@ -134,6 +134,52 @@ function libretroUrl(repo, type, baseName) {
   return `https://thumbnails.libretro.com/${encodeURIComponent(repo)}/${type}/${encodeURIComponent(sanitized)}.png`;
 }
 
+function getZipFirstEntry(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(512);
+    fs.readSync(fd, buf, 0, 512, 0);
+    fs.closeSync(fd);
+    if (buf.readUInt32LE(0) !== 0x04034b50) return null;
+    const nameLen = buf.readUInt16LE(26);
+    const fileName = buf.toString('utf8', 30, 30 + nameLen);
+    return path.basename(fileName, path.extname(fileName));
+  } catch {
+    return null;
+  }
+}
+
+function getArtworkCandidates(primaryBase, innerBase, cleanTitleStr) {
+  const candidates = new Set();
+  if (innerBase) candidates.add(innerBase);
+  candidates.add(primaryBase);
+
+  // Common region suffix patterns on Libretro Thumbnails
+  const regions = [
+    '(World)',
+    '(USA, Europe)',
+    '(USA)',
+    '(Europe)',
+    '(World) (Rev A)',
+    '(World) (Rev 1)',
+    '(USA, Europe) (Rev A)',
+    '(USA) (Rev A)',
+    '(Europe) (Rev A)',
+    '(Japan, USA)',
+    '(Japan, Europe)',
+    '(Japan)',
+    '(Brazil)',
+    ''
+  ];
+
+  for (const r of regions) {
+    const str = r ? `${cleanTitleStr} ${r}` : cleanTitleStr;
+    candidates.add(str);
+  }
+
+  return Array.from(candidates);
+}
+
 function coinOpsArtwork(collection, type, baseName) {
   const p = path.join(db.config.coinOpsRoot, 'collections', collection, 'medium_artwork', type, `${baseName}.png`);
   if (fs.existsSync(p)) {
@@ -204,6 +250,17 @@ function scanLibrary() {
         return fs.existsSync(vp) ? `/local-file?path=${encodeURIComponent(vp)}` : null;
       })();
 
+      const innerBase = path.extname(primary.fileName).toLowerCase() === '.zip'
+        ? getZipFirstEntry(primary.path)
+        : null;
+
+      const candidateBases = getArtworkCandidates(primaryBase, innerBase, g.title);
+      const effectiveBase = innerBase || primaryBase;
+
+      const coverCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', b));
+      const heroCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', b));
+      const logoCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', b));
+
       let coverUrl = null;
       let heroUrl = null;
       let logoUrl = null;
@@ -213,9 +270,9 @@ function scanLibrary() {
         heroUrl = g.hydraMeta.heroImageUrl || localCover;
         logoUrl = g.hydraMeta.logoImageUrl || localLogo;
       } else {
-        coverUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', primaryBase);
-        heroUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', primaryBase);
-        logoUrl = localLogo || libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', primaryBase);
+        coverUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', effectiveBase);
+        heroUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', effectiveBase);
+        logoUrl = localLogo || libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', effectiveBase);
       }
 
       if (!existing) {
@@ -229,9 +286,12 @@ function scanLibrary() {
           discs: g.discs,
           sizeBytes: g.discs.reduce((acc, d) => acc + d.sizeBytes, 0),
           coverUrl,
+          coverCandidates,
           fallbackCoverUrl: localCover,
           heroUrl,
+          heroCandidates,
           logoUrl,
+          logoCandidates,
           fallbackLogoUrl: localLogo,
           videoUrl: localVideo,
           hydraObjectId: g.hydraMeta?.objectId || null,
@@ -250,9 +310,12 @@ function scanLibrary() {
         existing.discs = g.discs;
         existing.sizeBytes = g.discs.reduce((acc, d) => acc + d.sizeBytes, 0);
         existing.coverUrl = coverUrl;
+        existing.coverCandidates = coverCandidates;
         existing.fallbackCoverUrl = localCover;
         existing.heroUrl = heroUrl;
+        existing.heroCandidates = heroCandidates;
         existing.logoUrl = logoUrl;
+        existing.logoCandidates = logoCandidates;
         existing.fallbackLogoUrl = localLogo;
         existing.videoUrl = localVideo;
       }
