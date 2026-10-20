@@ -416,12 +416,14 @@ let shutdownTimer = null;
 
 function cleanTitle(rawName) {
   let cleaned = rawName
+    .replace(/_/g, ' ')
     .replace(/\s*\((Disc|Disco)\s*\d+\).*$/i, '')
     .replace(/\s*\[Arcade Disc\]/i, '')
     .replace(/\s*\(Evolution Disc\)/i, '')
-    .replace(/\s*\((USA|Europe|Japan|World|Brazil|Asia|Korea|Unl|Rev\s*[A-Z0-9]+|Alt\s*[0-9]*|Beta|Proto|Virtual Console|Sega Channel|Switch Online|Arcade Mode|Simulation Mode|Translated[^)]*|U|E|J|W|UE|JU|B|BR|F|G|I|S|PD|M\d+|En[^)]*|V\d+(\.\d+)?|\!)[^)]*\)/gi, '')
     .replace(/\s*\[[^\]]*\]/g, '')
+    .replace(/\s*\((USA|Europe|Japan|World|Brazil|Asia|Korea|Unl|Rev\s*[A-Z0-9]+|Alt\s*[0-9]*|Beta|Proto|Virtual Console|Sega Channel|Switch Online|Arcade Mode|Simulation Mode|Translated[^)]*|U|E|J|W|UE|JU|B|BR|F|G|I|S|PD|M\d+|En[^)]*|V\d+(\.\d+)?|\!)[^)]*\)/gi, '')
     .replace(/\s*\([^)]*\)\s*$/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
   return cleaned || rawName;
 }
@@ -448,33 +450,70 @@ function getZipFirstEntry(filePath) {
 
 function getArtworkCandidates(primaryBase, innerBase, cleanTitleStr) {
   const candidates = new Set();
-  if (innerBase) candidates.add(innerBase);
-  candidates.add(primaryBase);
 
   // Common region suffix patterns on Libretro Thumbnails
+  // (USA) and (World) are the most frequent by far
   const regions = [
+    '(USA)',
     '(World)',
     '(USA, Europe)',
-    '(USA)',
     '(Europe)',
+    '',
+    '(Japan, USA)',
     '(World) (Rev A)',
     '(World) (Rev 1)',
     '(USA, Europe) (Rev A)',
+    '(USA) (Rev 1)',
     '(USA) (Rev A)',
     '(Europe) (Rev A)',
-    '(Japan, USA)',
     '(Japan, Europe)',
     '(Japan)',
-    '(Brazil)',
-    ''
+    '(Brazil)'
   ];
 
-  for (const r of regions) {
-    const str = r ? `${cleanTitleStr} ${r}` : cleanTitleStr;
-    candidates.add(str);
+  if (cleanTitleStr) {
+    for (const r of regions) {
+      candidates.add(r ? `${cleanTitleStr} ${r}` : cleanTitleStr);
+    }
   }
 
+  // Also normalize short region tags in filename: (U) -> (USA), (E) -> (Europe)
+  const normBase = primaryBase
+    .replace(/_/g, ' ')
+    .replace(/\s*\[[^\]]*\]/g, '')
+    .replace(/\(U\)/gi, '(USA)')
+    .replace(/\(E\)/gi, '(Europe)')
+    .replace(/\(J\)/gi, '(Japan)')
+    .replace(/\(W\)/gi, '(World)')
+    .replace(/\(UE\)/gi, '(USA, Europe)')
+    .replace(/\(JU\)/gi, '(Japan, USA)')
+    .trim();
+  if (normBase) candidates.add(normBase);
+
+  if (innerBase) candidates.add(innerBase);
+  candidates.add(primaryBase);
+
   return Array.from(candidates);
+}
+
+function findLocalArtwork(romFolder, baseName, cleanTitleStr) {
+  if (!romFolder || !fs.existsSync(romFolder)) return null;
+  const exts = ['.png', '.jpg', '.jpeg', '.webp'];
+  const dirs = [romFolder, path.join(romFolder, 'covers'), path.join(romFolder, 'Named_Boxarts'), path.join(romFolder, 'art')];
+  const names = [baseName, cleanTitleStr];
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of names) {
+      if (!name) continue;
+      for (const ext of exts) {
+        const full = path.join(dir, name + ext);
+        if (fs.existsSync(full)) {
+          return `/local-file?path=${encodeURIComponent(full)}`;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 function coinOpsArtwork(collection, type, baseName) {
@@ -542,39 +581,6 @@ function scanLibrary() {
       const primary = g.discs[0];
       const primaryBase = path.basename(primary.fileName, path.extname(primary.fileName));
 
-      const existing = db.games[groupId];
-      const localCover = coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
-      const localLogo = coinOpsArtwork(cCfg.coinOpsCollection, 'logo', primaryBase);
-      const localVideo = (() => {
-        const vp = path.join(db.config.coinOpsRoot, 'collections', cCfg.coinOpsCollection, 'medium_artwork', 'video', `${primaryBase}.mp4`);
-        return fs.existsSync(vp) ? `/local-file?path=${encodeURIComponent(vp)}` : null;
-      })();
-
-      const innerBase = path.extname(primary.fileName).toLowerCase() === '.zip'
-        ? getZipFirstEntry(primary.path)
-        : null;
-
-      const candidateBases = getArtworkCandidates(primaryBase, innerBase, g.title);
-      const effectiveBase = innerBase || primaryBase;
-
-      const coverCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', b));
-      const heroCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', b));
-      const logoCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', b));
-
-      let coverUrl = null;
-      let heroUrl = null;
-      let logoUrl = null;
-
-      if (g.hydraMeta) {
-        coverUrl = g.hydraMeta.coverImageUrl || g.hydraMeta.iconUrl || localCover;
-        heroUrl = g.hydraMeta.heroImageUrl || localCover;
-        logoUrl = g.hydraMeta.logoImageUrl || localLogo;
-      } else {
-        coverUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', effectiveBase);
-        heroUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', effectiveBase);
-        logoUrl = localLogo || libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', effectiveBase);
-      }
-
       // Smart metadata lookup: exact, cleaned, stripped, or fuzzy
       const curated = (() => {
         if (gamesMeta[g.title]) return gamesMeta[g.title];
@@ -596,6 +602,43 @@ function scanLibrary() {
       // Use clean polished title if curated exists
       if (curated && curated.title) {
         g.title = curated.title;
+      }
+
+      const existing = db.games[groupId];
+      const localCover = findLocalArtwork(cCfg.romFolder, primaryBase, g.title) || coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
+      const localLogo = coinOpsArtwork(cCfg.coinOpsCollection, 'logo', primaryBase);
+      const localVideo = (() => {
+        const vp = path.join(db.config.coinOpsRoot, 'collections', cCfg.coinOpsCollection, 'medium_artwork', 'video', `${primaryBase}.mp4`);
+        return fs.existsSync(vp) ? `/local-file?path=${encodeURIComponent(vp)}` : null;
+      })();
+
+      const innerBase = path.extname(primary.fileName).toLowerCase() === '.zip'
+        ? getZipFirstEntry(primary.path)
+        : null;
+
+      const candidateBases = getArtworkCandidates(primaryBase, innerBase, g.title);
+      const effectiveBase = innerBase || primaryBase;
+
+      const coverCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', b));
+      const heroCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', b));
+      const logoCandidates = candidateBases.map(b => libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', b));
+
+      let coverUrl = null;
+      let heroUrl = null;
+      let logoUrl = null;
+
+      if (localCover) {
+        coverUrl = localCover;
+        heroUrl = heroCandidates[0] || localCover;
+        logoUrl = localLogo || logoCandidates[0];
+      } else if (g.hydraMeta) {
+        coverUrl = g.hydraMeta.coverImageUrl || g.hydraMeta.iconUrl || coverCandidates[0];
+        heroUrl = g.hydraMeta.heroImageUrl || heroCandidates[0];
+        logoUrl = g.hydraMeta.logoImageUrl || localLogo || logoCandidates[0];
+      } else {
+        coverUrl = coverCandidates[0] || libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', effectiveBase);
+        heroUrl = heroCandidates[0] || libretroUrl(cCfg.libretroThumbRepo, 'Named_Snaps', effectiveBase);
+        logoUrl = localLogo || logoCandidates[0];
       }
 
       const defaultDevMap = {

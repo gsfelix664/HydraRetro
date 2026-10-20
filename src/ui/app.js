@@ -216,7 +216,7 @@ function renderCatalogue() {
     img.src = game.coverUrl || game.fallbackCoverUrl || '';
     let candIdx = 0;
     img.onerror = () => {
-      if (game.coverCandidates && candIdx < game.coverCandidates.length) {
+      while (game.coverCandidates && candIdx < game.coverCandidates.length) {
         const next = game.coverCandidates[candIdx++];
         if (next && next !== img.src) {
           img.src = next;
@@ -230,6 +230,7 @@ function renderCatalogue() {
       }
     };
     img.onload = () => {
+      img.style.display = '';
       game.coverUrl = img.src;
     };
     artWrap.appendChild(img);
@@ -298,7 +299,7 @@ function selectGame(game) {
   heroTest.src = game.heroUrl || '';
   let heroCandIdx = 0;
   heroTest.onerror = () => {
-    if (game.heroCandidates && heroCandIdx < game.heroCandidates.length) {
+    while (game.heroCandidates && heroCandIdx < game.heroCandidates.length) {
       const next = game.heroCandidates[heroCandIdx++];
       if (next && next !== heroTest.src) {
         heroTest.src = next;
@@ -331,7 +332,7 @@ function selectGame(game) {
     logo.classList.remove('hidden');
     let logoCandIdx = 0;
     logo.onerror = () => {
-      if (game.logoCandidates && logoCandIdx < game.logoCandidates.length) {
+      while (game.logoCandidates && logoCandIdx < game.logoCandidates.length) {
         const next = game.logoCandidates[logoCandIdx++];
         if (next && next !== logo.src) {
           logo.src = next;
