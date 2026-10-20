@@ -2,12 +2,37 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 namespace HydraRetro
 {
     static class Program
     {
+        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+        [DllImport("user32.dll")] static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+        [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
+
+        static bool IsHydraRetroWindowOpen()
+        {
+            bool open = false;
+            EnumWindows((hWnd, lParam) =>
+            {
+                if (!IsWindowVisible(hWnd)) return true;
+                var sb = new StringBuilder(256);
+                GetWindowText(hWnd, sb, 256);
+                if (sb.ToString().Contains("HydraRetro"))
+                {
+                    open = true;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+            return open;
+        }
+
         [STAThread]
         static void Main(string[] args)
         {
@@ -41,7 +66,6 @@ namespace HydraRetro
                 };
                 nodeProc = Process.Start(psi);
 
-                // Wait up to 8 seconds for server to listen
                 for (int i = 0; i < 80; i++)
                 {
                     if (IsPortOpen("127.0.0.1", 38475)) break;
@@ -49,7 +73,6 @@ namespace HydraRetro
                 }
             }
 
-            // Launch borderless fullscreen app window using Edge App Mode
             string edgePath = @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe";
             if (!File.Exists(edgePath))
             {
@@ -68,18 +91,22 @@ namespace HydraRetro
 
             Process.Start(uiPsi);
 
-            // Keep Launcher alive while backend server is running (so Hydra tracks playtime accurately
-            // and we never prematurely kill the Node server when msedge delegates its process)
-            if (nodeProc != null)
+            // Wait up to 10 seconds for the HydraRetro window to appear
+            for (int i = 0; i < 50; i++)
             {
-                nodeProc.WaitForExit();
+                if (IsHydraRetroWindowOpen()) break;
+                Thread.Sleep(200);
             }
-            else
+
+            // Monitor while HydraRetro UI window is open (even when minimized during gameplay)
+            while (IsHydraRetroWindowOpen() && IsPortOpen("127.0.0.1", 38475))
             {
-                while (IsPortOpen("127.0.0.1", 38475))
-                {
-                    Thread.Sleep(2000);
-                }
+                Thread.Sleep(1000);
+            }
+
+            if (nodeProc != null && !nodeProc.HasExited)
+            {
+                try { nodeProc.Kill(); } catch { }
             }
         }
 

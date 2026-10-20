@@ -301,10 +301,22 @@ function getGameAchievements(game) {
   return builtIn;
 }
 
+function runFocusHelper(args) {
+  const helperPath = path.join(APP_ROOT, 'FocusHelper.exe');
+  if (fs.existsSync(helperPath)) {
+    try {
+      spawn(helperPath, args, { detached: true, stdio: 'ignore' }).unref();
+    } catch {}
+  }
+}
+
 function launchGame(gameId, discIndex = 0) {
   const game = db.games[gameId];
   if (!game) throw new Error('Jogo não encontrado');
-  if (activeSession) throw new Error('Já existe um jogo em execução');
+  if (activeSession && activeSession.process) {
+    try { activeSession.process.kill(); } catch {}
+    activeSession = null;
+  }
 
   const cCfg = db.config.consoles[game.consoleId];
   if (!cCfg) throw new Error('Console não configurado');
@@ -321,7 +333,7 @@ function launchGame(gameId, discIndex = 0) {
   if (game.consoleId === 'PS1') {
     args = ['-batch', '-fullscreen', '--', targetDisc.path];
   } else if (game.consoleId === 'GENESIS') {
-    args = ['-f', '-L', cCfg.corePath, targetDisc.path];
+    args = ['-L', cCfg.corePath, targetDisc.path];
   } else {
     args = [targetDisc.path];
   }
@@ -330,8 +342,13 @@ function launchGame(gameId, discIndex = 0) {
   const child = spawn(cCfg.emulatorPath, args, {
     cwd,
     detached: false,
-    stdio: 'ignore'
+    stdio: 'ignore',
+    windowsHide: false
   });
+
+  if (child.pid) {
+    runFocusHelper(['focus-emu', String(child.pid)]);
+  }
 
   const startedAt = Date.now();
   game.playCount = (game.playCount || 0) + 1;
@@ -386,6 +403,7 @@ function launchGame(gameId, discIndex = 0) {
       saveDb(db);
       activeSession = null;
     }
+    runFocusHelper(['restore-ui']);
   });
 
   return { status: 'launched', pid: child.pid, gameId };

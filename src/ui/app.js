@@ -593,12 +593,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.close();
   };
 
-  window.addEventListener('beforeunload', () => {
-    try {
-      navigator.sendBeacon('/api/window-closed', '{}');
-    } catch {}
-  });
-
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey && e.key.toLowerCase() === 'f')) {
       e.preventDefault();
