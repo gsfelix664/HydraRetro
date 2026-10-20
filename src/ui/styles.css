@@ -227,31 +227,27 @@ body {
   font-weight: 700;
 }
 
-.exit-btn {
+.close-window-btn {
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  justify-content: center;
   border-radius: 9px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
   color: #fca5a5;
-  font-weight: 600;
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.18s ease;
 }
 
-.exit-btn:hover {
-  background: rgba(239, 68, 68, 0.22);
-  color: #fff;
-}
-
-.exit-btn kbd {
-  font-size: 10px;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 2px 6px;
-  border-radius: 4px;
+.close-window-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
 /* Main Area */
