@@ -5,17 +5,26 @@ const path = require('path');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 
-const APP_ROOT = 'D:\\games\\HydraRetro';
+const APP_ROOT = path.basename(__dirname).toLowerCase() === 'src'
+  ? path.resolve(__dirname, '..')
+  : __dirname;
+
 const DATA_DIR = path.join(APP_ROOT, 'data');
 const UI_DIR = path.join(APP_ROOT, 'ui');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 const PS1_META_FILE = path.join(DATA_DIR, 'ps1_hydra_metadata.json');
+const ROMS_DIR = path.join(APP_ROOT, 'ROMS');
+const BIOS_DIR = path.join(APP_ROOT, 'BIOS');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'PS1'), { recursive: true });
+fs.mkdirSync(path.join(ROMS_DIR, 'GENESIS'), { recursive: true });
+fs.mkdirSync(BIOS_DIR, { recursive: true });
 
 const DEFAULT_CONFIG = {
-  romsRoot: 'D:\\games\\ROMS',
-  coinOpsRoot: 'D:\\games\\CoinOPS Next 2',
+  romsRoot: ROMS_DIR,
+  biosRoot: BIOS_DIR,
+  coinOpsRoot: 'C:\\games\\CoinOPS Next 2',
   raUsername: '',
   raWebApiKey: '',
   consoles: {
@@ -25,8 +34,8 @@ const DEFAULT_CONFIG = {
       shortName: 'PS1',
       manufacturer: 'Sony',
       releaseYear: 1994,
-      romFolder: 'D:\\games\\ROMS\\PS1',
-      emulatorPath: 'D:\\games\\HydraRetro\\emulators\\duckstation\\duckstation-qt-x64-ReleaseLTCG.exe',
+      romFolder: path.join(ROMS_DIR, 'PS1'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'duckstation', 'duckstation-qt-x64-ReleaseLTCG.exe'),
       corePath: '',
       launchArgs: '-batch -fullscreen -- "{ROM}"',
       extensions: ['.chd', '.pbp', '.iso', '.bin', '.cue', '.img', '.mdf'],
@@ -39,9 +48,9 @@ const DEFAULT_CONFIG = {
       shortName: 'Mega Drive',
       manufacturer: 'Sega',
       releaseYear: 1988,
-      romFolder: 'D:\\games\\ROMS\\GENESIS',
-      emulatorPath: 'D:\\games\\HydraRetro\\emulators\\retroarch\\retroarch.exe',
-      corePath: 'D:\\games\\HydraRetro\\emulators\\retroarch\\cores\\genesis_plus_gx_libretro.dll',
+      romFolder: path.join(ROMS_DIR, 'GENESIS'),
+      emulatorPath: path.join(APP_ROOT, 'emulators', 'retroarch', 'retroarch.exe'),
+      corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'genesis_plus_gx_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.zip', '.md', '.gen', '.smd', '.bin', '.7z'],
       coinOpsCollection: 'Genesis Official',
@@ -75,6 +84,23 @@ function loadDb() {
       console.error('Error loading DB:', e);
     }
   }
+
+  // Auto-migrate old / non-existent paths to new local structure inside HydraRetro
+  if (db.config && db.config.consoles) {
+    for (const [cid, c] of Object.entries(db.config.consoles)) {
+      const def = DEFAULT_CONFIG.consoles[cid];
+      if (!c.romFolder || !fs.existsSync(c.romFolder)) {
+        if (def && def.romFolder) c.romFolder = def.romFolder;
+      }
+      if (!c.emulatorPath || !fs.existsSync(c.emulatorPath)) {
+        if (def && def.emulatorPath) c.emulatorPath = def.emulatorPath;
+      }
+      if (def && def.corePath && (!c.corePath || !fs.existsSync(c.corePath))) {
+        c.corePath = def.corePath;
+      }
+    }
+  }
+
   return db;
 }
 
@@ -123,6 +149,7 @@ function scanLibrary() {
   for (const [consoleId, cCfg] of Object.entries(db.config.consoles)) {
     if (!cCfg.romFolder || !fs.existsSync(cCfg.romFolder)) continue;
     const files = fs.readdirSync(cCfg.romFolder);
+    const fileSet = new Set(files);
     const extSet = new Set((cCfg.extensions || []).map(e => e.toLowerCase()));
 
     // Group multi-disc games by clean title per console
@@ -130,6 +157,8 @@ function scanLibrary() {
     for (const file of files) {
       const ext = path.extname(file).toLowerCase();
       if (!extSet.has(ext)) continue;
+      // Skip .bin if matching .cue exists (DuckStation boots .cue with track mappings)
+      if (ext === '.bin' && fileSet.has(file.slice(0, -4) + '.cue')) continue;
       const fullPath = path.join(cCfg.romFolder, file);
       let stat;
       try { stat = fs.statSync(fullPath); } catch { continue; }

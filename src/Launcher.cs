@@ -44,7 +44,7 @@ namespace HydraRetro
                 if (File.Exists(srcServerJs))
                     serverJs = srcServerJs;
                 else
-                    serverJs = @"D:\games\HydraRetro\server.js";
+                    serverJs = @"C:\games\HydraRetro\server.js";
             }
 
             Process nodeProc = null;
