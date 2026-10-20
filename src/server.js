@@ -855,7 +855,12 @@ function launchGame(gameId, discIndex = 0) {
   }, 5000);
   activeSession.lastTick = startedAt;
 
-  child.on('exit', () => {
+  child.on('error', (err) => {
+    console.error('EMULATOR SPAWN ERROR:', err);
+  });
+
+  child.on('exit', (code, signal) => {
+    console.log(`EMULATOR EXITED: code=${code}, signal=${signal}`);
     clearInterval(interval);
     if (activeSession && activeSession.gameId === gameId) {
       const now = Date.now();

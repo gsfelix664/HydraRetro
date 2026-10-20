@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -17,34 +18,38 @@ namespace HydraRetro
         [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
         [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
         [DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr hWnd);
-        [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-        [DllImport("user32.dll")] static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+        [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
 
         const int SW_MINIMIZE = 6;
         const int SW_RESTORE = 9;
         const int SW_SHOW = 5;
-        const int SW_MAXIMIZE = 3;
-        static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
-        const uint SWP_NOMOVE = 0x0002;
-        const uint SWP_NOSIZE = 0x0001;
-        const uint SWP_SHOWWINDOW = 0x0040;
 
         static void ForceForeground(IntPtr hWnd)
         {
             if (hWnd == IntPtr.Zero) return;
             try
             {
-                // Simulate ALT key press/release to bypass Windows Foreground Lock Timeout
-                keybd_event(0x12, 0, 0, UIntPtr.Zero);
-                keybd_event(0x12, 0, 2, UIntPtr.Zero);
-                ShowWindow(hWnd, SW_RESTORE);
-                ShowWindow(hWnd, SW_SHOW);
-                SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                SetForegroundWindow(hWnd);
-                BringWindowToTop(hWnd);
-                SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                SetForegroundWindow(hWnd);
+                IntPtr foreWnd = GetForegroundWindow();
+                uint dummyPid;
+                uint foreThread = GetWindowThreadProcessId(foreWnd, out dummyPid);
+                uint currentThread = GetCurrentThreadId();
+
+                if (foreThread != currentThread && foreThread != 0)
+                {
+                    AttachThreadInput(currentThread, foreThread, true);
+                    ShowWindow(hWnd, SW_SHOW);
+                    BringWindowToTop(hWnd);
+                    SetForegroundWindow(hWnd);
+                    AttachThreadInput(currentThread, foreThread, false);
+                }
+                else
+                {
+                    ShowWindow(hWnd, SW_SHOW);
+                    BringWindowToTop(hWnd);
+                    SetForegroundWindow(hWnd);
+                }
             }
             catch { }
         }
@@ -55,14 +60,35 @@ namespace HydraRetro
             EnumWindows((hWnd, lParam) =>
             {
                 if (!IsWindowVisible(hWnd)) return true;
-                var sb = new StringBuilder(256);
-                GetWindowText(hWnd, sb, 256);
-                string title = sb.ToString();
+                uint pid = 0;
+                GetWindowThreadProcessId(hWnd, out pid);
+
+                var sbTitle = new StringBuilder(256);
+                GetWindowText(hWnd, sbTitle, 256);
+                string title = sbTitle.ToString();
+
+                var sbClass = new StringBuilder(256);
+                GetClassName(hWnd, sbClass, 256);
+                string cls = sbClass.ToString();
+
                 if (title.Contains("HydraRetro"))
                 {
                     found = hWnd;
                     return false;
                 }
+
+                try
+                {
+                    var p = Process.GetProcessById((int)pid);
+                    string pName = p.ProcessName.ToLower();
+                    if ((pName == "msedge" || pName == "chrome") && cls == "Chrome_WidgetWin_1" && !string.IsNullOrWhiteSpace(title))
+                    {
+                        found = hWnd;
+                        return false;
+                    }
+                }
+                catch { }
+
                 return true;
             }, IntPtr.Zero);
             return found;
@@ -86,7 +112,7 @@ namespace HydraRetro
                 GetWindowText(hWnd, sbTitle, 256);
                 string title = sbTitle.ToString();
 
-                if (cls.Contains("UAC_") || cls.Contains("Tooltip") || cls == "_q_titlebar" || cls == "IME" || cls.Contains("Cicero") || string.IsNullOrWhiteSpace(title))
+                if (cls.Contains("UAC") || cls.Contains("Tooltip") || cls == "_q_titlebar" || cls == "IME" || cls.Contains("Cicero"))
                 {
                     return true;
                 }
@@ -121,7 +147,7 @@ namespace HydraRetro
                         IntPtr emuWnd = FindEmulatorWindow(pid);
                         if (emuWnd != IntPtr.Zero)
                         {
-                            Thread.Sleep(250);
+                            Thread.Sleep(200);
                             ForceForeground(emuWnd);
                             break;
                         }
@@ -131,25 +157,11 @@ namespace HydraRetro
             }
             else if (mode == "restore-ui")
             {
-                IntPtr found = IntPtr.Zero;
-                EnumWindows((hWnd, lParam) =>
+                IntPtr uiWnd = FindUiWindow();
+                if (uiWnd != IntPtr.Zero)
                 {
-                    var sb = new StringBuilder(256);
-                    GetWindowText(hWnd, sb, 256);
-                    string title = sb.ToString();
-                    if (title.Contains("HydraRetro"))
-                    {
-                        found = hWnd;
-                        return false;
-                    }
-                    return true;
-                }, IntPtr.Zero);
-
-                if (found != IntPtr.Zero)
-                {
-                    ShowWindow(found, SW_RESTORE);
-                    ShowWindow(found, SW_MAXIMIZE);
-                    ForceForeground(found);
+                    ShowWindow(uiWnd, SW_RESTORE);
+                    ForceForeground(uiWnd);
                 }
             }
         }
