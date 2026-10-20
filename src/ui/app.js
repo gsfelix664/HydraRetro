@@ -324,8 +324,60 @@ function selectGame(game) {
 
   document.getElementById('details-console-badge').textContent = game.consoleId === 'PS1' ? 'PLAYSTATION 1' : 'SEGA MEGA DRIVE';
   document.getElementById('details-size-badge').textContent = formatSize(game.sizeBytes);
+  document.getElementById('details-year-badge').textContent = game.releaseYear || '---';
+  document.getElementById('details-rating-badge').textContent = `⭐ ${(game.rating || 4.8).toFixed(1)}`;
   document.getElementById('details-title').textContent = game.title;
   document.getElementById('details-filename').textContent = game.fileName;
+
+  // Render Genre Pills
+  const genresBox = document.getElementById('details-genres');
+  genresBox.innerHTML = '';
+  const genres = game.genres || ['Clássico Retrô'];
+  for (const g of genres) {
+    const pill = document.createElement('span');
+    pill.className = 'genre-pill';
+    pill.textContent = g;
+    genresBox.appendChild(pill);
+  }
+
+  // Render Synopsis and Tech Specs
+  document.getElementById('details-description').textContent = game.description || 'Um clássico atemporal dos videogames pronto para ser revivido em tela cheia com comandos responsivos.';
+  document.getElementById('details-dev').textContent = game.developer || '---';
+  document.getElementById('details-pub').textContent = game.publisher || '---';
+  document.getElementById('details-players').textContent = game.players || '1-2 Jogadores';
+
+  // SteamGridDB Button Handler
+  const sgBtn = document.getElementById('btn-steamgrid-game');
+  sgBtn.onclick = async () => {
+    const key = appState.config?.steamGridDbApiKey;
+    if (!key) {
+      showToast('Insira sua chave gratuita do SteamGridDB nas Configurações!');
+      switchTab('SETTINGS');
+      return;
+    }
+    showToast(`Buscando artes em alta definição para ${game.title}...`);
+    sgBtn.disabled = true;
+    try {
+      const res = await fetch('/api/steamgrid/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id, apiKey: key })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Erro ao consultar SteamGridDB');
+      } else {
+        showToast('Artes HD aplicadas com sucesso do SteamGridDB!');
+        await fetchState();
+        const updated = appState.games.find(g => g.id === game.id);
+        if (updated) selectGame(updated);
+      }
+    } catch {
+      showToast('Falha na comunicação com SteamGridDB');
+    } finally {
+      sgBtn.disabled = false;
+    }
+  };
 
   const discBox = document.getElementById('disc-selector-box');
   const discSelect = document.getElementById('disc-select');
@@ -486,6 +538,25 @@ function renderSettingsView() {
 
   html += `
     <div class="settings-card">
+      <h3>🎨 SteamGridDB — Capas, Banners & Logos em Alta Definição</h3>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">
+        Conecte com a API do SteamGridDB para obter pôsteres em alta resolução (600x900), banners panorâmicos e logos transparentes.
+      </p>
+      <div class="field-row">
+        <label>Chave da API SteamGridDB (API Key):</label>
+        <div class="field-input-group">
+          <input type="password" id="cfg-steamgrid-key" placeholder="Cole sua API Key aqui (ex: 8a7f9b...)" value="${appState.config?.steamGridDbApiKey || ''}">
+          <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" class="btn-secondary" style="display:inline-flex;align-items:center;text-decoration:none;">🔑 Gerar Chave Gratuita</a>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;">
+        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="syncAllSteamGrid()">⚡ Baixar Artes em HD para Todos os Jogos</button>
+      </div>
+    </div>
+  `;
+
+  html += `
+    <div class="settings-card">
       <h3>🏆 Integração Opcional RetroAchievements.org</h3>
       <div class="field-row">
         <label>Usuário RetroAchievements:</label>
@@ -516,6 +587,31 @@ window.openExplorer = async (folderPath) => {
   });
 };
 
+window.syncAllSteamGrid = async () => {
+  const key = document.getElementById('cfg-steamgrid-key')?.value.trim() || appState.config?.steamGridDbApiKey;
+  if (!key) {
+    showToast('Informe a chave da API do SteamGridDB primeiro!');
+    return;
+  }
+  showToast('Iniciando sincronização de artes em HD no SteamGridDB...');
+  try {
+    const res = await fetch('/api/steamgrid/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: key })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erro na sincronização');
+    } else {
+      showToast(`Sucesso! ${data.updatedCount} jogos foram atualizados com artes do SteamGridDB!`);
+      await fetchState();
+    }
+  } catch {
+    showToast('Erro de conexão com o SteamGridDB');
+  }
+};
+
 window.saveSettings = async () => {
   const consolesPatch = {};
   for (const cid of Object.keys(appState.config?.consoles || {})) {
@@ -533,6 +629,7 @@ window.saveSettings = async () => {
     body: JSON.stringify({
       raUsername: document.getElementById('cfg-ra-user')?.value || '',
       raWebApiKey: document.getElementById('cfg-ra-key')?.value || '',
+      steamGridDbApiKey: document.getElementById('cfg-steamgrid-key')?.value || '',
       consoles: consolesPatch
     })
   });

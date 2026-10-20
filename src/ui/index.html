@@ -191,11 +191,36 @@
       <div class="details-body">
         <div class="details-badges">
           <span id="details-console-badge" class="console-badge">PS1</span>
+          <span id="details-year-badge" class="meta-badge">1994</span>
+          <span id="details-rating-badge" class="meta-badge rating-badge">⭐ 5.0</span>
           <span id="details-size-badge" class="meta-badge">0 MB</span>
         </div>
 
         <h2 id="details-title" class="details-title">Título do Jogo</h2>
         <p id="details-filename" class="details-filename">arquivo.chd</p>
+
+        <div id="details-genres" class="details-genres-box"></div>
+
+        <!-- Game Synopsis / Description -->
+        <div class="details-desc-box">
+          <p id="details-description" class="details-description"></p>
+        </div>
+
+        <!-- Tech Specs & Credits Grid -->
+        <div class="details-specs-grid">
+          <div class="spec-item">
+            <span class="spec-label">DESENVOLVEDORA</span>
+            <strong id="details-dev">---</strong>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">PUBLICADORA</span>
+            <strong id="details-pub">---</strong>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">JOGADORES</span>
+            <strong id="details-players">---</strong>
+          </div>
+        </div>
 
         <!-- Hydra-style Playtime & Stats Box -->
         <div class="hydra-playtime-box">
@@ -223,6 +248,13 @@
           </button>
           <button id="btn-fav-toggle" class="fav-btn-large" title="Favoritar (F)">
             ☆
+          </button>
+        </div>
+
+        <!-- SteamGridDB Sync Button for this game -->
+        <div class="details-steamgrid-action">
+          <button id="btn-steamgrid-game" class="steamgrid-mini-btn" title="Buscar e aplicar artes em alta definição do SteamGridDB">
+            <span>🎨 Baixar Artes HD (SteamGridDB)</span>
           </button>
         </div>
 

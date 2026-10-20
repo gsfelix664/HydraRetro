@@ -1,0 +1,132 @@
+{
+  "Golden Axe": {
+    "title": "Golden Axe",
+    "developer": "Sega AM7",
+    "publisher": "Sega",
+    "releaseYear": 1989,
+    "genres": ["Hack and Slash", "Beat 'em Up", "Fantasia"],
+    "players": "1-2 Jogadores (Co-op)",
+    "rating": 4.7,
+    "description": "O terrível Death Adder invadiu o reino de Yuria, sequestrou o rei e sua filha e tomou posse do lendário Machado Dourado. Três corajosos guerreiros — Ax Battler, Tyris Flare e Gilius Thunderhead — partem em uma jornada épica repleta de magia elemental, montarias místicas e combates intensos para libertar a terra."
+  },
+  "Streets of Rage 3": {
+    "title": "Streets of Rage 3",
+    "developer": "Sega / Ancient",
+    "publisher": "Sega",
+    "releaseYear": 1994,
+    "genres": ["Beat 'em Up", "Ação", "Luta"],
+    "players": "1-2 Jogadores (Co-op)",
+    "rating": 4.8,
+    "description": "O Sindicato do Crime liderado pelo maligno Sr. X ressurge com um plano sinistro: substituir chefes de estado por clones robóticos e utilizar uma nova substância radioativa chamada Rakushin. Axel Stone, Blaze Fielding, Skate Hunter e o ciborgue Dr. Zan unem forças para desmantelar a conspiração pelas ruas da metrópole."
+  },
+  "Sonic The Hedgehog": {
+    "title": "Sonic The Hedgehog",
+    "developer": "Sonic Team",
+    "publisher": "Sega",
+    "releaseYear": 1991,
+    "genres": ["Plataforma", "Velocidade"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "O marco histórico dos videogames de 16-bits. Controle Sonic the Hedgehog em uma corrida frenética através de loopings e cenários coloridos de South Island para resgatar os animais aprisionados e frustrar os planos do maquiavélico Dr. Ivo Robotnik em busca das lendárias Esmeraldas do Caos."
+  },
+  "Sonic The Hedgehog 2": {
+    "title": "Sonic The Hedgehog 2",
+    "developer": "Sonic Team / Sega Technical Institute",
+    "publisher": "Sega",
+    "releaseYear": 1992,
+    "genres": ["Plataforma", "Velocidade"],
+    "players": "1-2 Jogadores",
+    "rating": 5.0,
+    "description": "A aclamada sequência que introduziu o fiel companheiro Miles 'Tails' Prower e o icônico movimento Spin Dash. Sonic e Tails correm por West Side Island contra o tempo para impedir o lançamento da colossal estação espacial bélica de Robotnik, o Death Egg."
+  },
+  "Sonic & Knuckles + Sonic The Hedgehog 3": {
+    "title": "Sonic & Knuckles + Sonic The Hedgehog 3",
+    "developer": "Sonic Team / STI",
+    "publisher": "Sega",
+    "releaseYear": 1994,
+    "genres": ["Plataforma", "Aventura"],
+    "players": "1-2 Jogadores",
+    "rating": 5.0,
+    "description": "A obra-prima definitiva do Mega Drive combinando Sonic 3 e a tecnologia Lock-On de Sonic & Knuckles. Uma aventura monumental através de Angel Island com múltiplos caminhos, trilha sonora inesquecível e três personagens jogáveis com habilidades únicas: Sonic, Tails e Knuckles the Echidna."
+  },
+  "Crash Bandicoot": {
+    "title": "Crash Bandicoot",
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 1996,
+    "genres": ["Plataforma 3D", "Ação"],
+    "players": "1 Jogador",
+    "rating": 4.8,
+    "description": "Criado nos laboratórios dos cientistas Dr. Neo Cortex e Dr. Nitrus Brio através do raio Evolvo, Crash recusa-se a ser submetido ao controle da mente e escapa. Agora, o marsupial precisa atravessar três ilhas paradisíacas repletas de perigos, quebrar caixas de maçãs wumpa e resgatar sua amada Tawna."
+  },
+  "Crash Bandicoot 2: Cortex Strikes Back": {
+    "title": "Crash Bandicoot 2: Cortex Strikes Back",
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 1997,
+    "genres": ["Plataforma 3D", "Ação"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Após sua derrota, o Dr. Neo Cortex descobre uma nova fonte de energia: os Cristais Mestres. Ele tenta enganar Crash para coletar 25 cristais pelas salas de teletransporte (Warp Rooms), enquanto Coco Bandicoot tenta alertar o irmão sobre a verdadeira armadilha."
+  },
+  "Crash Bandicoot: Warped": {
+    "title": "Crash Bandicoot: Warped",
+    "developer": "Naughty Dog",
+    "publisher": "Sony Computer Entertainment",
+    "releaseYear": 1998,
+    "genres": ["Plataforma 3D", "Ação"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "A máscara do mal Uka Uka é libertada e alia-se a Cortex e ao Dr. Nefarious Tropy, mestre do tempo. Crash e Coco viajam através de épocas históricas — Idade Média, Antigo Egito, Grande Muralha da China e o Futuro — em uma corrida temporal inesquecível."
+  },
+  "Castlevania: Symphony of the Night": {
+    "title": "Castlevania: Symphony of the Night",
+    "developer": "Konami",
+    "publisher": "Konami",
+    "releaseYear": 1997,
+    "genres": ["Metroidvania", "Ação", "RPG"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "Quatro anos após a vitória de Richter Belmont, o castelo do Conde Drácula ressurge misteriosamente e Richter desaparece. O meio-vampiro Alucard desperta de seu sono profundo para investigar o castelo invertido, inaugurando o aclamado gênero Metroidvania com elementos profundos de RPG e trilha sonora lendária."
+  },
+  "Resident Evil": {
+    "title": "Resident Evil",
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "releaseYear": 1996,
+    "genres": ["Survival Horror", "Ação"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Membros da equipe Alpha dos S.T.A.R.S. — incluindo Chris Redfield e Jill Valentine — são encurralados em uma misteriosa mansão nas montanhas Arklay infestada de mortos-vivos e criaturas geneticamente modificadas criadas secretamente pela corporação Umbrella."
+  },
+  "Resident Evil 2": {
+    "title": "Resident Evil 2",
+    "developer": "Capcom",
+    "publisher": "Capcom",
+    "releaseYear": 1998,
+    "genres": ["Survival Horror", "Ação"],
+    "players": "1 Jogador",
+    "rating": 5.0,
+    "description": "O pesadelo biológico se espalha para Raccoon City. O policial novato Leon S. Kennedy e a estudante universitária Claire Redfield chegam à cidade em pleno apocalipse zumbi e precisam desvendar os segredos da delegacia e dos laboratórios subterrâneos da Umbrella."
+  },
+  "Silent Hill": {
+    "title": "Silent Hill",
+    "developer": "Team Silent / Konami",
+    "publisher": "Konami",
+    "releaseYear": 1999,
+    "genres": ["Terror Psicológico", "Survival Horror"],
+    "players": "1 Jogador",
+    "rating": 4.9,
+    "description": "Harry Mason viaja de férias com sua filha Cheryl para a pacata cidade turística de Silent Hill. Após um acidente de carro, Harry acorda em uma cidade deserta, coberta por névoa densa e neve fora de época, onde uma realidade alternativa grotesca espreita a cada esquina."
+  },
+  "Tekken 3": {
+    "title": "Tekken 3",
+    "developer": "Namco",
+    "publisher": "Namco",
+    "releaseYear": 1998,
+    "genres": ["Luta 3D", "Artes Marciais"],
+    "players": "1-2 Jogadores",
+    "rating": 5.0,
+    "description": "Dezenove anos após o The King of Iron Fist Tournament 2, a criatura ancestral Ogre ataca os maiores mestres de artes marciais do mundo. Heihachi Mishima organiza o terceiro torneio para atrair a criatura, enquanto o jovem Jin Kazama busca vingança pela morte de sua mãe, Jun."
+  }
+}

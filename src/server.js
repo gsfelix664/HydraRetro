@@ -13,6 +13,7 @@ const DATA_DIR = path.join(APP_ROOT, 'data');
 const UI_DIR = path.join(APP_ROOT, 'ui');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 const PS1_META_FILE = path.join(DATA_DIR, 'ps1_hydra_metadata.json');
+const GAMES_META_FILE = path.join(DATA_DIR, 'games_metadata.json');
 const ROMS_DIR = path.join(APP_ROOT, 'ROMS');
 const BIOS_DIR = path.join(APP_ROOT, 'BIOS');
 
@@ -27,6 +28,7 @@ const DEFAULT_CONFIG = {
   coinOpsRoot: 'C:\\games\\CoinOPS Next 2',
   raUsername: '',
   raWebApiKey: '',
+  steamGridDbApiKey: '',
   consoles: {
     PS1: {
       id: 'PS1',
@@ -114,6 +116,58 @@ if (fs.existsSync(PS1_META_FILE)) {
   try {
     ps1HydraMeta = JSON.parse(fs.readFileSync(PS1_META_FILE, 'utf8'));
   } catch {}
+}
+
+let gamesMeta = {};
+if (fs.existsSync(GAMES_META_FILE)) {
+  try {
+    gamesMeta = JSON.parse(fs.readFileSync(GAMES_META_FILE, 'utf8'));
+  } catch {}
+}
+
+function fetchJson(url, opt) {
+  return new Promise((resolve) => {
+    const req = https.get(url, opt, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(body)); } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(8000, () => { req.destroy(); resolve(null); });
+  });
+}
+
+async function fetchSteamGridDb(cleanTitleStr, apiKey) {
+  if (!apiKey || !cleanTitleStr) return null;
+  const opt = {
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'User-Agent': 'HydraRetro/1.0' }
+  };
+  try {
+    const searchUrl = `https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(cleanTitleStr)}`;
+    const searchRes = await fetchJson(searchUrl, opt);
+    if (!searchRes || !searchRes.success || !searchRes.data || searchRes.data.length === 0) {
+      return null;
+    }
+    const match = searchRes.data[0];
+    const gameId = match.id;
+
+    const gridRes = await fetchJson(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}?dimensions=600x900&types=static`, opt);
+    const heroRes = await fetchJson(`https://www.steamgriddb.com/api/v2/heroes/game/${gameId}?types=static`, opt);
+    const logoRes = await fetchJson(`https://www.steamgriddb.com/api/v2/logos/game/${gameId}?types=static`, opt);
+
+    return {
+      steamGridId: gameId,
+      matchedTitle: match.name,
+      coverUrl: gridRes?.data?.[0]?.url || null,
+      heroUrl: heroRes?.data?.[0]?.url || null,
+      logoUrl: logoRes?.data?.[0]?.url || null
+    };
+  } catch (e) {
+    console.error('SteamGridDB error:', e);
+    return null;
+  }
 }
 
 let activeSession = null;
@@ -275,6 +329,21 @@ function scanLibrary() {
         logoUrl = localLogo || libretroUrl(cCfg.libretroThumbRepo, 'Named_Titles', effectiveBase);
       }
 
+      const curated = gamesMeta[g.title] || gamesMeta[cleanTitle(g.title)] || null;
+      const description = curated?.description || (g.hydraMeta?.description) || null;
+      const developer = curated?.developer || (cCfg.manufacturer === 'Sega' ? 'Sega' : 'PlayStation Studios');
+      const publisher = curated?.publisher || (cCfg.manufacturer === 'Sega' ? 'Sega' : 'Sony Computer Entertainment');
+      const releaseYear = curated?.releaseYear || cCfg.releaseYear;
+      const genres = curated?.genres || (cCfg.id === 'GENESIS' ? ['Clássico 16-Bit', 'Mega Drive'] : ['Clássico 32-Bit', 'PlayStation']);
+      const players = curated?.players || '1-2 Jogadores';
+      const rating = curated?.rating || 4.8;
+
+      if (existing?.steamGridData) {
+        if (existing.steamGridData.coverUrl) coverUrl = existing.steamGridData.coverUrl;
+        if (existing.steamGridData.heroUrl) heroUrl = existing.steamGridData.heroUrl;
+        if (existing.steamGridData.logoUrl) logoUrl = existing.steamGridData.logoUrl;
+      }
+
       if (!existing) {
         db.games[groupId] = {
           id: groupId,
@@ -301,7 +370,15 @@ function scanLibrary() {
           playCount: 0,
           lastPlayedAt: null,
           addedAt: new Date().toISOString(),
-          achievements: null
+          achievements: null,
+          description,
+          developer,
+          publisher,
+          releaseYear,
+          genres,
+          players,
+          rating,
+          steamGridData: null
         };
         newGamesCount++;
       } else {
@@ -318,6 +395,13 @@ function scanLibrary() {
         existing.logoCandidates = logoCandidates;
         existing.fallbackLogoUrl = localLogo;
         existing.videoUrl = localVideo;
+        existing.description = description;
+        existing.developer = developer;
+        existing.publisher = publisher;
+        existing.releaseYear = releaseYear;
+        existing.genres = genres;
+        existing.players = players;
+        existing.rating = rating;
       }
     }
   }
@@ -614,10 +698,46 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { favorite: g.favorite, achievements: getGameAchievements(g) });
   }
 
+  if (pathname === '/api/steamgrid/sync' && req.method === 'POST') {
+    const body = await readBody(req);
+    const key = (body.apiKey || db.config.steamGridDbApiKey || '').trim();
+    if (!key) {
+      return sendJson(res, 400, { error: 'Chave da API SteamGridDB não configurada. Adicione sua API Key nas Configurações!' });
+    }
+
+    if (body.gameId) {
+      const g = db.games[body.gameId];
+      if (!g) return sendJson(res, 404, { error: 'Jogo não encontrado' });
+      const sgRes = await fetchSteamGridDb(cleanTitle(g.title), key);
+      if (!sgRes) return sendJson(res, 404, { error: `Nenhuma arte encontrada no SteamGridDB para "${g.title}"` });
+      if (sgRes.coverUrl) g.coverUrl = sgRes.coverUrl;
+      if (sgRes.heroUrl) g.heroUrl = sgRes.heroUrl;
+      if (sgRes.logoUrl) g.logoUrl = sgRes.logoUrl;
+      g.steamGridData = sgRes;
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, game: g });
+    } else {
+      let updatedCount = 0;
+      for (const g of Object.values(db.games)) {
+        const sgRes = await fetchSteamGridDb(cleanTitle(g.title), key);
+        if (sgRes) {
+          if (sgRes.coverUrl) g.coverUrl = sgRes.coverUrl;
+          if (sgRes.heroUrl) g.heroUrl = sgRes.heroUrl;
+          if (sgRes.logoUrl) g.logoUrl = sgRes.logoUrl;
+          g.steamGridData = sgRes;
+          updatedCount++;
+        }
+      }
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, updatedCount });
+    }
+  }
+
   if (pathname === '/api/config' && req.method === 'POST') {
     const body = await readBody(req);
     if (body.raUsername !== undefined) db.config.raUsername = body.raUsername;
     if (body.raWebApiKey !== undefined) db.config.raWebApiKey = body.raWebApiKey;
+    if (body.steamGridDbApiKey !== undefined) db.config.steamGridDbApiKey = body.steamGridDbApiKey.trim();
     if (body.consoles) {
       for (const [k, v] of Object.entries(body.consoles)) {
         if (db.config.consoles[k]) {

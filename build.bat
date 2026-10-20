@@ -14,6 +14,7 @@ if not exist "C:\games\HydraRetro\emulators" mkdir "C:\games\HydraRetro\emulator
 copy /Y "C:\PROJETOS\HydraRetro\src\server.js" "C:\games\HydraRetro\server.js"
 copy /Y "C:\PROJETOS\HydraRetro\src\ui\*" "C:\games\HydraRetro\ui\"
 copy /Y "C:\PROJETOS\HydraRetro\data\ps1_hydra_metadata.json" "C:\games\HydraRetro\data\ps1_hydra_metadata.json"
+copy /Y "C:\PROJETOS\HydraRetro\data\games_metadata.json" "C:\games\HydraRetro\data\games_metadata.json"
 
 robocopy "C:\PROJETOS\HydraRetro\emulators" "C:\games\HydraRetro\emulators" /E /NFL /NDL /NJH /NJS /nc /ns /np
 
