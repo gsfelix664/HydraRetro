@@ -375,14 +375,67 @@
           <div id="details-ach-list" class="ach-list"></div>
         </div>
 
-        <!-- SteamGridDB Sync Button for this game -->
-        <div class="details-steamgrid-action">
+        <!-- Cover Selector & SteamGridDB Actions -->
+        <div class="details-cover-actions">
+          <button id="btn-open-cover-selector" class="cover-selector-btn" title="Ver e escolher capas alternativas disponíveis ou locais">
+            <span>🖼️ Escolher Capa / Alternativas</span>
+          </button>
           <button id="btn-steamgrid-game" class="steamgrid-mini-btn" title="Buscar e aplicar artes em alta definição do SteamGridDB">
             <span>🎨 Baixar Artes HD (SteamGridDB)</span>
           </button>
         </div>
       </div>
     </aside>
+  </div>
+
+  <!-- Cover Selector Modal -->
+  <div id="cover-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog cover-modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h2 id="cover-modal-title">🖼️ Escolher Capa do Jogo</h2>
+          <p id="cover-modal-subtitle">Selecione uma arte oficial, alternativa, CoinOps ou arquivo local</p>
+        </div>
+        <button id="close-cover-modal" class="modal-close-btn">✕</button>
+      </div>
+
+      <div class="modal-toolbar">
+        <button id="btn-open-covers-folder" class="chip-btn">
+          <span>📂 Abrir Pasta Covers</span>
+        </button>
+        <button id="btn-refresh-covers" class="chip-btn">
+          <span>🔄 Atualizar Lista</span>
+        </button>
+        <span class="modal-hint">Dica: Você pode copiar imagens para a pasta de covers do console que elas aparecem aqui!</span>
+      </div>
+
+      <div id="cover-modal-loading" class="cover-modal-loading hidden">
+        <span class="hltb-spinner"></span>
+        <span>Carregando opções de capas...</span>
+      </div>
+
+      <div id="cover-modal-grid" class="cover-grid"></div>
+
+      <div class="modal-footer">
+        <div class="modal-footer-hints">
+          <span><kbd class="key-pill">A</kbd> Escolher Capa</span>
+          <span><kbd class="key-pill">B</kbd> ou <kbd class="key-pill">Esc</kbd> Fechar</span>
+        </div>
+        <button id="btn-cancel-cover" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gamepad HUD Prompt Bar -->
+  <div id="gamepad-hud" class="gamepad-hud">
+    <div class="hud-item"><span class="hud-pill dpad">D-PAD</span><span>Navegar</span></div>
+    <div class="hud-item"><span class="hud-pill btn-a">A</span><span id="hud-label-a">Jogar / Detalhes</span></div>
+    <div class="hud-item"><span class="hud-pill btn-b">B</span><span>Voltar</span></div>
+    <div class="hud-item"><span class="hud-pill btn-x">X</span><span>Início Rápido</span></div>
+    <div class="hud-item"><span class="hud-pill btn-y">Y</span><span>Favoritar</span></div>
+    <div class="hud-item"><span class="hud-pill btn-lb-rb">LB/RB</span><span>Trocar Aba</span></div>
+    <div class="hud-item"><span class="hud-pill btn-select">SELECT</span><span>Escolher Capa</span></div>
+    <div class="hud-item"><span class="hud-pill btn-combo">SELECT+START</span><span style="color:#f59e0b;">Sair do Jogo</span></div>
   </div>
 
   <div id="toast" class="toast hidden"></div>

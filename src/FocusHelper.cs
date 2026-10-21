@@ -21,10 +21,80 @@ namespace HydraRetro
         [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
         [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+        [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vKey);
 
         const int SW_MINIMIZE = 6;
         const int SW_RESTORE = 9;
         const int SW_SHOW = 5;
+        const int VK_ESCAPE = 0x1B;
+
+        // XInput structs and dynamic loader for universal Windows support
+        [StructLayout(LayoutKind.Sequential)]
+        struct XINPUT_GAMEPAD
+        {
+            public ushort wButtons;
+            public byte bLeftTrigger;
+            public byte bRightTrigger;
+            public short sThumbLX;
+            public short sThumbLY;
+            public short sThumbRX;
+            public short sThumbRY;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct XINPUT_STATE
+        {
+            public uint dwPacketNumber;
+            public XINPUT_GAMEPAD Gamepad;
+        }
+
+        delegate int XInputGetStateDelegate(int dwUserIndex, ref XINPUT_STATE pState);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        static extern IntPtr LoadLibrary(string lpFileName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
+        static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+
+        static XInputGetStateDelegate xinputGetState = null;
+
+        static void InitXInput()
+        {
+            if (xinputGetState != null) return;
+            string[] dlls = new[] { "xinput1_4.dll", "xinput1_3.dll", "xinput9_1_0.dll" };
+            foreach (var dll in dlls)
+            {
+                IntPtr hMod = LoadLibrary(dll);
+                if (hMod != IntPtr.Zero)
+                {
+                    IntPtr pProc = GetProcAddress(hMod, "XInputGetState");
+                    if (pProc != IntPtr.Zero)
+                    {
+                        xinputGetState = (XInputGetStateDelegate)Marshal.GetDelegateForFunctionPointer(pProc, typeof(XInputGetStateDelegate));
+                        break;
+                    }
+                }
+            }
+        }
+
+        static bool IsBackAndStartPressed()
+        {
+            if (xinputGetState == null) return false;
+            // Check controllers 0 through 3
+            for (int i = 0; i < 4; i++)
+            {
+                XINPUT_STATE state = new XINPUT_STATE();
+                if (xinputGetState(i, ref state) == 0)
+                {
+                    // 0x0020 = BACK (Select/View), 0x0010 = START (Menu)
+                    // Also accept L3 (0x0040) + R3 (0x0080) + START (0x0010) as alternative
+                    bool backStart = (state.Gamepad.wButtons & 0x0030) == 0x0030;
+                    bool thumbStart = (state.Gamepad.wButtons & 0x00D0) == 0x00D0;
+                    if (backStart || thumbStart) return true;
+                }
+            }
+            return false;
+        }
 
         static void ForceForeground(IntPtr hWnd)
         {
@@ -133,15 +203,20 @@ namespace HydraRetro
                 uint pid = 0;
                 uint.TryParse(args[1], out pid);
 
-                // Minimize HydraRetro fullscreen UI so emulator is never hidden behind it
+                InitXInput();
+
+                // Minimize HydraRetro fullscreen UI so emulator takes full stage
                 IntPtr uiWnd = FindUiWindow();
                 if (uiWnd != IntPtr.Zero)
                 {
                     ShowWindow(uiWnd, SW_MINIMIZE);
                 }
 
+                Process emuProc = null;
                 if (pid > 0)
                 {
+                    try { emuProc = Process.GetProcessById((int)pid); } catch { }
+
                     for (int i = 0; i < 40; i++)
                     {
                         IntPtr emuWnd = FindEmulatorWindow(pid);
@@ -153,6 +228,62 @@ namespace HydraRetro
                         }
                         Thread.Sleep(150);
                     }
+                }
+
+                // Background monitoring loop: Hotkey Select+Start or Escape to exit emulator and restore UI
+                if (emuProc != null)
+                {
+                    int hotkeyComboTicks = 0;
+                    int escKeyTicks = 0;
+
+                    while (!emuProc.HasExited)
+                    {
+                        try
+                        {
+                            // 1. Check Gamepad: Back + Start (Select + Start)
+                            if (IsBackAndStartPressed())
+                            {
+                                hotkeyComboTicks++;
+                                // 14 ticks * 50ms = 700ms held
+                                if (hotkeyComboTicks >= 14)
+                                {
+                                    try { emuProc.Kill(); } catch { }
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                hotkeyComboTicks = 0;
+                            }
+
+                            // 2. Check Keyboard: Escape held for 750ms
+                            if ((GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0)
+                            {
+                                escKeyTicks++;
+                                if (escKeyTicks >= 15)
+                                {
+                                    try { emuProc.Kill(); } catch { }
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                escKeyTicks = 0;
+                            }
+                        }
+                        catch { }
+
+                        Thread.Sleep(50);
+                    }
+                }
+
+                // Restore UI when emulator exits (either by hotkey or naturally)
+                Thread.Sleep(200);
+                uiWnd = FindUiWindow();
+                if (uiWnd != IntPtr.Zero)
+                {
+                    ShowWindow(uiWnd, SW_RESTORE);
+                    ForceForeground(uiWnd);
                 }
             }
             else if (mode == "restore-ui")

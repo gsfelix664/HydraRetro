@@ -101,3 +101,8 @@ emulators/rpcs3/cache/
 emulators/rpcs3/captures/
 emulators/rpcs3/*.log
 emulators/rpcs3/crash_dumps/
+
+# Backups gerados pelo usuário
+backups/**/*
+!backups/
+!backups/.gitkeep

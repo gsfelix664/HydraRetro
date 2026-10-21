@@ -12,6 +12,111 @@ let searchQuery = '';
 let sortMode = 'ALPHA_ASC';
 let selectedGameId = null;
 
+let activeZone = 'GRID'; // 'GRID', 'SIDEBAR', 'DETAILS', 'COVER_MODAL'
+let gamepadGridIndex = 0;
+let currentCoverList = [];
+let coverModalIndex = 0;
+let sfxEnabled = true;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+}
+
+function playSfx(type) {
+  if (!sfxEnabled) return;
+  try {
+    initAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    if (type === 'nav') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(460, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.035);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.038);
+    } else if (type === 'select') {
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc2.type = 'triangle';
+      osc1.frequency.setValueAtTime(520, now);
+      osc1.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+      osc2.frequency.setValueAtTime(1040, now);
+      osc2.frequency.exponentialRampToValueAtTime(1760, now + 0.08);
+      gain.gain.setValueAtTime(0.10, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.09);
+      osc2.stop(now + 0.09);
+    } else if (type === 'back') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(580, now);
+      osc.frequency.exponentialRampToValueAtTime(290, now + 0.06);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.07);
+    } else if (type === 'fav') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1175, now);
+      osc.frequency.setValueAtTime(1568, now + 0.04);
+      osc.frequency.setValueAtTime(2093, now + 0.08);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.13);
+    } else if (type === 'launch') {
+      [220, 330, 440, 660].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = idx === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.28);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.30);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.31);
+      });
+    }
+  } catch {}
+}
+
+window.toggleSfx = () => {
+  sfxEnabled = !sfxEnabled;
+  if (sfxEnabled) playSfx('select');
+  const btn = document.getElementById('btn-toggle-sfx');
+  if (btn) btn.textContent = sfxEnabled ? '🔊 Efeitos Ativados' : '🔇 Efeitos Desativados';
+};
+
 function formatPlaytime(seconds) {
   if (!seconds || seconds <= 0) return '0 min';
   const hrs = Math.floor(seconds / 3600);
@@ -273,17 +378,19 @@ function updateVirtualGrid(force = false) {
     const posX = col * (cardWidth + gap);
     const posY = row * rowHeight;
 
-    const card = createGameCardElement(game, cardWidth, cardHeight, posX, posY);
+    const card = createGameCardElement(game, cardWidth, cardHeight, posX, posY, i);
     frag.appendChild(card);
   }
 
   grid.appendChild(frag);
 }
 
-function createGameCardElement(game, cardWidth, cardHeight, posX, posY) {
+function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = -1) {
+  const isGamepadFocused = (activeZone === 'GRID' && index === gamepadGridIndex);
   const card = document.createElement('div');
-  card.className = `game-card ${selectedGameId === game.id ? 'selected' : ''}`;
+  card.className = `game-card ${selectedGameId === game.id ? 'selected' : ''} ${isGamepadFocused ? 'gamepad-focused' : ''}`;
   card.dataset.id = game.id;
+  card.dataset.index = index;
   card.style.position = 'absolute';
   card.style.left = `${posX}px`;
   card.style.top = `${posY}px`;
@@ -384,14 +491,25 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY) {
   card.appendChild(artWrap);
   card.appendChild(info);
 
-  card.onclick = () => selectGame(game);
-  card.ondblclick = () => launchSelectedGame(game.id, 0);
+  card.onclick = () => {
+    const idx = currentCatalogueList.findIndex(g => g.id === game.id);
+    if (idx !== -1) gamepadGridIndex = idx;
+    playSfx('select');
+    selectGame(game);
+  };
+  card.ondblclick = () => {
+    playSfx('launch');
+    launchSelectedGame(game.id, 0);
+  };
 
   return card;
 }
 
 function selectGame(game) {
   selectedGameId = game.id;
+  activeZone = 'DETAILS';
+  const hudA = document.getElementById('hud-label-a');
+  if (hudA) hudA.textContent = 'JOGAR AGORA';
   document.querySelectorAll('.game-card').forEach(el => {
     el.classList.toggle('selected', el.dataset.id === game.id);
   });
@@ -527,6 +645,11 @@ function selectGame(game) {
     }
   };
 
+  const coverBtn = document.getElementById('btn-open-cover-selector');
+  if (coverBtn) {
+    coverBtn.onclick = () => openCoverSelector(game.id);
+  }
+
   const discBox = document.getElementById('disc-selector-box');
   const discSelect = document.getElementById('disc-select');
   if (game.discs && game.discs.length > 1) {
@@ -541,10 +664,14 @@ function selectGame(game) {
 
   document.getElementById('btn-play-main').onclick = () => {
     const discIdx = parseInt(discSelect.value || '0', 10);
+    playSfx('launch');
     launchSelectedGame(game.id, discIdx);
   };
 
-  document.getElementById('btn-fav-toggle').onclick = () => toggleFavorite(game.id);
+  document.getElementById('btn-fav-toggle').onclick = () => {
+    playSfx('fav');
+    toggleFavorite(game.id);
+  };
 }
 
 let currentHltbGameId = null;
@@ -826,6 +953,34 @@ function renderSettingsView() {
 
   html += `
     <div class="settings-card">
+      <h3>🔊 Áudio & Efeitos Sonoros de Interface (UI SFX)</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+        Sons suaves e táteis de console gerados nativamente via Web Audio API para navegação por controle ou teclado.
+      </p>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button class="btn-secondary" id="btn-toggle-sfx" onclick="window.toggleSfx()">
+          ${sfxEnabled ? '🔊 Efeitos Sonoros: ATIVADOS' : '🔇 Efeitos Sonoros: DESATIVADOS'}
+        </button>
+        <button class="btn-secondary" onclick="playSfx('launch')">▶ Testar Som de Boot</button>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h3>💾 Gerenciador de Backup de Saves e Memory Cards (1 Clique)</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+        Exporte todos os saves, memory cards e savestates dos seus emuladores (RetroArch, DuckStation, PCSX2, Dolphin, PPSSPP, RPCS3) em um único arquivo .ZIP consolidado para nunca perder seu progresso.
+      </p>
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.exportSavesBackup()">📦 Criar Novo Backup Agora (.ZIP)</button>
+        <button class="btn-secondary" onclick="window.openSavesFolder()">📂 Abrir Pasta de Backups</button>
+        <button class="btn-secondary" onclick="window.loadBackupsList()">🔄 Atualizar Lista</button>
+      </div>
+      <div id="backups-list-container" class="backups-list-box">
+        <div style="color:var(--text-muted);font-size:12px;">Carregando backups...</div>
+      </div>
+    </div>
+
+    <div class="settings-card">
       <h3>🏆 Integração Opcional RetroAchievements.org</h3>
       <div class="field-row">
         <label>Usuário RetroAchievements:</label>
@@ -846,7 +1001,178 @@ function renderSettingsView() {
   `;
 
   container.innerHTML = html;
+  window.loadBackupsList();
 }
+
+// --- COVER SELECTOR MODAL ---
+async function openCoverSelector(gameId) {
+  const game = appState.games.find(g => g.id === gameId);
+  if (!game) return;
+
+  const modal = document.getElementById('cover-modal');
+  modal.classList.remove('hidden');
+  activeZone = 'COVER_MODAL';
+  playSfx('select');
+
+  document.getElementById('cover-modal-title').textContent = `🖼️ Escolher Capa — ${game.title}`;
+  document.getElementById('cover-modal-subtitle').textContent = `Console: ${game.consoleId} • Selecione ou copie imagens em media/covers/${game.consoleId.toLowerCase()}`;
+
+  const loading = document.getElementById('cover-modal-loading');
+  const grid = document.getElementById('cover-modal-grid');
+  loading.classList.remove('hidden');
+  grid.innerHTML = '';
+  currentCoverList = [];
+  coverModalIndex = 0;
+
+  // Open covers folder handler
+  const btnOpenFolder = document.getElementById('btn-open-covers-folder');
+  if (btnOpenFolder) {
+    btnOpenFolder.onclick = async () => {
+      playSfx('select');
+      await fetch('/api/covers/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consoleId: game.consoleId })
+      });
+    };
+  }
+
+  const btnRefresh = document.getElementById('btn-refresh-covers');
+  if (btnRefresh) btnRefresh.onclick = () => openCoverSelector(game.id);
+
+  const btnClose = document.getElementById('close-cover-modal');
+  if (btnClose) btnClose.onclick = closeCoverModal;
+
+  const btnCancel = document.getElementById('btn-cancel-cover');
+  if (btnCancel) btnCancel.onclick = closeCoverModal;
+
+  try {
+    const res = await fetch(`/api/covers/list?gameId=${encodeURIComponent(game.id)}`);
+    const data = await res.json();
+    loading.classList.add('hidden');
+    if (!res.ok || !data.covers || data.covers.length === 0) {
+      grid.innerHTML = '<div style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px 0;">Nenhuma capa encontrada. Coloque imagens em media/covers/' + game.consoleId.toLowerCase() + ' ou configure a SteamGridDB API!</div>';
+      return;
+    }
+
+    currentCoverList = data.covers;
+    renderCoverModalCards(game);
+  } catch (e) {
+    loading.classList.add('hidden');
+    grid.innerHTML = '<div style="color:#ef4444;grid-column:1/-1;text-align:center;padding:40px 0;">Erro ao consultar capas alternativas.</div>';
+  }
+}
+
+function renderCoverModalCards(game) {
+  const grid = document.getElementById('cover-modal-grid');
+  grid.innerHTML = '';
+  currentCoverList.forEach((c, idx) => {
+    const card = document.createElement('div');
+    const isActive = (c.active || c.url === game.coverUrl || c.url === game.customCoverUrl);
+    card.className = `cover-card ${isActive ? 'active-cover' : ''} ${idx === coverModalIndex ? 'gamepad-focused' : ''}`;
+    card.dataset.index = idx;
+
+    const sourceTagClass = c.type === 'current' ? 'active' : (c.type === 'steamgriddb' ? 'steamgriddb' : (c.type === 'libretro' ? 'libretro' : (c.type === 'coinops' ? 'coinops' : 'local')));
+    const sourceTagText = isActive ? 'ATIVA' : (c.type === 'steamgriddb' ? 'STEAMGRID' : (c.type === 'libretro' ? 'LIBRETRO' : (c.type === 'coinops' ? 'COINOPS' : 'LOCAL')));
+
+    card.innerHTML = `
+      <img src="${c.thumbUrl || c.url}" class="cover-card-art" loading="lazy" alt="Cover">
+      <div class="cover-card-body">
+        <div class="cover-badge-row">
+          <span class="cover-source-tag ${sourceTagClass}">${sourceTagText}</span>
+          ${isActive ? '<span style="color:#10b981;font-size:10px;font-weight:700;">★ Em Uso</span>' : ''}
+        </div>
+        <div class="cover-card-title" title="${c.label}">${c.label}</div>
+      </div>
+    `;
+
+    card.onclick = () => selectCoverFromModal(game, c);
+    grid.appendChild(card);
+  });
+}
+
+async function selectCoverFromModal(game, cover) {
+  showToast('Aplicando e salvando capa no sistema...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/covers/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: game.id,
+        coverUrl: cover.url,
+        source: cover.type,
+        label: cover.label
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Capa salva e definida com sucesso!');
+      game.coverUrl = data.coverUrl;
+      game.customCoverUrl = data.coverUrl;
+      closeCoverModal();
+      await fetchState();
+      const updated = appState.games.find(g => g.id === game.id);
+      if (updated) selectGame(updated);
+    } else {
+      showToast(data.error || 'Erro ao definir capa');
+    }
+  } catch (e) {
+    showToast('Erro de comunicação ao salvar capa');
+  }
+}
+
+function closeCoverModal() {
+  document.getElementById('cover-modal').classList.add('hidden');
+  activeZone = selectedGameId ? 'DETAILS' : 'GRID';
+  playSfx('back');
+}
+
+// --- SAVES BACKUP & EXPORT ---
+window.exportSavesBackup = async () => {
+  showToast('Compactando saves e memory cards de todos os emuladores...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/saves/export', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`Backup criado com sucesso: ${data.backup.fileName} (${formatSize(data.backup.sizeBytes)})!`);
+      playSfx('fav');
+      window.loadBackupsList();
+    } else {
+      showToast(data.error || 'Erro ao gerar backup de saves');
+    }
+  } catch {
+    showToast('Falha ao comunicar com o servidor de backups');
+  }
+};
+
+window.openSavesFolder = async () => {
+  playSfx('select');
+  await fetch('/api/saves/open-folder', { method: 'POST' });
+};
+
+window.loadBackupsList = async () => {
+  const container = document.getElementById('backups-list-container');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/saves/list');
+    const data = await res.json();
+    if (data.backups && data.backups.length > 0) {
+      container.innerHTML = data.backups.map(b => `
+        <div class="backup-row">
+          <div class="backup-info">
+            <span class="backup-filename">📦 ${b.fileName}</span>
+            <span class="backup-meta">${formatDate(b.createdDate)} • ${formatSize(b.sizeBytes)}</span>
+          </div>
+          <a href="${b.downloadUrl}" class="btn-secondary" style="color:var(--accent);border-color:var(--accent);text-decoration:none;" download>📥 Baixar ZIP</a>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">Nenhum arquivo de backup gerado ainda. Clique em "Criar Novo Backup Agora" para gerar uma cópia dos seus saves!</div>';
+    }
+  } catch {}
+};
 
 window.openExplorer = async (folderPath) => {
   await fetch('/api/open-folder', {
@@ -922,6 +1248,8 @@ window.saveSettings = async () => {
 
 function switchTab(tab) {
   currentTab = tab;
+  activeZone = (tab === 'ACHIEVEMENTS' || tab === 'SETTINGS') ? 'SIDEBAR' : 'GRID';
+  playSfx('nav');
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
@@ -950,10 +1278,217 @@ function switchTab(tab) {
   }
 }
 
+// --- GAMEPAD & KEYBOARD NAVIGATION ENGINE ---
+const TABS_ORDER = ['ALL', 'FAVORITES', 'RECENT', 'PS1', 'PS2', 'PS3', 'PSP', 'SNES', 'N64', 'GC', 'WII', 'GB', 'GBC', 'GBA', 'GENESIS', 'MAME', 'ACHIEVEMENTS', 'SETTINGS'];
+
+let lastGamepadState = {};
+let lastStickTime = 0;
+
+function handleGamepadDirection(dirX, dirY) {
+  if (activeZone === 'GRID') {
+    if (currentCatalogueList.length === 0) return;
+    const viewSection = document.getElementById('view-catalogue');
+    const availableWidth = viewSection.clientWidth - 56 || 1000;
+    const minColWidth = 175;
+    const gap = 20;
+    const cols = Math.max(1, Math.floor((availableWidth + gap) / (minColWidth + gap)));
+
+    let newIndex = gamepadGridIndex;
+    if (dirX === 1) newIndex += 1;
+    if (dirX === -1) newIndex -= 1;
+    if (dirY === 1) newIndex += cols;
+    if (dirY === -1) newIndex -= cols;
+
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= currentCatalogueList.length) newIndex = currentCatalogueList.length - 1;
+
+    if (newIndex !== gamepadGridIndex) {
+      gamepadGridIndex = newIndex;
+      playSfx('nav');
+
+      const cardWidth = Math.floor((availableWidth - (cols - 1) * gap) / cols);
+      const cardHeight = Math.round(cardWidth * 1.38 + 62);
+      const rowHeight = cardHeight + gap;
+      const targetRow = Math.floor(gamepadGridIndex / cols);
+      const targetTop = targetRow * rowHeight;
+      const targetBottom = targetTop + rowHeight;
+      const currentScrollTop = viewSection.scrollTop;
+      const viewHeight = viewSection.clientHeight;
+
+      if (targetTop < currentScrollTop + 20) {
+        viewSection.scrollTop = Math.max(0, targetTop - 20);
+      } else if (targetBottom > currentScrollTop + viewHeight - 60) {
+        viewSection.scrollTop = targetBottom - viewHeight + 70;
+      }
+
+      updateVirtualGrid(true);
+    }
+  } else if (activeZone === 'COVER_MODAL') {
+    if (currentCoverList.length === 0) return;
+    let newIndex = coverModalIndex;
+    if (dirX === 1) newIndex += 1;
+    if (dirX === -1) newIndex -= 1;
+    if (dirY === 1) newIndex += 4;
+    if (dirY === -1) newIndex -= 4;
+
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= currentCoverList.length) newIndex = currentCoverList.length - 1;
+
+    if (newIndex !== coverModalIndex) {
+      coverModalIndex = newIndex;
+      playSfx('nav');
+      const game = appState.games.find(g => g.id === selectedGameId);
+      if (game) renderCoverModalCards(game);
+      const focusedCard = document.querySelector(`.cover-card[data-index="${coverModalIndex}"]`);
+      if (focusedCard) focusedCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+}
+
+function handleGamepadButtonA() {
+  if (activeZone === 'GRID') {
+    const game = currentCatalogueList[gamepadGridIndex];
+    if (!game) return;
+    playSfx('select');
+    selectGame(game);
+  } else if (activeZone === 'DETAILS') {
+    const discSelect = document.getElementById('disc-select');
+    const discIdx = parseInt(discSelect?.value || '0', 10);
+    playSfx('launch');
+    launchSelectedGame(selectedGameId, discIdx);
+  } else if (activeZone === 'COVER_MODAL') {
+    const cover = currentCoverList[coverModalIndex];
+    const game = appState.games.find(g => g.id === selectedGameId);
+    if (cover && game) {
+      selectCoverFromModal(game, cover);
+    }
+  }
+}
+
+function handleGamepadButtonB() {
+  if (activeZone === 'COVER_MODAL') {
+    closeCoverModal();
+  } else if (activeZone === 'DETAILS') {
+    selectedGameId = null;
+    activeZone = 'GRID';
+    document.getElementById('details-panel').classList.add('hidden');
+    document.getElementById('details-video').pause();
+    const hudA = document.getElementById('hud-label-a');
+    if (hudA) hudA.textContent = 'Jogar / Detalhes';
+    updateVirtualGrid(true);
+    playSfx('back');
+  } else if (activeZone === 'GRID') {
+    playSfx('back');
+  }
+}
+
+function handleGamepadButtonX() {
+  if (activeZone === 'GRID') {
+    const game = currentCatalogueList[gamepadGridIndex];
+    if (game) {
+      playSfx('launch');
+      selectGame(game);
+      launchSelectedGame(game.id, 0);
+    }
+  }
+}
+
+function handleGamepadButtonY() {
+  const targetId = (activeZone === 'DETAILS' && selectedGameId)
+    ? selectedGameId
+    : currentCatalogueList[gamepadGridIndex]?.id;
+  if (targetId) {
+    playSfx('fav');
+    toggleFavorite(targetId);
+  }
+}
+
+function handleGamepadShoulder(delta) {
+  let idx = TABS_ORDER.indexOf(currentTab);
+  if (idx === -1) idx = 0;
+  idx = (idx + delta + TABS_ORDER.length) % TABS_ORDER.length;
+  playSfx('select');
+  switchTab(TABS_ORDER[idx]);
+}
+
+function handleGamepadSelect() {
+  const targetId = selectedGameId || currentCatalogueList[gamepadGridIndex]?.id;
+  if (targetId) {
+    openCoverSelector(targetId);
+  }
+}
+
+function handleGamepadStart() {
+  const targetId = selectedGameId || currentCatalogueList[gamepadGridIndex]?.id;
+  if (targetId) {
+    playSfx('launch');
+    launchSelectedGame(targetId, 0);
+  }
+}
+
+function gamepadLoop() {
+  requestAnimationFrame(gamepadLoop);
+
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let gp = null;
+  for (let i = 0; i < gamepads.length; i++) {
+    if (gamepads[i] && gamepads[i].connected) {
+      gp = gamepads[i];
+      break;
+    }
+  }
+  if (!gp) return;
+
+  const now = performance.now();
+
+  const isButtonPressed = (bIdx) => {
+    const btn = gp.buttons[bIdx];
+    const isDown = btn && (btn.pressed || btn.value > 0.5);
+    const wasDown = Boolean(lastGamepadState[`b_${bIdx}`]);
+    lastGamepadState[`b_${bIdx}`] = isDown;
+    return isDown && !wasDown;
+  };
+
+  let dirX = 0;
+  let dirY = 0;
+
+  if (gp.buttons[12]?.pressed) dirY = -1; // Up
+  if (gp.buttons[13]?.pressed) dirY = 1;  // Down
+  if (gp.buttons[14]?.pressed) dirX = -1; // Left
+  if (gp.buttons[15]?.pressed) dirX = 1;  // Right
+
+  const axisX = gp.axes[0] || 0;
+  const axisY = gp.axes[1] || 0;
+  if (Math.abs(axisX) > 0.38) dirX = axisX > 0 ? 1 : -1;
+  if (Math.abs(axisY) > 0.38) dirY = axisY > 0 ? 1 : -1;
+
+  if (dirX !== 0 || dirY !== 0) {
+    if (now - lastStickTime > 180) {
+      lastStickTime = now;
+      handleGamepadDirection(dirX, dirY);
+    }
+  } else {
+    lastStickTime = 0;
+  }
+
+  if (isButtonPressed(0)) handleGamepadButtonA();
+  if (isButtonPressed(1)) handleGamepadButtonB();
+  if (isButtonPressed(2)) handleGamepadButtonX();
+  if (isButtonPressed(3)) handleGamepadButtonY();
+  if (isButtonPressed(4)) handleGamepadShoulder(-1);
+  if (isButtonPressed(5)) handleGamepadShoulder(1);
+  if (isButtonPressed(8)) handleGamepadSelect();
+  if (isButtonPressed(9)) handleGamepadStart();
+}
+
 // Init Events
 document.addEventListener('DOMContentLoaded', () => {
   buildAzBar();
   fetchState();
+  requestAnimationFrame(gamepadLoop);
+
+  window.addEventListener('click', initAudio, { passive: true });
+  window.addEventListener('keydown', initAudio, { passive: true });
 
   setInterval(() => {
     const now = new Date();
@@ -1002,8 +1537,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('close-details').onclick = () => {
     selectedGameId = null;
+    activeZone = 'GRID';
     document.getElementById('details-panel').classList.add('hidden');
     document.getElementById('details-video').pause();
+    const hudA = document.getElementById('hud-label-a');
+    if (hudA) hudA.textContent = 'Jogar / Detalhes';
+    updateVirtualGrid(true);
+    playSfx('back');
   };
 
   document.getElementById('btn-exit-app').onclick = async () => {
@@ -1025,15 +1565,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey && e.key.toLowerCase() === 'f')) {
+    initAudio();
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      if (e.key === 'Escape') {
+        e.target.blur();
+      }
+      return;
+    }
+
+    if (e.ctrlKey && e.key.toLowerCase() === 'f') {
       e.preventDefault();
       searchInput.focus();
-    } else if (e.key === 'Escape') {
-      const panel = document.getElementById('details-panel');
-      if (!panel.classList.contains('hidden')) {
-        panel.classList.add('hidden');
-        document.getElementById('details-video').pause();
-      }
+      return;
     }
+
+    if (e.key === 'ArrowUp') { e.preventDefault(); handleGamepadDirection(0, -1); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); handleGamepadDirection(0, 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); handleGamepadDirection(-1, 0); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); handleGamepadDirection(1, 0); }
+    else if (e.key === 'Enter') { e.preventDefault(); handleGamepadButtonA(); }
+    else if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); handleGamepadButtonB(); }
+    else if (e.key.toLowerCase() === 'f') { e.preventDefault(); handleGamepadButtonY(); }
+    else if (e.key.toLowerCase() === 'c') { e.preventDefault(); handleGamepadSelect(); }
+    else if (e.key.toLowerCase() === 'q') { e.preventDefault(); handleGamepadShoulder(-1); }
+    else if (e.key.toLowerCase() === 'e') { e.preventDefault(); handleGamepadShoulder(1); }
   });
 });

@@ -96,12 +96,14 @@ const GAMES_META_FILE = path.join(DATA_DIR, 'games_metadata.json');
 const RETRO_RATINGS_FILE = path.join(DATA_DIR, 'retro_ratings.json');
 const ROMS_DIR = path.join(APP_ROOT, 'ROMS');
 const BIOS_DIR = path.join(APP_ROOT, 'BIOS');
+const BACKUPS_DIR = path.join(APP_ROOT, 'backups', 'saves');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(BIOS_DIR, { recursive: true });
 fs.mkdirSync(MEDIA_DIR, { recursive: true });
 fs.mkdirSync(COVERS_DIR, { recursive: true });
 fs.mkdirSync(THUMBS_DIR, { recursive: true });
+fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 
 const CONSOLE_LIST = ['SNES', 'GENESIS', 'PS1', 'PS2', 'MAME', 'N64', 'GBA', 'GBC', 'GB', 'PSP', 'WII', 'GC', 'PS3'];
 for (const cid of CONSOLE_LIST) {
@@ -412,6 +414,66 @@ async function fetchSteamGridDb(cleanTitleStr, apiKey) {
   }
 }
 
+function downloadImage(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http;
+    const req = client.get(url, { headers: { 'User-Agent': 'HydraRetro/1.0' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadImage(res.headers.location, destPath).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`Status HTTP ${res.statusCode}`));
+      }
+      const file = fs.createWriteStream(destPath);
+      res.pipe(file);
+      file.on('finish', () => {
+        file.close(() => resolve(destPath));
+      });
+      file.on('error', (err) => {
+        fs.unlink(destPath, () => {});
+        reject(err);
+      });
+    });
+    req.on('error', (err) => {
+      fs.unlink(destPath, () => {});
+      reject(err);
+    });
+    req.setTimeout(15000, () => {
+      req.destroy();
+      fs.unlink(destPath, () => {});
+      reject(new Error('Timeout ao baixar imagem'));
+    });
+  });
+}
+
+async function fetchSteamGridDbGrids(cleanTitleStr, apiKey) {
+  if (!apiKey || !cleanTitleStr) return [];
+  const opt = {
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'User-Agent': 'HydraRetro/1.0' }
+  };
+  try {
+    const searchUrl = `https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(cleanTitleStr)}`;
+    const searchRes = await fetchJson(searchUrl, opt);
+    if (!searchRes || !searchRes.success || !searchRes.data || searchRes.data.length === 0) {
+      return [];
+    }
+    const gameId = searchRes.data[0].id;
+    const gridRes = await fetchJson(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}?dimensions=600x900&types=static`, opt);
+    if (gridRes && gridRes.success && Array.isArray(gridRes.data)) {
+      return gridRes.data.slice(0, 15).map((item, index) => ({
+        id: `sgdb_${item.id || index}`,
+        type: 'steamgriddb',
+        label: `SteamGridDB HD #${index + 1}${item.author?.name ? ' (por ' + item.author.name + ')' : ''}`,
+        thumbUrl: item.thumb || item.url,
+        url: item.url
+      }));
+    }
+  } catch (e) {
+    console.error('SteamGridDB Grids error:', e.message);
+  }
+  return [];
+}
+
 let activeSession = null;
 let shutdownTimer = null;
 
@@ -531,10 +593,16 @@ function getArtworkCandidates(primaryBase, innerBase, cleanTitleStr) {
   return Array.from(candidates);
 }
 
-function findLocalArtwork(romFolder, baseName, cleanTitleStr) {
-  if (!romFolder || !fs.existsSync(romFolder)) return null;
+function findLocalArtwork(romFolder, baseName, cleanTitleStr, consoleId) {
   const exts = ['.png', '.jpg', '.jpeg', '.webp'];
-  const dirs = [romFolder, path.join(romFolder, 'covers'), path.join(romFolder, 'Named_Boxarts'), path.join(romFolder, 'art')];
+  const dirs = [];
+  if (consoleId) {
+    const mediaDir = path.join(COVERS_DIR, consoleId.toLowerCase());
+    if (fs.existsSync(mediaDir)) dirs.push(mediaDir);
+  }
+  if (romFolder && fs.existsSync(romFolder)) {
+    dirs.push(romFolder, path.join(romFolder, 'covers'), path.join(romFolder, 'Named_Boxarts'), path.join(romFolder, 'art'));
+  }
   const names = [baseName, cleanTitleStr];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) continue;
@@ -543,6 +611,10 @@ function findLocalArtwork(romFolder, baseName, cleanTitleStr) {
       for (const ext of exts) {
         const full = path.join(dir, name + ext);
         if (fs.existsSync(full)) {
+          if (dir.startsWith(MEDIA_DIR)) {
+            const rel = path.relative(MEDIA_DIR, full).replace(/\\/g, '/');
+            return `/media/${rel}`;
+          }
           return `/local-file?path=${encodeURIComponent(full)}`;
         }
       }
@@ -711,7 +783,7 @@ function scanLibrary() {
       }
 
       const existing = db.games[groupId];
-      const localCover = findLocalArtwork(cCfg.romFolder, primaryBase, g.title) || coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
+      const localCover = findLocalArtwork(cCfg.romFolder, primaryBase, g.title, consoleId) || coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
       const localLogo = coinOpsArtwork(cCfg.coinOpsCollection, 'logo', primaryBase);
       const localVideo = (() => {
         const vp = path.join(db.config.coinOpsRoot, 'collections', cCfg.coinOpsCollection, 'medium_artwork', 'video', `${primaryBase}.mp4`);
@@ -832,7 +904,8 @@ function scanLibrary() {
           genres,
           players,
           rating,
-          steamGridData: null
+          steamGridData: null,
+          customCoverUrl: null
         };
         newGamesCount++;
       } else {
@@ -842,7 +915,7 @@ function scanLibrary() {
         existing.thumbUrl = thumbUrl;
         existing.discs = g.discs;
         existing.sizeBytes = g.discs.reduce((acc, d) => acc + d.sizeBytes, 0);
-        existing.coverUrl = coverUrl;
+        existing.coverUrl = existing.customCoverUrl || coverUrl;
         existing.coverCandidates = coverCandidates;
         existing.fallbackCoverUrl = localCover;
         existing.heroUrl = heroUrl;
@@ -1328,6 +1401,87 @@ for (const [cid, cCfg] of Object.entries(db.config.consoles)) {
   }
 }
 
+function getSaveDirectories() {
+  const dirs = [];
+  
+  // 1. RetroArch (Genesis, SNES, Arcade, N64, GBA, GBC, GB)
+  const raSaves = path.join(APP_ROOT, 'emulators', 'retroarch', 'saves');
+  const raStates = path.join(APP_ROOT, 'emulators', 'retroarch', 'states');
+  if (fs.existsSync(raSaves)) dirs.push({ name: 'RetroArch_Saves', path: raSaves });
+  if (fs.existsSync(raStates)) dirs.push({ name: 'RetroArch_States', path: raStates });
+
+  // 2. DuckStation (PS1)
+  const duckMem = path.join(APP_ROOT, 'emulators', 'duckstation', 'memcards');
+  const duckStates = path.join(APP_ROOT, 'emulators', 'duckstation', 'savestates');
+  if (fs.existsSync(duckMem)) dirs.push({ name: 'DuckStation_Memcards', path: duckMem });
+  if (fs.existsSync(duckStates)) dirs.push({ name: 'DuckStation_States', path: duckStates });
+
+  // 3. PCSX2 (PS2)
+  const pcsx2Mem = path.join(APP_ROOT, 'emulators', 'pcsx2', 'memcards');
+  const pcsx2States = path.join(APP_ROOT, 'emulators', 'pcsx2', 'sstates');
+  if (fs.existsSync(pcsx2Mem)) dirs.push({ name: 'PCSX2_Memcards', path: pcsx2Mem });
+  if (fs.existsSync(pcsx2States)) dirs.push({ name: 'PCSX2_States', path: pcsx2States });
+
+  // 4. Dolphin (Wii & GC)
+  const dolGc = path.join(APP_ROOT, 'emulators', 'dolphin', 'User', 'GC');
+  const dolWii = path.join(APP_ROOT, 'emulators', 'dolphin', 'User', 'Wii');
+  const dolStates = path.join(APP_ROOT, 'emulators', 'dolphin', 'User', 'StateSaves');
+  if (fs.existsSync(dolGc)) dirs.push({ name: 'Dolphin_GC', path: dolGc });
+  if (fs.existsSync(dolWii)) dirs.push({ name: 'Dolphin_Wii', path: dolWii });
+  if (fs.existsSync(dolStates)) dirs.push({ name: 'Dolphin_States', path: dolStates });
+
+  // 5. PPSSPP (PSP)
+  const pspSave = path.join(APP_ROOT, 'emulators', 'ppsspp', 'memstick', 'PSP', 'SAVEDATA');
+  const pspStates = path.join(APP_ROOT, 'emulators', 'ppsspp', 'memstick', 'PSP', 'PPSSPP_STATE');
+  if (fs.existsSync(pspSave)) dirs.push({ name: 'PPSSPP_Savedata', path: pspSave });
+  if (fs.existsSync(pspStates)) dirs.push({ name: 'PPSSPP_States', path: pspStates });
+
+  // 6. RPCS3 (PS3)
+  const rpcs3Save = path.join(APP_ROOT, 'emulators', 'rpcs3', 'dev_hdd0', 'home', '00000001', 'savedata');
+  if (fs.existsSync(rpcs3Save)) dirs.push({ name: 'RPCS3_Savedata', path: rpcs3Save });
+
+  return dirs;
+}
+
+function exportSavesToZip() {
+  return new Promise((resolve, reject) => {
+    const saveDirs = getSaveDirectories();
+    const existingPaths = saveDirs.filter(d => fs.existsSync(d.path)).map(d => d.path);
+    
+    if (fs.existsSync(DB_FILE)) existingPaths.push(DB_FILE);
+
+    if (existingPaths.length === 0) {
+      return reject(new Error('Nenhuma pasta de saves encontrada para exportar'));
+    }
+
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const timeStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const zipName = `HydraRetro_Saves_Backup_${timeStr}.zip`;
+    const zipPath = path.join(BACKUPS_DIR, zipName);
+
+    const quotedPaths = existingPaths.map(p => `'${p.replace(/'/g, "''")}'`).join(', ');
+    const psCmd = `$paths = @(${quotedPaths}); Compress-Archive -Path $paths -DestinationPath '${zipPath.replace(/'/g, "''")}' -Force`;
+
+    const ps = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psCmd]);
+    let errOutput = '';
+    ps.stderr.on('data', d => errOutput += d.toString());
+    ps.on('close', (code) => {
+      if (code === 0 && fs.existsSync(zipPath)) {
+        const stat = fs.statSync(zipPath);
+        resolve({
+          fileName: zipName,
+          filePath: zipPath,
+          sizeBytes: stat.size,
+          createdDate: now.toISOString()
+        });
+      } else {
+        reject(new Error(errOutput || `Falha ao compactar saves (código ${code})`));
+      }
+    });
+  });
+}
+
 function sendJson(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -1535,6 +1689,244 @@ const server = http.createServer(async (req, res) => {
     saveDb(db);
     const scanRes = scanLibrary();
     return sendJson(res, 200, { config: db.config, scan: scanRes });
+  }
+
+  if (pathname === '/api/covers/list' && req.method === 'GET') {
+    const gameId = urlObj.searchParams.get('gameId');
+    const game = gameId ? db.games[gameId] : null;
+    if (!game) {
+      return sendJson(res, 404, { error: 'Jogo não encontrado' });
+    }
+
+    const covers = [];
+    const seenUrls = new Set();
+    const cCfg = db.config.consoles[game.consoleId] || {};
+    const primary = (game.discs && game.discs[0]) ? game.discs[0] : { path: game.romPath, fileName: game.fileName };
+    const primaryBase = path.basename(primary.fileName, path.extname(primary.fileName));
+    const cleanT = cleanTitle(game.title);
+
+    // 1. Current Active Cover
+    if (game.coverUrl) {
+      covers.push({
+        id: 'current_active',
+        type: 'current',
+        label: 'Capa Ativa Atual',
+        url: game.coverUrl,
+        thumbUrl: game.thumbUrl || game.coverUrl,
+        active: true
+      });
+      seenUrls.add(game.coverUrl);
+    }
+
+    // 2. Local covers in media/covers/<consoleId>/
+    const consoleCoverDir = path.join(COVERS_DIR, game.consoleId.toLowerCase());
+    if (fs.existsSync(consoleCoverDir)) {
+      try {
+        const coverFiles = fs.readdirSync(consoleCoverDir);
+        const normClean = cleanT.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normBase = primaryBase.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        for (const cf of coverFiles) {
+          const ext = path.extname(cf).toLowerCase();
+          if (!['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) continue;
+          const cfBase = path.basename(cf, ext).toLowerCase().replace(/[^a-z0-9]/g, '');
+          
+          if (cfBase.includes(normClean) || cfBase.includes(normBase) || normClean.includes(cfBase)) {
+            const relUrl = `/media/covers/${game.consoleId.toLowerCase()}/${encodeURIComponent(cf)}`;
+            if (!seenUrls.has(relUrl)) {
+              seenUrls.add(relUrl);
+              covers.push({
+                id: `local_cover_${cf}`,
+                type: 'local_media',
+                label: `Pasta Covers: ${cf}`,
+                url: relUrl,
+                thumbUrl: relUrl,
+                isLocal: true
+              });
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Local covers in ROM folder or adjacent folders
+    const romLocal = findLocalArtwork(cCfg.romFolder, primaryBase, cleanT, game.consoleId);
+    if (romLocal && !seenUrls.has(romLocal)) {
+      seenUrls.add(romLocal);
+      covers.push({
+        id: 'rom_folder_cover',
+        type: 'local_rom',
+        label: 'Pasta de ROMs (Local)',
+        url: romLocal,
+        thumbUrl: romLocal,
+        isLocal: true
+      });
+    }
+
+    // 4. CoinOps Cover (if available)
+    const coinCover = coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
+    if (coinCover && !seenUrls.has(coinCover)) {
+      seenUrls.add(coinCover);
+      covers.push({
+        id: 'coinops_cover',
+        type: 'coinops',
+        label: 'CoinOps Official Artwork',
+        url: coinCover,
+        thumbUrl: coinCover,
+        isLocal: true
+      });
+    }
+
+    // 5. Libretro Boxart Candidates (by region)
+    if (Array.isArray(game.coverCandidates)) {
+      game.coverCandidates.forEach((candUrl, idx) => {
+        if (candUrl && !seenUrls.has(candUrl)) {
+          seenUrls.add(candUrl);
+          let regLabel = 'Libretro CDN';
+          if (candUrl.includes('%28USA%29') || candUrl.includes('(USA)')) regLabel = 'Libretro CDN (USA)';
+          else if (candUrl.includes('%28World%29') || candUrl.includes('(World)')) regLabel = 'Libretro CDN (World)';
+          else if (candUrl.includes('%28Europe%29') || candUrl.includes('(Europe)')) regLabel = 'Libretro CDN (Europe)';
+          else if (candUrl.includes('%28Japan%29') || candUrl.includes('(Japan)')) regLabel = 'Libretro CDN (Japan)';
+          else if (candUrl.includes('%28Brazil%29') || candUrl.includes('(Brazil)')) regLabel = 'Libretro CDN (Brasil)';
+          covers.push({
+            id: `libretro_${idx}`,
+            type: 'libretro',
+            label: regLabel,
+            url: candUrl,
+            thumbUrl: candUrl
+          });
+        }
+      });
+    }
+
+    // 6. SteamGridDB HD alternatives
+    const sgKey = db.config.steamGridDbApiKey;
+    if (sgKey) {
+      const sgGrids = await fetchSteamGridDbGrids(cleanT, sgKey);
+      for (const grid of sgGrids) {
+        if (!seenUrls.has(grid.url)) {
+          seenUrls.add(grid.url);
+          covers.push(grid);
+        }
+      }
+    }
+
+    return sendJson(res, 200, {
+      gameId: game.id,
+      title: game.title,
+      consoleId: game.consoleId,
+      currentCover: game.coverUrl,
+      covers
+    });
+  }
+
+  if (pathname === '/api/covers/select' && req.method === 'POST') {
+    const body = await readBody(req);
+    const game = body.gameId ? db.games[body.gameId] : null;
+    if (!game) {
+      return sendJson(res, 404, { error: 'Jogo não encontrado' });
+    }
+    const chosenUrl = body.coverUrl;
+    if (!chosenUrl) {
+      return sendJson(res, 400, { error: 'URL da capa não fornecida' });
+    }
+
+    try {
+      if (chosenUrl.startsWith('http://') || chosenUrl.startsWith('https://')) {
+        const consoleSub = game.consoleId.toLowerCase();
+        const destFolder = path.join(COVERS_DIR, consoleSub);
+        fs.mkdirSync(destFolder, { recursive: true });
+
+        const safeTitle = cleanTitle(game.title).replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
+        const ext = chosenUrl.toLowerCase().includes('.png') ? '.png' : (chosenUrl.toLowerCase().includes('.webp') ? '.webp' : '.jpg');
+        const fileName = `${safeTitle}_${Date.now()}${ext}`;
+        const destPath = path.join(destFolder, fileName);
+
+        await downloadImage(chosenUrl, destPath);
+        const localRelUrl = `/media/covers/${consoleSub}/${fileName}`;
+        game.coverUrl = localRelUrl;
+        game.customCoverUrl = localRelUrl;
+      } else {
+        game.coverUrl = chosenUrl;
+        game.customCoverUrl = chosenUrl;
+      }
+
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, game, coverUrl: game.coverUrl });
+    } catch (e) {
+      console.error('Error selecting cover:', e);
+      return sendJson(res, 500, { error: `Erro ao salvar capa: ${e.message}` });
+    }
+  }
+
+  if (pathname === '/api/covers/open-folder' && req.method === 'POST') {
+    const body = await readBody(req);
+    const consoleId = (body.consoleId || 'ps1').toLowerCase();
+    const folder = path.join(COVERS_DIR, consoleId);
+    fs.mkdirSync(folder, { recursive: true });
+    spawn('explorer.exe', [folder], { detached: true, stdio: 'ignore' }).unref();
+    return sendJson(res, 200, { ok: true, folder });
+  }
+
+  if (pathname === '/api/saves/export') {
+    try {
+      const specificFile = urlObj.searchParams.get('file');
+      if (specificFile) {
+        const fp = path.join(BACKUPS_DIR, path.basename(specificFile));
+        if (fs.existsSync(fp)) {
+          const stat = fs.statSync(fp);
+          res.writeHead(200, {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${path.basename(specificFile)}"`,
+            'Content-Length': stat.size
+          });
+          return fs.createReadStream(fp).pipe(res);
+        }
+      }
+
+      const backup = await exportSavesToZip();
+      if (urlObj.searchParams.get('download') === '1') {
+        res.writeHead(200, {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${backup.fileName}"`,
+          'Content-Length': backup.sizeBytes
+        });
+        return fs.createReadStream(backup.filePath).pipe(res);
+      }
+      return sendJson(res, 200, { ok: true, backup });
+    } catch (e) {
+      console.error('Save export error:', e);
+      return sendJson(res, 500, { error: e.message });
+    }
+  }
+
+  if (pathname === '/api/saves/list' && req.method === 'GET') {
+    try {
+      if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+      const files = fs.readdirSync(BACKUPS_DIR)
+        .filter(f => f.toLowerCase().endsWith('.zip'))
+        .map(f => {
+          const fp = path.join(BACKUPS_DIR, f);
+          const stat = fs.statSync(fp);
+          return {
+            fileName: f,
+            filePath: fp,
+            sizeBytes: stat.size,
+            createdDate: stat.mtime.toISOString(),
+            downloadUrl: `/api/saves/export?download=1&file=${encodeURIComponent(f)}`
+          };
+        })
+        .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+      return sendJson(res, 200, { backups: files });
+    } catch (e) {
+      return sendJson(res, 500, { error: e.message });
+    }
+  }
+
+  if (pathname === '/api/saves/open-folder' && req.method === 'POST') {
+    if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+    spawn('explorer.exe', [BACKUPS_DIR], { detached: true, stdio: 'ignore' }).unref();
+    return sendJson(res, 200, { ok: true, folder: BACKUPS_DIR });
   }
 
   if (pathname === '/api/open-folder' && req.method === 'POST') {

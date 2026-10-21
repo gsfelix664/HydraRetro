@@ -432,6 +432,33 @@ HydraRetro/
 5. **Mapeamento Embutido de Emuladores:**
    - RetroArch como motor unificado (80% dos consoles retrô via DLL de cores) e emuladores standalone para sistemas pesados (DuckStation para PS1, PCSX2 para PS2, Dolphin para Wii/GC, PPSSPP para PSP e RPCS3 para PS3).
 
+6. **Navegação Nativa por Controle (Gamepad API) & Áudio Tátil (UI SFX):**
+   - Navegação 100% pelo controle (Xbox/XInput/Gamepad padrão) com polling via `requestAnimationFrame`.
+   - Mapeamento:
+     * **D-Pad / Analógico:** Navegação bidimensional pelo grid virtualizado com auto-scroll e borda iluminada `.gamepad-focused`.
+     * **Botão A:** Abre detalhes do jogo ou dá início direto na partida.
+     * **Botão B:** Fecha o modal de capas ou painel de detalhes e volta para o catálogo.
+     * **Botão X:** Início Rápido (Quick Play) diretamente do catálogo.
+     * **Botão Y:** Alterna favorito instantaneamente com atualização do badge e som estelar.
+     * **LB / RB:** Alterna entre abas e consoles na barra lateral.
+     * **SELECT / View:** Abre o Seletor de Capas e Artes Alternativas do jogo focado.
+   - **Sintetizador Web Audio API:** Gera sons de alta fidelidade e latência zero (nav, select, back, favorite, launch) sem requisições de rede ou arquivos pesados.
+
+7. **Atalho Universal de Saída dos Emuladores (`Select + Start` / `Escape`):**
+   - `FocusHelper.exe` atua como daemon de controle Win32 durante a gameplay.
+   - Monitora XInput (controles 0 a 3) e o teclado em tempo real.
+   - Ao segurar **`Select + Start`** (ou `L3 + R3 + Start`) por 700ms ou a tecla **`Escape`** por 800ms, finaliza o processo do emulador de forma limpa.
+   - O backend Node captura a saída, registra as horas jogadas e o `FocusHelper` restaura instantaneamente a janela do catálogo em tela cheia com foco total.
+
+8. **Seletor de Capas Multi-Fonte & Armazenamento Local:**
+   - Cada jogo suporta múltiplas capas de diferentes origens (arquivos locais em `media/covers/<console>/`, artes do CoinOps, CDN da Libretro por região e artes em HD do SteamGridDB).
+   - O usuário pode copiar pastas de covers do CoinOps ou imagens próprias diretamente para `media/covers/<console>/` que o sistema as detecta e prioriza automaticamente.
+   - Modal interativo na UI permite navegar entre as capas encontradas e escolher a preferida com 1 clique (ou botão A do controle), salvando-a permanentemente no disco.
+
+9. **Backup e Exportação de Saves em Arquivo Único (ZIP):**
+   - Varredura e consolidação automática de saves, memory cards e savestates de todos os emuladores (RetroArch, DuckStation, PCSX2, Dolphin, PPSSPP, RPCS3) + banco de dados.
+   - Compactação nativa via PowerShell `Compress-Archive` gerando arquivo único `HydraRetro_Saves_Backup_YYYY-MM-DD_HHmm.zip` na pasta `backups/saves/`, pronto para download direto pelo navegador.
+
 ---
 
 ## 🛡️ 5. Regras de Controle de Versão (Git)
