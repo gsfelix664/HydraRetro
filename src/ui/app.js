@@ -162,6 +162,18 @@ function getFilteredGames() {
     list.sort((a, b) => (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title, 'pt-BR', { numeric: true }));
   } else if (sortMode === 'ALPHA_DESC') {
     list.sort((a, b) => (b.sortTitle || b.title).localeCompare(a.sortTitle || a.title, 'pt-BR', { numeric: true }));
+  } else if (sortMode === 'RATING_DESC') {
+    list.sort((a, b) => {
+      const diff = (b.rating || 0) - (a.rating || 0);
+      if (Math.abs(diff) > 0.001) return diff;
+      return (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title, 'pt-BR', { numeric: true });
+    });
+  } else if (sortMode === 'RATING_ASC') {
+    list.sort((a, b) => {
+      const diff = (a.rating || 0) - (b.rating || 0);
+      if (Math.abs(diff) > 0.001) return diff;
+      return (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title, 'pt-BR', { numeric: true });
+    });
   } else if (sortMode === 'PLAYTIME') {
     list.sort((a, b) => (b.playTimeSeconds || 0) - (a.playTimeSeconds || 0) || a.title.localeCompare(b.title));
   } else if (sortMode === 'RECENT') {
@@ -171,9 +183,16 @@ function getFilteredGames() {
   return list;
 }
 
-function renderCatalogue() {
-  const grid = document.getElementById('games-grid');
+let currentCatalogueList = [];
+let lastVisibleRange = { startRow: -1, endRow: -1 };
+let virtualScrollRaf = null;
+
+function renderCatalogue(resetScroll = false) {
+  const viewSection = document.getElementById('view-catalogue');
+  if (resetScroll && viewSection) viewSection.scrollTop = 0;
+
   const filtered = getFilteredGames();
+  currentCatalogueList = filtered;
 
   const titlesMap = {
     ALL: ['Todos os Jogos', `${filtered.length} jogos prontos para iniciar com 1 clique`],
@@ -198,86 +217,177 @@ function renderCatalogue() {
   document.getElementById('current-view-title').textContent = hTitle;
   document.getElementById('current-view-subtitle').textContent = hSub;
 
+  lastVisibleRange = { startRow: -1, endRow: -1 };
+  updateVirtualGrid(true);
+}
+
+function updateVirtualGrid(force = false) {
+  const grid = document.getElementById('games-grid');
+  const viewSection = document.getElementById('view-catalogue');
+  if (!grid || !viewSection) return;
+
+  const totalItems = currentCatalogueList.length;
+  if (totalItems === 0) {
+    grid.innerHTML = '<div style="color:var(--text-muted);font-size:15px;padding:40px 0;text-align:center;">Nenhum jogo encontrado nesta categoria.</div>';
+    grid.style.height = 'auto';
+    return;
+  }
+
+  const availableWidth = grid.clientWidth || (viewSection.clientWidth - 56) || 1000;
+  const minColWidth = 175;
+  const gap = 20;
+  const cols = Math.max(1, Math.floor((availableWidth + gap) / (minColWidth + gap)));
+  const cardWidth = Math.floor((availableWidth - (cols - 1) * gap) / cols);
+  const cardHeight = Math.round(cardWidth * 1.38 + 62);
+  const rowHeight = cardHeight + gap;
+  const totalRows = Math.ceil(totalItems / cols);
+  const totalVirtualHeight = totalRows * rowHeight;
+
+  grid.style.position = 'relative';
+  grid.style.height = `${totalVirtualHeight}px`;
+
+  const scrollTop = viewSection.scrollTop;
+  const viewportHeight = viewSection.clientHeight || 800;
+
+  const gridOffsetTop = grid.offsetTop;
+  const relativeScrollTop = Math.max(0, scrollTop - gridOffsetTop);
+
+  const startRow = Math.max(0, Math.floor(relativeScrollTop / rowHeight) - 2);
+  const endRow = Math.min(totalRows - 1, Math.ceil((relativeScrollTop + viewportHeight) / rowHeight) + 2);
+
+  if (!force && lastVisibleRange.startRow === startRow && lastVisibleRange.endRow === endRow) {
+    return;
+  }
+  lastVisibleRange = { startRow, endRow };
+
+  const startIndex = startRow * cols;
+  const endIndex = Math.min(totalItems, (endRow + 1) * cols);
+
   grid.innerHTML = '';
   const frag = document.createDocumentFragment();
 
-  for (const game of filtered) {
-    const card = document.createElement('div');
-    card.className = `game-card ${selectedGameId === game.id ? 'selected' : ''}`;
-    card.dataset.id = game.id;
+  for (let i = startIndex; i < endIndex; i++) {
+    const game = currentCatalogueList[i];
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const posX = col * (cardWidth + gap);
+    const posY = row * rowHeight;
 
-    const artWrap = document.createElement('div');
-    artWrap.className = 'card-art-wrap';
-
-    const img = document.createElement('img');
-    img.className = 'card-art';
-    img.loading = 'lazy';
-    img.alt = game.title;
-    img.src = game.coverUrl || game.fallbackCoverUrl || '';
-    let candIdx = 0;
-    img.onerror = () => {
-      while (game.coverCandidates && candIdx < game.coverCandidates.length) {
-        const next = game.coverCandidates[candIdx++];
-        if (next && next !== img.src) {
-          img.src = next;
-          return;
-        }
-      }
-      if (game.fallbackCoverUrl && img.src !== window.location.origin + game.fallbackCoverUrl) {
-        img.src = game.fallbackCoverUrl;
-      } else {
-        img.style.display = 'none';
-      }
-    };
-    img.onload = () => {
-      img.style.display = '';
-      game.coverUrl = img.src;
-    };
-    artWrap.appendChild(img);
-
-    const badges = document.createElement('div');
-    badges.className = 'card-top-badges';
-    badges.innerHTML = `
-      <span class="card-console-tag ${game.consoleId}">${game.consoleId === 'GENESIS' ? 'MD' : (game.consoleId === 'MAME' ? 'ARC' : game.consoleId)}</span>
-      ${game.favorite ? '<span class="card-fav-star">★</span>' : ''}
-    `;
-    artWrap.appendChild(badges);
-
-    const overlay = document.createElement('div');
-    overlay.className = 'card-play-overlay';
-    const playBtn = document.createElement('button');
-    playBtn.className = 'quick-play-circle';
-    playBtn.innerHTML = '▶';
-    playBtn.title = `Jogar ${game.title} agora`;
-    playBtn.onclick = (e) => {
-      e.stopPropagation();
-      selectGame(game);
-      launchSelectedGame(game.id, 0);
-    };
-    overlay.appendChild(playBtn);
-    artWrap.appendChild(overlay);
-
-    const info = document.createElement('div');
-    info.className = 'card-info';
-    const ptText = game.playTimeSeconds > 0 ? formatPlaytime(game.playTimeSeconds) : formatSize(game.sizeBytes);
-    info.innerHTML = `
-      <div class="card-title" title="${game.title}">${game.title}</div>
-      <div class="card-meta">
-        <span>${appState.config?.consoles?.[game.consoleId]?.name || game.consoleId}</span>
-        <span class="${game.playTimeSeconds > 0 ? 'card-playtime' : ''}">${ptText}</span>
-      </div>
-    `;
-
-    card.appendChild(artWrap);
-    card.appendChild(info);
-
-    card.onclick = () => selectGame(game);
-    card.ondblclick = () => launchSelectedGame(game.id, 0);
-
+    const card = createGameCardElement(game, cardWidth, cardHeight, posX, posY);
     frag.appendChild(card);
   }
 
   grid.appendChild(frag);
+}
+
+function createGameCardElement(game, cardWidth, cardHeight, posX, posY) {
+  const card = document.createElement('div');
+  card.className = `game-card ${selectedGameId === game.id ? 'selected' : ''}`;
+  card.dataset.id = game.id;
+  card.style.position = 'absolute';
+  card.style.left = `${posX}px`;
+  card.style.top = `${posY}px`;
+  card.style.width = `${cardWidth}px`;
+  card.style.height = `${cardHeight}px`;
+
+  const artWrap = document.createElement('div');
+  artWrap.className = 'card-art-wrap';
+
+  // Shimmer skeleton placeholder
+  const shimmer = document.createElement('div');
+  shimmer.className = 'card-placeholder-shimmer';
+  artWrap.appendChild(shimmer);
+
+  const img = document.createElement('img');
+  img.className = 'card-art loading';
+  img.loading = 'lazy';
+  img.alt = game.title;
+  img.src = game.thumbUrl || game.coverUrl || game.fallbackCoverUrl || '';
+  let candIdx = 0;
+  img.onerror = () => {
+    while (game.coverCandidates && candIdx < game.coverCandidates.length) {
+      const next = game.coverCandidates[candIdx++];
+      if (next && next !== img.src) {
+        img.src = next;
+        return;
+      }
+    }
+    if (game.fallbackCoverUrl && img.src !== window.location.origin + game.fallbackCoverUrl) {
+      img.src = game.fallbackCoverUrl;
+    } else {
+      img.style.display = 'none';
+      shimmer.style.display = 'none';
+    }
+  };
+  img.onload = () => {
+    img.className = 'card-art loaded';
+    shimmer.style.display = 'none';
+    game.coverUrl = img.src;
+  };
+  artWrap.appendChild(img);
+
+  const badges = document.createElement('div');
+  badges.className = 'card-top-badges';
+  const ratingVal = (typeof game.rating === 'number' ? game.rating : 4.8).toFixed(1);
+  badges.innerHTML = `
+    <div class="card-badges-left">
+      <span class="card-console-tag ${game.consoleId}">${game.consoleId === 'GENESIS' ? 'MD' : (game.consoleId === 'MAME' ? 'ARC' : game.consoleId)}</span>
+      <span class="card-rating-tag" title="Avaliação: ${ratingVal} / 5.0">★ ${ratingVal}</span>
+    </div>
+    ${game.favorite ? '<span class="card-fav-star">★</span>' : ''}
+  `;
+  artWrap.appendChild(badges);
+
+  const bottomBadges = document.createElement('div');
+  bottomBadges.className = 'card-bottom-badges';
+  const hours = (game.playTimeSeconds || 0) / 3600;
+  const ptBadgeText = hours >= 1 ? `${hours.toFixed(1)}h` : (game.playTimeSeconds > 0 ? `${Math.round(game.playTimeSeconds / 60)}m` : '0h');
+  const achs = game.achievements || [];
+  const unlockedAch = achs.filter(a => a.unlocked).length;
+  const achBadgeText = achs.length > 0 ? `${unlockedAch}/${achs.length}` : '0';
+
+  bottomBadges.innerHTML = `
+    <span class="card-cover-badge time-badge" title="Tempo jogado: ${formatPlaytime(game.playTimeSeconds || 0)}">
+      <span class="badge-icon">⏱️</span><span>${ptBadgeText}</span>
+    </span>
+    <span class="card-cover-badge ach-badge" title="Conquistas: ${unlockedAch} de ${achs.length} desbloqueadas">
+      <span class="badge-icon">🏆</span><span>${achBadgeText}</span>
+    </span>
+  `;
+  artWrap.appendChild(bottomBadges);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'card-play-overlay';
+  const playBtn = document.createElement('button');
+  playBtn.className = 'quick-play-circle';
+  playBtn.innerHTML = '▶';
+  playBtn.title = `Jogar ${game.title} agora`;
+  playBtn.onclick = (e) => {
+    e.stopPropagation();
+    selectGame(game);
+    launchSelectedGame(game.id, 0);
+  };
+  overlay.appendChild(playBtn);
+  artWrap.appendChild(overlay);
+
+  const info = document.createElement('div');
+  info.className = 'card-info';
+  const ptText = game.playTimeSeconds > 0 ? formatPlaytime(game.playTimeSeconds) : formatSize(game.sizeBytes);
+  info.innerHTML = `
+    <div class="card-title" title="${game.title}">${game.title}</div>
+    <div class="card-meta">
+      <span>${appState.config?.consoles?.[game.consoleId]?.name || game.consoleId}</span>
+      <span class="${game.playTimeSeconds > 0 ? 'card-playtime' : ''}">${ptText}</span>
+    </div>
+  `;
+
+  card.appendChild(artWrap);
+  card.appendChild(info);
+
+  card.onclick = () => selectGame(game);
+  card.ondblclick = () => launchSelectedGame(game.id, 0);
+
+  return card;
 }
 
 function selectGame(game) {
@@ -349,8 +459,12 @@ function selectGame(game) {
     logo.classList.add('hidden');
   }
 
-  const cName = appState.config?.consoles?.[game.consoleId]?.name || game.consoleId;
-  document.getElementById('details-console-badge').textContent = cName.toUpperCase();
+  const cCfg = appState.config?.consoles?.[game.consoleId];
+  const cName = cCfg?.name || game.consoleId;
+  const cMfg = cCfg?.manufacturer || 'Console';
+  document.getElementById('details-console-badge').textContent = (cCfg?.shortName || game.consoleId).toUpperCase();
+  document.getElementById('details-platform-badge').textContent = cMfg.toUpperCase();
+  document.getElementById('details-platform-name').textContent = `${cName} • ${cMfg}`;
   document.getElementById('details-size-badge').textContent = formatSize(game.sizeBytes);
   document.getElementById('details-year-badge').textContent = game.releaseYear || '---';
   document.getElementById('details-rating-badge').textContent = `⭐ ${(game.rating || 4.8).toFixed(1)}`;
@@ -368,11 +482,17 @@ function selectGame(game) {
     genresBox.appendChild(pill);
   }
 
+  // Load and Render HowLongToBeat Stats
+  loadGameHltb(game);
+
   // Render Synopsis and Tech Specs
   document.getElementById('details-description').textContent = game.description || 'Um clássico atemporal dos videogames pronto para ser revivido em tela cheia com comandos responsivos.';
   document.getElementById('details-dev').textContent = game.developer || '---';
   document.getElementById('details-pub').textContent = game.publisher || '---';
   document.getElementById('details-players').textContent = game.players || '1-2 Jogadores';
+
+  // Auto-enrich metadata online if generic
+  autoEnrichGameMetadata(game);
 
   // SteamGridDB Button Handler
   const sgBtn = document.getElementById('btn-steamgrid-game');
@@ -426,6 +546,105 @@ function selectGame(game) {
 
   document.getElementById('btn-fav-toggle').onclick = () => toggleFavorite(game.id);
 }
+
+let currentHltbGameId = null;
+
+async function loadGameHltb(game) {
+  currentHltbGameId = game.id;
+  const loadingEl = document.getElementById('hltb-loading');
+  const statsGrid = document.getElementById('hltb-stats-grid');
+  const mainEl = document.getElementById('hltb-main');
+  const extraEl = document.getElementById('hltb-extra');
+  const compEl = document.getElementById('hltb-comp');
+  const linkEl = document.getElementById('hltb-external-link');
+  const scoreEl = document.getElementById('hltb-review-score');
+  const matchedEl = document.getElementById('hltb-matched-name');
+
+  mainEl.textContent = '--';
+  extraEl.textContent = '--';
+  compEl.textContent = '--';
+  linkEl.href = `https://howlongtobeat.com/?q=${encodeURIComponent(game.title)}`;
+  scoreEl.textContent = '';
+  matchedEl.textContent = '';
+
+  const applyHltbData = (data) => {
+    mainEl.textContent = data.mainTime || '--';
+    extraEl.textContent = data.mainExtraTime || '--';
+    compEl.textContent = data.completionistTime || '--';
+    if (data.url) linkEl.href = data.url;
+    if (data.reviewScore) scoreEl.textContent = `⭐ Avaliação da Comunidade: ${data.reviewScore}%`;
+    if (data.name) matchedEl.textContent = `Correspondência: ${data.name}`;
+  };
+
+  if (game.hltbData) {
+    applyHltbData(game.hltbData);
+    loadingEl.classList.add('hidden');
+    statsGrid.classList.remove('hidden');
+    return;
+  }
+
+  loadingEl.classList.remove('hidden');
+  statsGrid.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/hltb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: game.id, title: game.title })
+    });
+    const result = await res.json();
+    if (currentHltbGameId !== game.id) return;
+
+    loadingEl.classList.add('hidden');
+    statsGrid.classList.remove('hidden');
+
+    if (result.ok && result.data) {
+      game.hltbData = result.data;
+      applyHltbData(result.data);
+    } else {
+      mainEl.textContent = 'N/D';
+      extraEl.textContent = 'N/D';
+      compEl.textContent = 'N/D';
+      matchedEl.textContent = 'Sem dados no HowLongToBeat';
+    }
+  } catch (e) {
+    if (currentHltbGameId === game.id) {
+      loadingEl.classList.add('hidden');
+      statsGrid.classList.remove('hidden');
+      mainEl.textContent = 'N/D';
+      extraEl.textContent = 'N/D';
+      compEl.textContent = 'N/D';
+      matchedEl.textContent = 'Consulta indisponível';
+    }
+  }
+}
+
+async function autoEnrichGameMetadata(game) {
+  if (!game || game.metadataEnriched) return;
+  const isGeneric = !game.description || game.description.startsWith('Um clássico atemporal');
+  if (!isGeneric) return;
+
+  try {
+    const res = await fetch('/api/metadata/enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: game.id })
+    });
+    const data = await res.json();
+    if (data.ok && data.game) {
+      Object.assign(game, data.game);
+      if (selectedGameId === game.id) {
+        document.getElementById('details-description').textContent = game.description || '';
+        document.getElementById('details-dev').textContent = game.developer || '---';
+        document.getElementById('details-pub').textContent = game.publisher || '---';
+        if (game.releaseYear) {
+          document.getElementById('details-year-badge').textContent = game.releaseYear;
+        }
+      }
+    }
+  } catch {}
+}
+
 
 function updateDetailsLiveStats(game) {
   document.getElementById('details-playtime').textContent = formatPlaytime(game.playTimeSeconds);
@@ -595,6 +814,18 @@ function renderSettingsView() {
 
   html += `
     <div class="settings-card">
+      <h3>🌐 Metadados e Sinopses Automáticas (Wikipedia & Web)</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+        O HydraRetro pesquisa e preenche automaticamente o enredo original, ano de lançamento, desenvolvedora e publicadora dos seus jogos sem precisar de nenhuma chave ou configuração adicional.
+      </p>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" style="color:#38bdf8;border-color:#38bdf8;" onclick="syncAllMetadata()">⚡ Sincronizar Sinopses e Metadados Online Agora</button>
+      </div>
+    </div>
+  `;
+
+  html += `
+    <div class="settings-card">
       <h3>🏆 Integração Opcional RetroAchievements.org</h3>
       <div class="field-row">
         <label>Usuário RetroAchievements:</label>
@@ -647,6 +878,18 @@ window.syncAllSteamGrid = async () => {
     }
   } catch {
     showToast('Erro de conexão com o SteamGridDB');
+  }
+};
+
+window.syncAllMetadata = async () => {
+  showToast('Iniciando busca automática de sinopses e metadados na web...');
+  try {
+    const res = await fetch('/api/metadata/sync-all', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message || 'Sincronização iniciada em segundo plano!');
+    setTimeout(fetchState, 3000);
+  } catch (e) {
+    showToast('Erro ao iniciar sincronização.');
   }
 };
 
@@ -703,7 +946,7 @@ function switchTab(tab) {
   } else {
     azBar.classList.remove('hidden');
     vCat.classList.remove('hidden');
-    renderCatalogue();
+    renderCatalogue(true);
   }
 }
 
@@ -767,6 +1010,19 @@ document.addEventListener('DOMContentLoaded', () => {
     await fetch('/api/quit', { method: 'POST' }).catch(() => {});
     window.close();
   };
+
+  const viewSection = document.getElementById('view-catalogue');
+  if (viewSection) {
+    viewSection.addEventListener('scroll', () => {
+      if (virtualScrollRaf) cancelAnimationFrame(virtualScrollRaf);
+      virtualScrollRaf = requestAnimationFrame(() => updateVirtualGrid());
+    }, { passive: true });
+  }
+
+  window.addEventListener('resize', () => {
+    if (virtualScrollRaf) cancelAnimationFrame(virtualScrollRaf);
+    virtualScrollRaf = requestAnimationFrame(() => updateVirtualGrid(true));
+  });
 
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey && e.key.toLowerCase() === 'f')) {

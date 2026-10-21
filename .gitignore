@@ -44,6 +44,10 @@ emulators/retroarch/system/**/*
 !emulators/retroarch/system/.gitkeep
 
 # Ignorar saves, savestates, caches e logs de execução dos emuladores
+media/**/*
+!media/
+!media/**/.gitkeep
+
 emulators/duckstation/cache/
 emulators/duckstation/dump/
 emulators/duckstation/inputprofiles/

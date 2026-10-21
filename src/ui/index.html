@@ -164,6 +164,8 @@
             <select id="sort-select">
               <option value="ALPHA_ASC">Ordem Alfabética (A → Z)</option>
               <option value="ALPHA_DESC">Ordem Alfabética (Z → A)</option>
+              <option value="RATING_DESC">Melhor Avaliados (★ 5.0 → 1.0)</option>
+              <option value="RATING_ASC">Menor Nota (★ 1.0 → 5.0)</option>
               <option value="PLAYTIME">Mais Jogados (Horas)</option>
               <option value="RECENT">Jogados Recentemente</option>
             </select>
@@ -246,6 +248,7 @@
       <div class="details-body">
         <div class="details-badges">
           <span id="details-console-badge" class="console-badge">PS1</span>
+          <span id="details-platform-badge" class="meta-badge platform-badge">SONY</span>
           <span id="details-year-badge" class="meta-badge">1994</span>
           <span id="details-rating-badge" class="meta-badge rating-badge">⭐ 5.0</span>
           <span id="details-size-badge" class="meta-badge">0 MB</span>
@@ -253,47 +256,6 @@
 
         <h2 id="details-title" class="details-title">Título do Jogo</h2>
         <p id="details-filename" class="details-filename">arquivo.chd</p>
-
-        <div id="details-genres" class="details-genres-box"></div>
-
-        <!-- Game Synopsis / Description -->
-        <div class="details-desc-box">
-          <p id="details-description" class="details-description"></p>
-        </div>
-
-        <!-- Tech Specs & Credits Grid -->
-        <div class="details-specs-grid">
-          <div class="spec-item">
-            <span class="spec-label">DESENVOLVEDORA</span>
-            <strong id="details-dev">---</strong>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">PUBLICADORA</span>
-            <strong id="details-pub">---</strong>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">JOGADORES</span>
-            <strong id="details-players">---</strong>
-          </div>
-        </div>
-
-        <!-- Hydra-style Playtime & Stats Box -->
-        <div class="hydra-playtime-box">
-          <div class="playtime-item">
-            <span class="pt-icon">⏱️</span>
-            <div>
-              <span class="pt-label">TEMPO DE JOGO</span>
-              <strong id="details-playtime">0 min</strong>
-            </div>
-          </div>
-          <div class="playtime-item">
-            <span class="pt-icon">📅</span>
-            <div>
-              <span class="pt-label">ÚLTIMA SESSÃO</span>
-              <strong id="details-lastplayed">Nunca jogado</strong>
-            </div>
-          </div>
-        </div>
 
         <!-- Primary Play & Favorite Actions -->
         <div class="details-actions">
@@ -306,26 +268,118 @@
           </button>
         </div>
 
-        <!-- SteamGridDB Sync Button for this game -->
-        <div class="details-steamgrid-action">
-          <button id="btn-steamgrid-game" class="steamgrid-mini-btn" title="Buscar e aplicar artes em alta definição do SteamGridDB">
-            <span>🎨 Baixar Artes HD (SteamGridDB)</span>
-          </button>
-        </div>
-
         <!-- Multi-disc selector if game has multiple discs -->
         <div id="disc-selector-box" class="disc-selector-box hidden">
           <label>Selecionar Disco:</label>
           <select id="disc-select"></select>
         </div>
 
+        <!-- Platform & Genre Tags Section -->
+        <div class="details-section-group">
+          <div class="details-section-label">PLATAFORMA & GÊNEROS</div>
+          <div class="platform-genre-row">
+            <div id="details-platform-info" class="platform-info-pill">
+              <span class="platform-icon">🕹️</span>
+              <span id="details-platform-name">PlayStation 1</span>
+            </div>
+            <div id="details-genres" class="details-genres-box"></div>
+          </div>
+        </div>
+
+        <!-- HowLongToBeat (HLTB) API Section -->
+        <div class="details-hltb-card" id="details-hltb-card">
+          <div class="hltb-header">
+            <div class="hltb-title-group">
+              <span class="hltb-logo-badge">HLTB</span>
+              <strong>Tempo Estimado de Jogo (HowLongToBeat)</strong>
+            </div>
+            <a id="hltb-external-link" href="#" target="_blank" class="hltb-link" title="Abrir página no HowLongToBeat.com">Visitar ↗</a>
+          </div>
+
+          <div id="hltb-loading" class="hltb-loading hidden">
+            <span class="hltb-spinner"></span>
+            <span>Consultando HowLongToBeat API...</span>
+          </div>
+
+          <div id="hltb-stats-grid" class="hltb-stats-grid">
+            <div class="hltb-stat-pill main">
+              <span class="hltb-stat-label">História Principal</span>
+              <strong class="hltb-stat-val" id="hltb-main">--</strong>
+            </div>
+            <div class="hltb-stat-pill extra">
+              <span class="hltb-stat-label">Principal + Extras</span>
+              <strong class="hltb-stat-val" id="hltb-extra">--</strong>
+            </div>
+            <div class="hltb-stat-pill comp">
+              <span class="hltb-stat-label">100% / Completista</span>
+              <strong class="hltb-stat-val" id="hltb-comp">--</strong>
+            </div>
+          </div>
+          <div class="hltb-footer-meta" id="hltb-footer-meta">
+            <span id="hltb-review-score"></span>
+            <span id="hltb-matched-name"></span>
+          </div>
+        </div>
+
+        <!-- Game Synopsis / Description -->
+        <div class="details-section-group">
+          <div class="details-section-label">SINOPSE DO JOGO</div>
+          <div class="details-desc-box">
+            <p id="details-description" class="details-description"></p>
+          </div>
+        </div>
+
+        <!-- Tech Specs & Credits Grid -->
+        <div class="details-section-group">
+          <div class="details-section-label">DETALHES TÉCNICOS & CRÉDITOS</div>
+          <div class="details-specs-grid">
+            <div class="spec-item">
+              <span class="spec-label">DESENVOLVEDORA</span>
+              <strong id="details-dev">---</strong>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">PUBLICADORA</span>
+              <strong id="details-pub">---</strong>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">JOGADORES</span>
+              <strong id="details-players">---</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hydra-style Playtime & Stats Box -->
+        <div class="hydra-playtime-box">
+          <div class="playtime-item">
+            <span class="pt-icon">⏱️</span>
+            <div>
+              <span class="pt-label">TEMPO TOTAL JOGADO</span>
+              <strong id="details-playtime">0 min</strong>
+            </div>
+          </div>
+          <div class="playtime-item">
+            <span class="pt-icon">📅</span>
+            <div>
+              <span class="pt-label">ÚLTIMA SESSÃO</span>
+              <strong id="details-lastplayed">Nunca jogado</strong>
+            </div>
+          </div>
+        </div>
+
         <!-- Retro Achievements Section -->
         <div class="details-achievements">
           <div class="ach-header">
-            <h3>🏆 Conquistas Retro</h3>
-            <span id="details-ach-Summary">0/6</span>
+            <h3>🏆 Conquistas & Marcos</h3>
+            <span id="details-ach-Summary" class="ach-summary-pill">0/6</span>
           </div>
           <div id="details-ach-list" class="ach-list"></div>
+        </div>
+
+        <!-- SteamGridDB Sync Button for this game -->
+        <div class="details-steamgrid-action">
+          <button id="btn-steamgrid-game" class="steamgrid-mini-btn" title="Buscar e aplicar artes em alta definição do SteamGridDB">
+            <span>🎨 Baixar Artes HD (SteamGridDB)</span>
+          </button>
         </div>
       </div>
     </aside>

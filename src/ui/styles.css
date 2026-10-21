@@ -538,29 +538,48 @@ body {
   margin-top: 3px;
 }
 
-/* Games Grid */
+/* Games Grid (Virtualized 60 FPS) */
 .games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 20px;
+  position: relative;
+  width: 100%;
+  min-height: 300px;
 }
 
 .game-card {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   border-radius: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s, box-shadow 0.2s;
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.16s, box-shadow 0.16s;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  contain: content;
 }
 
 .game-card:hover, .game-card.selected {
-  transform: translateY(-6px) scale(1.02);
+  transform: translateY(-4px) scale(1.02);
   border-color: var(--accent);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55), 0 0 0 2px var(--accent-glow);
+  z-index: 10;
+}
+
+.card-placeholder-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #131722 0%, #1c2233 50%, #131722 100%);
+  background-size: 200% 100%;
+  animation: cardShimmer 1.5s infinite;
+  z-index: 1;
+}
+
+@keyframes cardShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .card-art-wrap {
@@ -594,6 +613,47 @@ body {
   justify-content: space-between;
   align-items: center;
   pointer-events: none;
+  z-index: 2;
+}
+
+.card-bottom-badges {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card-cover-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 5px;
+  backdrop-filter: blur(8px);
+  background: rgba(12, 15, 23, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #e2e8f0;
+}
+
+.card-cover-badge .badge-icon {
+  font-size: 11px;
+}
+
+.card-cover-badge.time-badge {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.card-cover-badge.ach-badge {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
 }
 
 .card-console-tag {
@@ -619,6 +679,28 @@ body {
 .card-console-tag.GBA { color: #a78bfa; }
 .card-console-tag.GBC { color: #f472b6; }
 .card-console-tag.GB { color: #a3e635; }
+
+.card-badges-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.card-rating-tag {
+  background: rgba(12, 16, 27, 0.88);
+  backdrop-filter: blur(8px);
+  color: #fbbf24;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
 
 .card-fav-star {
   background: rgba(12, 15, 23, 0.78);
@@ -903,6 +985,191 @@ body {
   color: var(--text-dim);
   word-break: break-all;
   margin-top: -10px;
+}
+
+/* Platform & Section Headers */
+.details-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.details-section-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.platform-genre-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.platform-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.meta-badge.platform-badge {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  font-weight: 700;
+}
+
+/* HowLongToBeat (HLTB) Card */
+.details-hltb-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.details-hltb-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to bottom, #38bdf8, #818cf8);
+}
+
+.hltb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hltb-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #f1f5f9;
+}
+
+.hltb-logo-badge {
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.hltb-link {
+  font-size: 11px;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.hltb-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+.hltb-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  padding: 10px 4px;
+}
+
+.hltb-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(56, 189, 248, 0.2);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: hltb-spin 0.8s linear infinite;
+}
+
+@keyframes hltb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.hltb-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.hltb-stat-pill {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.hltb-stat-pill:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.hltb-stat-pill.main .hltb-stat-val { color: #38bdf8; }
+.hltb-stat-pill.extra .hltb-stat-val { color: #818cf8; }
+.hltb-stat-pill.comp .hltb-stat-val { color: #f43f5e; }
+
+.hltb-stat-label {
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.hltb-stat-val {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.hltb-footer-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #94a3b8;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 6px;
+}
+
+.ach-summary-pill {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 /* Hydra-style Playtime Card */
