@@ -399,14 +399,29 @@
         <button id="close-cover-modal" class="modal-close-btn">✕</button>
       </div>
 
-      <div class="modal-toolbar">
-        <button id="btn-open-covers-folder" class="chip-btn">
-          <span>📂 Abrir Pasta Covers</span>
-        </button>
-        <button id="btn-refresh-covers" class="chip-btn">
-          <span>🔄 Atualizar Lista</span>
-        </button>
-        <span class="modal-hint">Dica: Você pode copiar imagens para a pasta de covers do console que elas aparecem aqui!</span>
+      <div class="modal-toolbar" style="flex-direction: column; align-items: stretch; gap: 10px;">
+        <div class="cover-search-row">
+          <input type="text" id="cover-search-term" placeholder="🔍 Digite qualquer nome para buscar capas (ex: Super Metroid)..." class="cover-search-input">
+          <button id="btn-search-covers" class="chip-btn primary">
+            <span>🔍 Buscar Capas</span>
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <button id="btn-open-covers-folder" class="chip-btn" title="Abrir pasta no Windows Explorer">
+            <span>📂 Pasta Covers</span>
+          </button>
+          <label class="chip-btn" title="Fazer upload de imagem do computador" style="cursor: pointer;">
+            <span>📁 Imagem do PC</span>
+            <input type="file" id="cover-file-upload" accept="image/png,image/jpeg,image/webp" style="display:none;">
+          </label>
+          <button id="btn-paste-cover-url" class="chip-btn" title="Colar link de imagem da internet">
+            <span>🔗 Colar Link</span>
+          </button>
+          <button id="btn-refresh-covers" class="chip-btn">
+            <span>🔄 Recarregar</span>
+          </button>
+          <span class="modal-hint">Capas encontradas na pasta local covers, ScreenScraper, Libretro e SteamGridDB</span>
+        </div>
       </div>
 
       <div id="cover-modal-loading" class="cover-modal-loading hidden">
@@ -429,6 +444,7 @@
   <!-- Gamepad HUD Prompt Bar -->
   <div id="gamepad-hud" class="gamepad-hud">
     <div class="hud-item"><span class="hud-pill dpad">D-PAD</span><span>Navegar</span></div>
+    <div class="hud-item"><span class="hud-pill btn-trig">LT/RT</span><span>Pular Tela</span></div>
     <div class="hud-item"><span class="hud-pill btn-a">A</span><span id="hud-label-a">Jogar / Detalhes</span></div>
     <div class="hud-item"><span class="hud-pill btn-b">B</span><span>Voltar</span></div>
     <div class="hud-item"><span class="hud-pill btn-x">X</span><span>Início Rápido</span></div>

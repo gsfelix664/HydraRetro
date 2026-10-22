@@ -169,19 +169,55 @@ function buildAzBar() {
   }
 }
 
+let lastGamesDataKey = '';
+
+function getGamesDataKey(games) {
+  if (!games || games.length === 0) return 'empty';
+  let favs = 0;
+  for (let i = 0; i < games.length; i++) {
+    if (games[i].favorite) favs++;
+  }
+  const mid = Math.floor(games.length / 2);
+  return `${games.length}_${favs}_${games[0]?.id}_${games[mid]?.id}_${games[games.length - 1]?.id}`;
+}
+
+function syncVisibleCards(games) {
+  const grid = document.getElementById('games-grid');
+  if (!grid) return;
+  const cards = grid.querySelectorAll('.game-card');
+  for (const card of cards) {
+    const id = card.dataset.id;
+    const game = games.find(g => g.id === id);
+    if (!game) continue;
+    const img = card.querySelector('.card-art');
+    const targetSrc = game.thumbUrl || game.coverUrl || game.fallbackCoverUrl;
+    if (img && targetSrc && !img.src.endsWith(targetSrc) && img.src !== targetSrc) {
+      img.src = targetSrc;
+    }
+  }
+}
+
 async function fetchState() {
   try {
     const res = await fetch('/api/state');
     appState = await res.json();
     updateSidebarStats();
     updateRunningBanner();
-    if (currentTab === 'ACHIEVEMENTS') {
-      renderAchievementsView();
-    } else if (currentTab === 'SETTINGS') {
-      // Don't overwrite input focus if already on settings
+
+    const currentKey = getGamesDataKey(appState.games);
+    if (currentKey !== lastGamesDataKey) {
+      lastGamesDataKey = currentKey;
+      if (currentTab === 'ACHIEVEMENTS') {
+        renderAchievementsView();
+      } else if (currentTab !== 'SETTINGS') {
+        renderCatalogue();
+      }
     } else {
-      renderCatalogue();
+      if (currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS') {
+        syncVisibleCards(appState.games || []);
+      }
     }
+
     if (selectedGameId) {
       const updated = appState.games.find(g => g.id === selectedGameId);
       if (updated) updateDetailsLiveStats(updated);
@@ -326,6 +362,29 @@ function renderCatalogue(resetScroll = false) {
   updateVirtualGrid(true);
 }
 
+function getGridDimensions() {
+  const grid = document.getElementById('games-grid');
+  const viewSection = document.getElementById('view-catalogue');
+  const availableWidth = (grid && grid.clientWidth) || (viewSection && viewSection.clientWidth - 56) || 1200;
+  const minColWidth = 230; // Big Picture standard (~4-5 cards em 1080p, artes imponentes)
+  const gap = 24;
+  const cols = Math.max(1, Math.floor((availableWidth + gap) / (minColWidth + gap)));
+  const cardWidth = Math.floor((availableWidth - (cols - 1) * gap) / cols);
+  const cardHeight = Math.round(cardWidth * 1.40 + 64);
+  const rowHeight = cardHeight + gap;
+  return { availableWidth, cols, cardWidth, cardHeight, rowHeight, gap };
+}
+
+function updateGamepadGridFocus() {
+  document.querySelectorAll('.game-card.gamepad-focused').forEach(el => el.classList.remove('gamepad-focused'));
+  if (activeZone === 'GRID') {
+    const card = document.querySelector(`.game-card[data-index="${gamepadGridIndex}"]`);
+    if (card) {
+      card.classList.add('gamepad-focused');
+    }
+  }
+}
+
 function updateVirtualGrid(force = false) {
   const grid = document.getElementById('games-grid');
   const viewSection = document.getElementById('view-catalogue');
@@ -338,13 +397,7 @@ function updateVirtualGrid(force = false) {
     return;
   }
 
-  const availableWidth = grid.clientWidth || (viewSection.clientWidth - 56) || 1000;
-  const minColWidth = 175;
-  const gap = 20;
-  const cols = Math.max(1, Math.floor((availableWidth + gap) / (minColWidth + gap)));
-  const cardWidth = Math.floor((availableWidth - (cols - 1) * gap) / cols);
-  const cardHeight = Math.round(cardWidth * 1.38 + 62);
-  const rowHeight = cardHeight + gap;
+  const { availableWidth, cols, cardWidth, cardHeight, rowHeight, gap } = getGridDimensions();
   const totalRows = Math.ceil(totalItems / cols);
   const totalVirtualHeight = totalRows * rowHeight;
 
@@ -368,21 +421,50 @@ function updateVirtualGrid(force = false) {
   const startIndex = startRow * cols;
   const endIndex = Math.min(totalItems, (endRow + 1) * cols);
 
-  grid.innerHTML = '';
+  const existingCards = new Map();
+  grid.querySelectorAll('.game-card').forEach(card => {
+    const idx = parseInt(card.dataset.index, 10);
+    existingCards.set(idx, card);
+  });
+
+  for (const [idx, card] of existingCards.entries()) {
+    const game = currentCatalogueList[idx];
+    if (idx < startIndex || idx >= endIndex || !game || card.dataset.id !== game.id) {
+      card.remove();
+      existingCards.delete(idx);
+    }
+  }
+
   const frag = document.createDocumentFragment();
 
   for (let i = startIndex; i < endIndex; i++) {
     const game = currentCatalogueList[i];
+    if (!game) continue;
     const row = Math.floor(i / cols);
     const col = i % cols;
     const posX = col * (cardWidth + gap);
     const posY = row * rowHeight;
 
-    const card = createGameCardElement(game, cardWidth, cardHeight, posX, posY, i);
-    frag.appendChild(card);
+    const existing = existingCards.get(i);
+    if (existing && existing.dataset.id === game.id) {
+      existing.style.left = `${posX}px`;
+      existing.style.top = `${posY}px`;
+      existing.style.width = `${cardWidth}px`;
+      existing.style.height = `${cardHeight}px`;
+
+      const isGamepadFocused = (activeZone === 'GRID' && i === gamepadGridIndex);
+      const isSelected = (selectedGameId === game.id);
+      existing.classList.toggle('gamepad-focused', isGamepadFocused);
+      existing.classList.toggle('selected', isSelected);
+    } else {
+      const card = createGameCardElement(game, cardWidth, cardHeight, posX, posY, i);
+      frag.appendChild(card);
+    }
   }
 
-  grid.appendChild(frag);
+  if (frag.childNodes.length > 0) {
+    grid.appendChild(frag);
+  }
 }
 
 function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = -1) {
@@ -400,13 +482,8 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
   const artWrap = document.createElement('div');
   artWrap.className = 'card-art-wrap';
 
-  // Shimmer skeleton placeholder
-  const shimmer = document.createElement('div');
-  shimmer.className = 'card-placeholder-shimmer';
-  artWrap.appendChild(shimmer);
-
   const img = document.createElement('img');
-  img.className = 'card-art loading';
+  img.className = 'card-art';
   img.loading = 'lazy';
   img.alt = game.title;
   img.src = game.thumbUrl || game.coverUrl || game.fallbackCoverUrl || '';
@@ -423,14 +500,26 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
       img.src = game.fallbackCoverUrl;
     } else {
       img.style.display = 'none';
-      shimmer.style.display = 'none';
+      const sh = artWrap.querySelector('.card-placeholder-shimmer');
+      if (sh) sh.remove();
     }
   };
-  img.onload = () => {
-    img.className = 'card-art loaded';
-    shimmer.style.display = 'none';
-    game.coverUrl = img.src;
-  };
+
+  if (img.complete && img.naturalWidth > 0) {
+    img.classList.add('loaded');
+  } else {
+    img.classList.add('loading');
+    const shimmer = document.createElement('div');
+    shimmer.className = 'card-placeholder-shimmer';
+    artWrap.appendChild(shimmer);
+
+    img.onload = () => {
+      img.classList.remove('loading');
+      img.classList.add('loaded');
+      shimmer.remove();
+      game.coverUrl = img.src;
+    };
+  }
   artWrap.appendChild(img);
 
   const badges = document.createElement('div');
@@ -493,7 +582,10 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
 
   card.onclick = () => {
     const idx = currentCatalogueList.findIndex(g => g.id === game.id);
-    if (idx !== -1) gamepadGridIndex = idx;
+    if (idx !== -1) {
+      gamepadGridIndex = idx;
+      updateGamepadGridFocus();
+    }
     playSfx('select');
     selectGame(game);
   };
@@ -981,6 +1073,44 @@ function renderSettingsView() {
     </div>
 
     <div class="settings-card">
+      <h3>🌐 ScreenScraper.fr — Metadados & Box Arts por Hash (2D / 3D)</h3>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">
+        O padrão de excelência de scraping retrô (Batocera, RetroPie). Identifica ROMs por hash (CRC32/MD5) e nome exato, trazendo capas oficiais 2D/3D, sinopses e ano de lançamento.
+      </p>
+      <div class="field-row">
+        <label>Usuário ScreenScraper (ssid):</label>
+        <div class="field-input-group">
+          <input type="text" id="cfg-ss-user" placeholder="Seu usuário no screenscraper.fr" value="${appState.config?.ssUsername || ''}">
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Senha ScreenScraper (sspassword):</label>
+        <div class="field-input-group">
+          <input type="password" id="cfg-ss-pass" placeholder="Sua senha no screenscraper.fr" value="${appState.config?.ssPassword || ''}">
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Dev ID (devid):</label>
+        <div class="field-input-group">
+          <input type="text" id="cfg-ss-devid" placeholder="Seu Dev ID (registrado em screenscraper.fr)" value="${appState.config?.ssDevId || ''}">
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Dev Password (devpassword):</label>
+        <div class="field-input-group">
+          <input type="password" id="cfg-ss-devpass" placeholder="Sua senha de desenvolvedor ScreenScraper" value="${appState.config?.ssDevPassword || ''}">
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.testScreenScraper()">🔍 Testar Conexão com ScreenScraper</button>
+        <span id="ss-test-status" style="font-size:12px;color:var(--text-muted);"></span>
+      </div>
+      <p style="font-size:11px;color:#6b7280;margin-top:8px;">
+        💡 Crie uma conta gratuita em <a href="https://www.screenscraper.fr" target="_blank" style="color:var(--accent);text-decoration:underline;">screenscraper.fr</a>. As credenciais Dev ID e Dev Password podem ser solicitadas na aba de desenvolvedores do ScreenScraper.
+      </p>
+    </div>
+
+<div class="settings-card">
       <h3>🏆 Integração Opcional RetroAchievements.org</h3>
       <div class="field-row">
         <label>Usuário RetroAchievements:</label>
@@ -1004,8 +1134,56 @@ function renderSettingsView() {
   window.loadBackupsList();
 }
 
+window.testScreenScraper = async () => {
+  const statusEl = document.getElementById('ss-test-status');
+  if (statusEl) statusEl.textContent = 'Testando conexão...';
+  showToast('Testando credenciais no ScreenScraper.fr...');
+  playSfx('select');
+
+  const devId = (document.getElementById('cfg-ss-devid')?.value || '').trim();
+  const devPass = (document.getElementById('cfg-ss-devpass')?.value || '').trim();
+  const user = (document.getElementById('cfg-ss-user')?.value || '').trim();
+  const pass = (document.getElementById('cfg-ss-pass')?.value || '').trim();
+
+  try {
+    const res = await fetch('/api/screenscraper/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ssDevId: devId,
+        ssDevPassword: devPass,
+        ssUsername: user,
+        ssPassword: pass
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      const msg = `✅ Conectado! Nível: ${data.level} | Quota hoje: ${data.requestsToday || 0}/${data.maxRequestsPerDay || 'Ilimitado'} reqs | Threads: ${data.threads}`;
+      showToast('ScreenScraper conectado com sucesso!');
+      if (statusEl) {
+        statusEl.style.color = '#10b981';
+        statusEl.textContent = msg;
+      }
+      playSfx('fav');
+    } else {
+      const err = data.error || 'Credenciais inválidas no ScreenScraper';
+      showToast(err);
+      if (statusEl) {
+        statusEl.style.color = '#ef4444';
+        statusEl.textContent = `❌ ${err}`;
+      }
+    }
+  } catch (e) {
+    showToast('Erro de comunicação ao testar ScreenScraper');
+    if (statusEl) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = '❌ Erro de comunicação com o servidor local';
+    }
+  }
+};
+
 // --- COVER SELECTOR MODAL ---
-async function openCoverSelector(gameId) {
+async function openCoverSelector(gameId, customSearch = null) {
   const game = appState.games.find(g => g.id === gameId);
   if (!game) return;
 
@@ -1016,6 +1194,75 @@ async function openCoverSelector(gameId) {
 
   document.getElementById('cover-modal-title').textContent = `🖼️ Escolher Capa — ${game.title}`;
   document.getElementById('cover-modal-subtitle').textContent = `Console: ${game.consoleId} • Selecione ou copie imagens em media/covers/${game.consoleId.toLowerCase()}`;
+
+  const searchInput = document.getElementById('cover-search-term');
+  if (searchInput) {
+    searchInput.value = customSearch !== null ? customSearch : (game.title || '');
+    searchInput.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        openCoverSelector(game.id, searchInput.value.trim());
+      }
+    };
+  }
+
+  const btnSearch = document.getElementById('btn-search-covers');
+  if (btnSearch) {
+    btnSearch.onclick = () => {
+      const term = searchInput ? searchInput.value.trim() : '';
+      openCoverSelector(game.id, term);
+    };
+  }
+
+  const fileInput = document.getElementById('cover-file-upload');
+  if (fileInput) {
+    fileInput.onchange = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      showToast('Fazendo upload da imagem local...');
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const res = await fetch('/api/covers/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              gameId: game.id,
+              base64Data: reader.result,
+              extension: '.' + (file.name.split('.').pop() || 'png')
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            showToast('Imagem carregada com sucesso!');
+            game.coverUrl = data.coverUrl;
+            game.customCoverUrl = data.coverUrl;
+            closeCoverModal();
+            await fetchState();
+            const updated = appState.games.find(g => g.id === game.id);
+            if (updated) selectGame(updated);
+          } else {
+            showToast(data.error || 'Erro no upload da imagem');
+          }
+        } catch {
+          showToast('Falha na comunicação ao enviar imagem');
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+  }
+
+  const btnPaste = document.getElementById('btn-paste-cover-url');
+  if (btnPaste) {
+    btnPaste.onclick = async () => {
+      const url = prompt('Cole o link direto da imagem (PNG, JPG, WebP):', '');
+      if (!url || !url.trim()) return;
+      await selectCoverFromModal(game, {
+        url: url.trim(),
+        type: 'custom_url',
+        label: 'Link Personalizado'
+      });
+    };
+  }
 
   const loading = document.getElementById('cover-modal-loading');
   const grid = document.getElementById('cover-modal-grid');
@@ -1038,7 +1285,7 @@ async function openCoverSelector(gameId) {
   }
 
   const btnRefresh = document.getElementById('btn-refresh-covers');
-  if (btnRefresh) btnRefresh.onclick = () => openCoverSelector(game.id);
+  if (btnRefresh) btnRefresh.onclick = () => openCoverSelector(game.id, null);
 
   const btnClose = document.getElementById('close-cover-modal');
   if (btnClose) btnClose.onclick = closeCoverModal;
@@ -1047,11 +1294,15 @@ async function openCoverSelector(gameId) {
   if (btnCancel) btnCancel.onclick = closeCoverModal;
 
   try {
-    const res = await fetch(`/api/covers/list?gameId=${encodeURIComponent(game.id)}`);
+    let url = `/api/covers/list?gameId=${encodeURIComponent(game.id)}`;
+    if (customSearch) {
+      url += `&q=${encodeURIComponent(customSearch)}`;
+    }
+    const res = await fetch(url);
     const data = await res.json();
     loading.classList.add('hidden');
     if (!res.ok || !data.covers || data.covers.length === 0) {
-      grid.innerHTML = '<div style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px 0;">Nenhuma capa encontrada. Coloque imagens em media/covers/' + game.consoleId.toLowerCase() + ' ou configure a SteamGridDB API!</div>';
+      grid.innerHTML = '<div style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px 0;">Nenhuma capa encontrada. Digite outro nome na barra de busca acima, envie uma imagem do PC ou adicione arquivos na pasta covers/!</div>';
       return;
     }
 
@@ -1072,8 +1323,8 @@ function renderCoverModalCards(game) {
     card.className = `cover-card ${isActive ? 'active-cover' : ''} ${idx === coverModalIndex ? 'gamepad-focused' : ''}`;
     card.dataset.index = idx;
 
-    const sourceTagClass = c.type === 'current' ? 'active' : (c.type === 'steamgriddb' ? 'steamgriddb' : (c.type === 'libretro' ? 'libretro' : (c.type === 'coinops' ? 'coinops' : 'local')));
-    const sourceTagText = isActive ? 'ATIVA' : (c.type === 'steamgriddb' ? 'STEAMGRID' : (c.type === 'libretro' ? 'LIBRETRO' : (c.type === 'coinops' ? 'COINOPS' : 'LOCAL')));
+    const sourceTagClass = c.type === 'current' ? 'active' : (c.type === 'steamgriddb' ? 'steamgriddb' : (c.type === 'screenscraper' ? 'screenscraper' : (c.type === 'libretro' ? 'libretro' : 'local')));
+    const sourceTagText = isActive ? 'ATIVA' : (c.type === 'steamgriddb' ? 'STEAMGRID' : (c.type === 'screenscraper' ? 'SCREENSCRAPER' : (c.type === 'libretro' ? 'LIBRETRO' : 'LOCAL')));
 
     card.innerHTML = `
       <img src="${c.thumbUrl || c.url}" class="cover-card-art" loading="lazy" alt="Cover">
@@ -1237,6 +1488,10 @@ window.saveSettings = async () => {
       raUsername: document.getElementById('cfg-ra-user')?.value || '',
       raWebApiKey: document.getElementById('cfg-ra-key')?.value || '',
       steamGridDbApiKey: document.getElementById('cfg-steamgrid-key')?.value || '',
+      ssUsername: document.getElementById('cfg-ss-user')?.value || '',
+      ssPassword: document.getElementById('cfg-ss-pass')?.value || '',
+      ssDevId: document.getElementById('cfg-ss-devid')?.value || '',
+      ssDevPassword: document.getElementById('cfg-ss-devpass')?.value || '',
       consoles: consolesPatch
     })
   });
@@ -1288,10 +1543,7 @@ function handleGamepadDirection(dirX, dirY) {
   if (activeZone === 'GRID') {
     if (currentCatalogueList.length === 0) return;
     const viewSection = document.getElementById('view-catalogue');
-    const availableWidth = viewSection.clientWidth - 56 || 1000;
-    const minColWidth = 175;
-    const gap = 20;
-    const cols = Math.max(1, Math.floor((availableWidth + gap) / (minColWidth + gap)));
+    const { cols, rowHeight } = getGridDimensions();
 
     let newIndex = gamepadGridIndex;
     if (dirX === 1) newIndex += 1;
@@ -1306,22 +1558,25 @@ function handleGamepadDirection(dirX, dirY) {
       gamepadGridIndex = newIndex;
       playSfx('nav');
 
-      const cardWidth = Math.floor((availableWidth - (cols - 1) * gap) / cols);
-      const cardHeight = Math.round(cardWidth * 1.38 + 62);
-      const rowHeight = cardHeight + gap;
       const targetRow = Math.floor(gamepadGridIndex / cols);
       const targetTop = targetRow * rowHeight;
       const targetBottom = targetTop + rowHeight;
       const currentScrollTop = viewSection.scrollTop;
       const viewHeight = viewSection.clientHeight;
 
+      let didScroll = false;
       if (targetTop < currentScrollTop + 20) {
         viewSection.scrollTop = Math.max(0, targetTop - 20);
+        didScroll = true;
       } else if (targetBottom > currentScrollTop + viewHeight - 60) {
         viewSection.scrollTop = targetBottom - viewHeight + 70;
+        didScroll = true;
       }
 
-      updateVirtualGrid(true);
+      updateGamepadGridFocus();
+      if (didScroll) {
+        updateVirtualGrid();
+      }
     }
   } else if (activeZone === 'COVER_MODAL') {
     if (currentCoverList.length === 0) return;
@@ -1375,7 +1630,7 @@ function handleGamepadButtonB() {
     document.getElementById('details-video').pause();
     const hudA = document.getElementById('hud-label-a');
     if (hudA) hudA.textContent = 'Jogar / Detalhes';
-    updateVirtualGrid(true);
+    updateGamepadGridFocus();
     playSfx('back');
   } else if (activeZone === 'GRID') {
     playSfx('back');
@@ -1423,6 +1678,33 @@ function handleGamepadStart() {
   if (targetId) {
     playSfx('launch');
     launchSelectedGame(targetId, 0);
+  }
+}
+
+function handlePageJump(delta) {
+  if (activeZone !== 'GRID' || currentCatalogueList.length === 0) return;
+  const viewSection = document.getElementById('view-catalogue');
+  if (!viewSection) return;
+
+  const { cols, rowHeight } = getGridDimensions();
+  const viewHeight = viewSection.clientHeight || 800;
+  const rowsPerPage = Math.max(2, Math.floor(viewHeight / rowHeight));
+  const jumpCount = rowsPerPage * cols;
+
+  let newIndex = gamepadGridIndex + delta * jumpCount;
+  if (newIndex < 0) newIndex = 0;
+  if (newIndex >= currentCatalogueList.length) newIndex = currentCatalogueList.length - 1;
+
+  if (newIndex !== gamepadGridIndex) {
+    gamepadGridIndex = newIndex;
+    playSfx('nav');
+
+    const targetRow = Math.floor(gamepadGridIndex / cols);
+    const targetTop = targetRow * rowHeight;
+    viewSection.scrollTo({ top: Math.max(0, targetTop - 20), behavior: 'smooth' });
+
+    updateGamepadGridFocus();
+    updateVirtualGrid();
   }
 }
 
@@ -1477,6 +1759,8 @@ function gamepadLoop() {
   if (isButtonPressed(3)) handleGamepadButtonY();
   if (isButtonPressed(4)) handleGamepadShoulder(-1);
   if (isButtonPressed(5)) handleGamepadShoulder(1);
+  if (isButtonPressed(6)) handlePageJump(-1); // LT (Page Up)
+  if (isButtonPressed(7)) handlePageJump(1);  // RT (Page Down)
   if (isButtonPressed(8)) handleGamepadSelect();
   if (isButtonPressed(9)) handleGamepadStart();
 }
@@ -1542,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('details-video').pause();
     const hudA = document.getElementById('hud-label-a');
     if (hudA) hudA.textContent = 'Jogar / Detalhes';
-    updateVirtualGrid(true);
+    updateGamepadGridFocus();
     playSfx('back');
   };
 
@@ -1583,6 +1867,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (e.key === 'ArrowDown') { e.preventDefault(); handleGamepadDirection(0, 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); handleGamepadDirection(-1, 0); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); handleGamepadDirection(1, 0); }
+    else if (e.key === 'PageUp') { e.preventDefault(); handlePageJump(-1); }
+    else if (e.key === 'PageDown') { e.preventDefault(); handlePageJump(1); }
     else if (e.key === 'Enter') { e.preventDefault(); handleGamepadButtonA(); }
     else if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); handleGamepadButtonB(); }
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); handleGamepadButtonY(); }

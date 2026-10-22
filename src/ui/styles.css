@@ -586,18 +586,32 @@ body {
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  background: linear-gradient(145deg, #161c2a, #0d111a);
+  background: radial-gradient(circle at center, #151b28 0%, #080b11 100%);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 .card-art {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.75));
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+  opacity: 1;
+}
+
+.card-art.loading {
+  opacity: 0;
+}
+
+.card-art.loaded {
+  opacity: 1;
 }
 
 .game-card:hover .card-art {
@@ -758,7 +772,7 @@ body {
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-main);
   white-space: nowrap;
@@ -769,7 +783,7 @@ body {
 .card-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -1538,6 +1552,12 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+.hud-pill.btn-trig {
+  background: #6366f1;
+  color: #fff;
+  border-color: #818cf8;
+}
+
 .hud-pill.btn-a {
   background: #10b981;
   color: #032b1d;
@@ -1712,7 +1732,9 @@ body {
 .cover-card-art {
   width: 100%;
   aspect-ratio: 2 / 3;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 6px;
+  box-sizing: border-box;
   background: #090c13;
   display: block;
 }
@@ -1761,8 +1783,8 @@ body {
   color: #fff;
 }
 
-.cover-source-tag.coinops {
-  background: #ec4899;
+.cover-source-tag.screenscraper {
+  background: #0284c7;
   color: #fff;
 }
 
@@ -1869,4 +1891,41 @@ body {
   padding: 60px 0;
   color: var(--text-muted);
   font-size: 14px;
+}
+
+.cover-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.cover-search-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.cover-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.chip-btn.primary {
+  background: var(--accent);
+  color: #032b1d;
+  font-weight: 800;
+  border-color: #34d399;
+}
+
+.chip-btn.primary:hover {
+  background: #34d399;
+  color: #032b1d;
 }

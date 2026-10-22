@@ -115,10 +115,14 @@ for (const cid of CONSOLE_LIST) {
 const DEFAULT_CONFIG = {
   romsRoot: ROMS_DIR,
   biosRoot: BIOS_DIR,
-  coinOpsRoot: 'C:\\games\\CoinOPS Next 2',
   raUsername: '',
   raWebApiKey: '',
   steamGridDbApiKey: '',
+  ssUsername: '',
+  ssPassword: '',
+  ssDevId: '',
+  ssDevPassword: '',
+  ssSoftName: 'HydraRetro',
   consoles: {
     PS1: {
       id: 'PS1',
@@ -131,7 +135,6 @@ const DEFAULT_CONFIG = {
       corePath: '',
       launchArgs: '-batch -fullscreen -- "{ROM}"',
       extensions: ['.chd', '.pbp', '.iso', '.bin', '.cue', '.img', '.mdf'],
-      coinOpsCollection: 'PlayStation 1 Official',
       libretroThumbRepo: 'Sony - PlayStation'
     },
     GENESIS: {
@@ -145,7 +148,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'genesis_plus_gx_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.zip', '.md', '.gen', '.smd', '.bin', '.7z'],
-      coinOpsCollection: 'Genesis Official',
       libretroThumbRepo: 'Sega - Mega Drive - Genesis'
     },
     SNES: {
@@ -159,7 +161,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'snes9x_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.sfc', '.smc', '.zip', '.7z', '.fig', '.swc'],
-      coinOpsCollection: 'Super Nintendo',
       libretroThumbRepo: 'Nintendo - Super Nintendo Entertainment System'
     },
     MAME: {
@@ -173,7 +174,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'fbneo_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.zip', '.7z'],
-      coinOpsCollection: 'Arcade',
       libretroThumbRepo: 'FBNeo - Arcade Games'
     },
     PS2: {
@@ -187,7 +187,6 @@ const DEFAULT_CONFIG = {
       corePath: '',
       launchArgs: '-batch -fullscreen -nogui -- "{ROM}"',
       extensions: ['.chd', '.iso', '.cso', '.bin', '.gz', '.mdf', '.nrg'],
-      coinOpsCollection: 'PlayStation 2 Official',
       libretroThumbRepo: 'Sony - PlayStation 2'
     },
     WII: {
@@ -201,7 +200,6 @@ const DEFAULT_CONFIG = {
       corePath: '',
       launchArgs: '-b -e "{ROM}"',
       extensions: ['.rvz', '.wbfs', '.iso', '.ciso', '.gcm'],
-      coinOpsCollection: 'Nintendo Wii',
       libretroThumbRepo: 'Nintendo - Wii'
     },
     GC: {
@@ -215,7 +213,6 @@ const DEFAULT_CONFIG = {
       corePath: '',
       launchArgs: '-b -e "{ROM}"',
       extensions: ['.rvz', '.gcm', '.iso', '.ciso', '.wbfs'],
-      coinOpsCollection: 'Nintendo GameCube',
       libretroThumbRepo: 'Nintendo - GameCube'
     },
     PSP: {
@@ -229,7 +226,6 @@ const DEFAULT_CONFIG = {
       corePath: '',
       launchArgs: '--fullscreen "{ROM}"',
       extensions: ['.iso', '.cso', '.chd', '.pbp'],
-      coinOpsCollection: 'Sony PSP Official',
       libretroThumbRepo: 'Sony - PlayStation Portable'
     },
     PS3: {
@@ -243,7 +239,6 @@ const DEFAULT_CONFIG = {
       corePath: '',
       launchArgs: '--no-gui "{ROM}"',
       extensions: ['.iso', '.pkg', '.bin', '.self', '.eboot'],
-      coinOpsCollection: 'PlayStation 3',
       libretroThumbRepo: 'Sony - PlayStation 3'
     },
     N64: {
@@ -257,7 +252,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'mupen64plus_next_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.z64', '.n64', '.v64', '.zip', '.7z'],
-      coinOpsCollection: 'Nintendo 64',
       libretroThumbRepo: 'Nintendo - Nintendo 64'
     },
     GBA: {
@@ -271,7 +265,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'mgba_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.gba', '.zip', '.7z'],
-      coinOpsCollection: 'Game Boy Advance',
       libretroThumbRepo: 'Nintendo - Game Boy Advance'
     },
     GBC: {
@@ -285,7 +278,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'gambatte_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.gbc', '.zip', '.7z'],
-      coinOpsCollection: 'Game Boy Color',
       libretroThumbRepo: 'Nintendo - Game Boy Color'
     },
     GB: {
@@ -299,7 +291,6 @@ const DEFAULT_CONFIG = {
       corePath: path.join(APP_ROOT, 'emulators', 'retroarch', 'cores', 'gambatte_libretro.dll'),
       launchArgs: '-f -L "{CORE}" "{ROM}"',
       extensions: ['.gb', '.zip', '.7z'],
-      coinOpsCollection: 'Game Boy',
       libretroThumbRepo: 'Nintendo - Game Boy'
     }
   }
@@ -596,38 +587,179 @@ function getArtworkCandidates(primaryBase, innerBase, cleanTitleStr) {
 function findLocalArtwork(romFolder, baseName, cleanTitleStr, consoleId) {
   const exts = ['.png', '.jpg', '.jpeg', '.webp'];
   const dirs = [];
+  const rootCovers = path.join(APP_ROOT, 'covers');
+
   if (consoleId) {
-    const mediaDir = path.join(COVERS_DIR, consoleId.toLowerCase());
-    if (fs.existsSync(mediaDir)) dirs.push(mediaDir);
+    const cSub = consoleId.toLowerCase();
+    dirs.push(
+      path.join(COVERS_DIR, cSub),
+      path.join(rootCovers, cSub)
+    );
   }
+  dirs.push(COVERS_DIR, rootCovers);
+
   if (romFolder && fs.existsSync(romFolder)) {
-    dirs.push(romFolder, path.join(romFolder, 'covers'), path.join(romFolder, 'Named_Boxarts'), path.join(romFolder, 'art'));
+    dirs.push(
+      path.join(romFolder, 'covers'),
+      path.join(romFolder, 'Named_Boxarts'),
+      path.join(romFolder, 'art'),
+      romFolder
+    );
   }
-  const names = [baseName, cleanTitleStr];
+
+  const normBase = (baseName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normClean = (cleanTitleStr || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) continue;
-    for (const name of names) {
-      if (!name) continue;
+
+    // Direct name candidates
+    const candidates = [
+      baseName,
+      cleanTitleStr,
+      cleanTitle(baseName),
+      (baseName || '').replace(/\s+/g, '_'),
+      (cleanTitleStr || '').replace(/\s+/g, '_')
+    ];
+    for (const c of candidates) {
+      if (!c) continue;
       for (const ext of exts) {
-        const full = path.join(dir, name + ext);
+        const full = path.join(dir, c + ext);
         if (fs.existsSync(full)) {
-          if (dir.startsWith(MEDIA_DIR)) {
-            const rel = path.relative(MEDIA_DIR, full).replace(/\\/g, '/');
-            return `/media/${rel}`;
-          }
-          return `/local-file?path=${encodeURIComponent(full)}`;
+          return formatLocalCoverUrl(full);
         }
       }
     }
+
+    // Normalized match against files in directory
+    try {
+      const files = fs.readdirSync(dir);
+      for (const f of files) {
+        const ext = path.extname(f).toLowerCase();
+        if (!exts.includes(ext)) continue;
+        const fBase = path.basename(f, ext);
+        const fNorm = fBase.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (fNorm === normBase || fNorm === normClean || (normClean.length >= 4 && fNorm === normClean)) {
+          return formatLocalCoverUrl(path.join(dir, f));
+        }
+      }
+    } catch {}
   }
   return null;
 }
 
-function coinOpsArtwork(collection, type, baseName) {
-  const p = path.join(db.config.coinOpsRoot, 'collections', collection, 'medium_artwork', type, `${baseName}.png`);
-  if (fs.existsSync(p)) {
-    return `/local-file?path=${encodeURIComponent(p)}`;
+const SCREENSCRAPER_SYSTEMS = {
+  PS1: 57,
+  GENESIS: 1,
+  SNES: 4,
+  MAME: 75,
+  PS2: 58,
+  WII: 16,
+  GC: 13,
+  PSP: 61,
+  PS3: 59,
+  N64: 14,
+  GBA: 12,
+  GBC: 10,
+  GB: 9
+};
+
+function formatLocalCoverUrl(fullPath) {
+  if (fullPath.startsWith(MEDIA_DIR)) {
+    const rel = path.relative(MEDIA_DIR, fullPath).replace(/\\/g, '/');
+    return `/media/${rel}`;
   }
+  const rootCovers = path.join(APP_ROOT, 'covers');
+  if (fullPath.startsWith(rootCovers)) {
+    const rel = path.relative(rootCovers, fullPath).replace(/\\/g, '/');
+    return `/covers/${rel}`;
+  }
+  return `/local-file?path=${encodeURIComponent(fullPath)}`;
+}
+
+async function testScreenScraperAuth(config) {
+  const devId = (config.ssDevId || '').trim();
+  const devPass = (config.ssDevPassword || '').trim();
+  const user = (config.ssUsername || '').trim();
+  const pass = (config.ssPassword || '').trim();
+  const soft = config.ssSoftName || 'HydraRetro';
+
+  if (!devId || !devPass) {
+    return { ok: false, error: 'Dev ID e Dev Password são necessários para acessar a API do ScreenScraper' };
+  }
+
+  let url = `https://api.screenscraper.fr/api2/ssuserInfos.php?devid=${encodeURIComponent(devId)}&devpassword=${encodeURIComponent(devPass)}&softname=${encodeURIComponent(soft)}&output=json`;
+  if (user) url += `&ssid=${encodeURIComponent(user)}`;
+  if (pass) url += `&sspassword=${encodeURIComponent(pass)}`;
+
+  try {
+    const res = await fetchWithTimeout(url, 8000);
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = null; }
+    if (data && data.ssuser) {
+      return {
+        ok: true,
+        user: data.ssuser.id || user,
+        level: data.ssuser.niveau || 'Standard',
+        maxRequestsPerDay: data.ssuser.maxrequestsperday,
+        requestsToday: data.ssuser.requeststoday,
+        threads: data.ssuser.maxthreads || 1
+      };
+    }
+    return { ok: false, error: text.slice(0, 150) || 'Falha ao validar credenciais ScreenScraper' };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+async function fetchScreenScraperGame(game, queryTitle = null) {
+  const devId = (db.config.ssDevId || '').trim();
+  const devPass = (db.config.ssDevPassword || '').trim();
+  const user = (db.config.ssUsername || '').trim();
+  const pass = (db.config.ssPassword || '').trim();
+  const soft = db.config.ssSoftName || 'HydraRetro';
+
+  if (!devId || !devPass) return null;
+
+  const sysId = SCREENSCRAPER_SYSTEMS[game.consoleId];
+  if (!sysId) return null;
+
+  const authParams = `devid=${encodeURIComponent(devId)}&devpassword=${encodeURIComponent(devPass)}&softname=${encodeURIComponent(soft)}&output=json` +
+    (user ? `&ssid=${encodeURIComponent(user)}` : '') +
+    (pass ? `&sspassword=${encodeURIComponent(pass)}` : '');
+
+  // 1. Try jeuInfos.php by ROM name and CRC
+  try {
+    const primary = (game.discs && game.discs[0]) ? game.discs[0] : { path: game.romPath, fileName: game.fileName || path.basename(game.romPath) };
+    let infoUrl = `https://api.screenscraper.fr/api2/jeuInfos.php?${authParams}&systemeid=${sysId}&romnom=${encodeURIComponent(primary.fileName)}`;
+    if (game.crc32) {
+      infoUrl += `&crc=${encodeURIComponent(game.crc32.toUpperCase())}`;
+    }
+    const r = await fetchWithTimeout(infoUrl, 8000);
+    if (r.ok) {
+      const data = await r.json();
+      if (data && data.response && data.response.jeu) {
+        return data.response.jeu;
+      }
+    }
+  } catch {}
+
+  // 2. Fallback to jeuRecherche.php by search title
+  try {
+    const searchStr = (queryTitle || cleanTitle(game.title)).trim();
+    if (searchStr) {
+      const searchUrl = `https://api.screenscraper.fr/api2/jeuRecherche.php?${authParams}&systemeid=${sysId}&recherche=${encodeURIComponent(searchStr)}`;
+      const r2 = await fetchWithTimeout(searchUrl, 8000);
+      if (r2.ok) {
+        const data2 = await r2.json();
+        if (data2 && data2.response && Array.isArray(data2.response.jeux) && data2.response.jeux.length > 0) {
+          return data2.response.jeux[0];
+        }
+      }
+    }
+  } catch {}
+
   return null;
 }
 
@@ -783,12 +915,9 @@ function scanLibrary() {
       }
 
       const existing = db.games[groupId];
-      const localCover = findLocalArtwork(cCfg.romFolder, primaryBase, g.title, consoleId) || coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
-      const localLogo = coinOpsArtwork(cCfg.coinOpsCollection, 'logo', primaryBase);
-      const localVideo = (() => {
-        const vp = path.join(db.config.coinOpsRoot, 'collections', cCfg.coinOpsCollection, 'medium_artwork', 'video', `${primaryBase}.mp4`);
-        return fs.existsSync(vp) ? `/local-file?path=${encodeURIComponent(vp)}` : null;
-      })();
+      const localCover = findLocalArtwork(cCfg.romFolder, primaryBase, g.title, consoleId);
+      const localLogo = null;
+      const localVideo = null;
 
       const innerBase = path.extname(primary.fileName).toLowerCase() === '.zip'
         ? getZipFirstEntry(primary.path)
@@ -1648,14 +1777,40 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, game, cached: true });
     }
 
+    // ScreenScraper metadata enrichment
+    if (db.config.ssDevId && db.config.ssDevPassword) {
+      try {
+        const ssGame = await fetchScreenScraperGame(game);
+        if (ssGame) {
+          if (Array.isArray(ssGame.synopsis)) {
+            const ptSyn = ssGame.synopsis.find(s => s.langue === 'pt' || s.langue === 'br');
+            const enSyn = ssGame.synopsis.find(s => s.langue === 'en');
+            const syn = ptSyn ? ptSyn.texte : (enSyn ? enSyn.texte : null);
+            if (syn) game.description = syn;
+          }
+          if (ssGame.developpeur && ssGame.developpeur.nom) game.developer = ssGame.developpeur.nom;
+          if (ssGame.editeur && ssGame.editeur.nom) game.publisher = ssGame.editeur.nom;
+          if (ssGame.dates && Array.isArray(ssGame.dates) && ssGame.dates[0] && ssGame.dates[0].text) {
+            const yr = parseInt(ssGame.dates[0].text.slice(0, 4), 10);
+            if (yr > 1970 && yr < 2030) game.releaseYear = yr;
+          }
+          game.metadataEnriched = true;
+          game.metadataSource = 'screenscraper';
+        }
+      } catch {}
+    }
+
     const onlineData = await fetchOnlineMetadata(game.title, game.consoleId);
     if (onlineData) {
-      if (onlineData.description) game.description = onlineData.description;
-      if (onlineData.developer) game.developer = onlineData.developer;
-      if (onlineData.publisher) game.publisher = onlineData.publisher;
-      if (onlineData.releaseYear) game.releaseYear = onlineData.releaseYear;
+      if (!game.description && onlineData.description) game.description = onlineData.description;
+      if (!game.developer && onlineData.developer) game.developer = onlineData.developer;
+      if (!game.publisher && onlineData.publisher) game.publisher = onlineData.publisher;
+      if (!game.releaseYear && onlineData.releaseYear) game.releaseYear = onlineData.releaseYear;
       game.metadataEnriched = true;
-      game.metadataSource = onlineData.source;
+      if (!game.metadataSource) game.metadataSource = onlineData.source;
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, game, enriched: true });
+    } else if (game.metadataEnriched) {
       saveDb(db);
       return sendJson(res, 200, { ok: true, game, enriched: true });
     }
@@ -1677,6 +1832,10 @@ const server = http.createServer(async (req, res) => {
     if (body.raUsername !== undefined) db.config.raUsername = body.raUsername;
     if (body.raWebApiKey !== undefined) db.config.raWebApiKey = body.raWebApiKey;
     if (body.steamGridDbApiKey !== undefined) db.config.steamGridDbApiKey = body.steamGridDbApiKey.trim();
+    if (body.ssUsername !== undefined) db.config.ssUsername = body.ssUsername.trim();
+    if (body.ssPassword !== undefined) db.config.ssPassword = body.ssPassword;
+    if (body.ssDevId !== undefined) db.config.ssDevId = body.ssDevId.trim();
+    if (body.ssDevPassword !== undefined) db.config.ssDevPassword = body.ssDevPassword;
     if (body.consoles) {
       for (const [k, v] of Object.entries(body.consoles)) {
         if (db.config.consoles[k]) {
@@ -1718,27 +1877,41 @@ const server = http.createServer(async (req, res) => {
       seenUrls.add(game.coverUrl);
     }
 
-    // 2. Local covers in media/covers/<consoleId>/
-    const consoleCoverDir = path.join(COVERS_DIR, game.consoleId.toLowerCase());
-    if (fs.existsSync(consoleCoverDir)) {
-      try {
-        const coverFiles = fs.readdirSync(consoleCoverDir);
-        const normClean = cleanT.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const normBase = primaryBase.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // 2. Local covers in covers/ and media/covers/<consoleId>/
+    const checkCoverDirs = [
+      { dir: path.join(COVERS_DIR, game.consoleId.toLowerCase()), prefix: `/media/covers/${game.consoleId.toLowerCase()}` },
+      { dir: path.join(APP_ROOT, 'covers', game.consoleId.toLowerCase()), prefix: `/covers/${game.consoleId.toLowerCase()}` },
+      { dir: path.join(APP_ROOT, 'covers'), prefix: '/covers' },
+      { dir: COVERS_DIR, prefix: '/media/covers' }
+    ];
 
+    const normClean = cleanT.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normBase = primaryBase.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normQuery = (urlObj.searchParams.get('q') || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    for (const { dir, prefix } of checkCoverDirs) {
+      if (!fs.existsSync(dir)) continue;
+      try {
+        const coverFiles = fs.readdirSync(dir);
         for (const cf of coverFiles) {
           const ext = path.extname(cf).toLowerCase();
           if (!['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) continue;
           const cfBase = path.basename(cf, ext).toLowerCase().replace(/[^a-z0-9]/g, '');
-          
-          if (cfBase.includes(normClean) || cfBase.includes(normBase) || normClean.includes(cfBase)) {
-            const relUrl = `/media/covers/${game.consoleId.toLowerCase()}/${encodeURIComponent(cf)}`;
+
+          const matches = (normQuery && cfBase.includes(normQuery)) ||
+                          cfBase.includes(normClean) ||
+                          cfBase.includes(normBase) ||
+                          (normClean.length >= 4 && normClean.includes(cfBase)) ||
+                          (normBase.length >= 4 && normBase.includes(cfBase));
+
+          if (matches) {
+            const relUrl = `${prefix}/${encodeURIComponent(cf)}`;
             if (!seenUrls.has(relUrl)) {
               seenUrls.add(relUrl);
               covers.push({
                 id: `local_cover_${cf}`,
                 type: 'local_media',
-                label: `Pasta Covers: ${cf}`,
+                label: `Local (covers/): ${cf}`,
                 url: relUrl,
                 thumbUrl: relUrl,
                 isLocal: true
@@ -1763,18 +1936,32 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 4. CoinOps Cover (if available)
-    const coinCover = coinOpsArtwork(cCfg.coinOpsCollection, 'cover', primaryBase);
-    if (coinCover && !seenUrls.has(coinCover)) {
-      seenUrls.add(coinCover);
-      covers.push({
-        id: 'coinops_cover',
-        type: 'coinops',
-        label: 'CoinOps Official Artwork',
-        url: coinCover,
-        thumbUrl: coinCover,
-        isLocal: true
-      });
+    // 4. ScreenScraper Covers (if configured)
+    if (db.config.ssDevId && db.config.ssDevPassword) {
+      try {
+        const ssGame = await fetchScreenScraperGame(game, querySearch);
+        if (ssGame && Array.isArray(ssGame.medias)) {
+          for (const m of ssGame.medias) {
+            if (m.type === 'box-2D' || m.type === 'box-3D') {
+              const reg = (m.region || 'Global').toUpperCase();
+              const tagType = m.type === 'box-3D' ? '3D' : '2D';
+              const mUrl = m.url;
+              if (mUrl && !seenUrls.has(mUrl)) {
+                seenUrls.add(mUrl);
+                covers.push({
+                  id: `ss_${m.type}_${m.region || 'def'}_${covers.length}`,
+                  type: 'screenscraper',
+                  label: `ScreenScraper ${tagType} (${reg})`,
+                  url: mUrl,
+                  thumbUrl: mUrl
+                });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('ScreenScraper covers query error:', err.message);
+      }
     }
 
     // 5. Libretro Boxart Candidates (by region)
@@ -1818,6 +2005,19 @@ const server = http.createServer(async (req, res) => {
       currentCover: game.coverUrl,
       covers
     });
+  }
+
+  if (pathname === '/api/screenscraper/test' && req.method === 'POST') {
+    const body = await readBody(req);
+    const testCfg = {
+      ssUsername: body.ssUsername !== undefined ? body.ssUsername : db.config.ssUsername,
+      ssPassword: body.ssPassword !== undefined ? body.ssPassword : db.config.ssPassword,
+      ssDevId: body.ssDevId !== undefined ? body.ssDevId : db.config.ssDevId,
+      ssDevPassword: body.ssDevPassword !== undefined ? body.ssDevPassword : db.config.ssDevPassword,
+      ssSoftName: 'HydraRetro'
+    };
+    const result = await testScreenScraperAuth(testCfg);
+    return sendJson(res, 200, result);
   }
 
   if (pathname === '/api/covers/select' && req.method === 'POST') {
@@ -1953,6 +2153,38 @@ const server = http.createServer(async (req, res) => {
       }
     }, 3500);
     return;
+  }
+
+  // Serve covers from root covers/ folder
+  if (pathname.startsWith('/covers/') && req.method === 'GET') {
+    const relPath = decodeURIComponent(pathname.slice('/covers/'.length));
+    const rootCovers = path.join(APP_ROOT, 'covers');
+    const fullPath = path.join(rootCovers, relPath);
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      const ext = path.extname(fullPath).toLowerCase();
+      const mime = ext === '.webp' ? 'image/webp' : ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg') ? 'image/jpeg' : 'application/octet-stream';
+      res.writeHead(200, {
+        'Content-Type': mime,
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      });
+      return fs.createReadStream(fullPath).pipe(res);
+    }
+  }
+
+  // Serve covers from root covers/ folder
+  if (pathname.startsWith('/covers/') && req.method === 'GET') {
+    const relPath = decodeURIComponent(pathname.slice('/covers/'.length));
+    const rootCovers = path.join(APP_ROOT, 'covers');
+    const fullPath = path.join(rootCovers, relPath);
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      const ext = path.extname(fullPath).toLowerCase();
+      const mime = ext === '.webp' ? 'image/webp' : ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg') ? 'image/jpeg' : 'application/octet-stream';
+      res.writeHead(200, {
+        'Content-Type': mime,
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      });
+      return fs.createReadStream(fullPath).pipe(res);
+    }
   }
 
   // Serve media cache (covers, thumbs in .webp)
