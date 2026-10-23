@@ -112,13 +112,27 @@ HydraRetro/
 
 │   │   └── .gitkeep
 
-│   └── GB/                          # .gb, .zip
+│   ├── GB/                          # .gb, .zip
+
+│   │   └── .gitkeep
+
+│   └── SWITCH/                      # .nsp, .xci
 
 │       └── .gitkeep
 
 ├── emulators/                       # Emuladores pré-configurados [Commitados no Git]
 
 │   ├── duckstation/                 # DuckStation x64 Release (PS1)
+
+│   ├── ryujinx/                     # Ryujinx x64 Portable (Nintendo Switch)
+
+│   │   ├── Ryujinx.exe
+
+│   │   ├── portable/
+
+│   │   │   └── system/              # prod.keys e title.keys
+
+│   │   └── README.txt
 
 │   ├── pcsx2/                       # PCSX2 x64 Qt (PS2)
 
@@ -396,6 +410,21 @@ HydraRetro/
 
 
 
+### Nintendo Switch — Ryujinx (ou Ryujinx.Ava)
+
+- **Executável:** `emulators/ryujinx/Ryujinx.exe` (com fallback automático para `Ryujinx.Ava.exe`)
+
+- **Modo Portátil:** Subpasta `portable/` na raiz do emulador garante dados isolados sem tocar no AppData.
+
+- **Linha de Comando:** `--fullscreen "{ROM}"`
+
+- **Formatos Suportados:** `.nsp`, `.xci`.
+
+- **Chaves & Firmware:** Arquivo `prod.keys` em `emulators/ryujinx/portable/system/` (ou `BIOS/switch/`) e Firmware oficial instalado via interface gráfica do Ryujinx (*Tools -> Install Firmware*).
+
+- **Mapeamento:** Controle de Xbox (XInput nativo).
+
+
 ---
 
 
@@ -424,10 +453,11 @@ HydraRetro/
    - **Identificação por Hash (CRC32):** Extração ultra-rápida do CRC32 (leitura direta do cabeçalho de arquivos `.zip` em 0.05ms ou cálculo nativo de ROMs pequenas em ~15ms; leitura de serial em cabeçalhos de ISO para PS1/PS2 sem travar o disco).
    - **Fallback por Limpeza de Regex:** Limpeza automática de sufixos de release, dumps e regiões (`(...)`, `[...]`, `_`, `[!].smc` -> `Chrono Trigger`).
    - **Scraping Multi-Fonte Gratuito:**
-     * **Wikipedia (PT-BR prioritária / EN fallback):** Enredo original completo, sinopse detalhada, desenvolvedora, publicadora e ano de lançamento.
+     * **ScreenScraper.fr (FONTE PRIMÁRIA):** Identificação oficial por hash (CRC32/MD5) e busca textual, enredo/sinopse em português brasileiro, desenvolvedora, publicadora, ano e boxarts oficiais 2D e 3D.
+     * **Wikipedia (PT-BR prioritária / EN fallback):** Fallback para enredo original completo, sinopse detalhada e histórico de lançamento.
      * **HowLongToBeat (HLTB):** Avaliação da comunidade e tempo médio de conclusão da campanha (Main Story, Extra, 100%).
-     * **SteamGridDB & Libretro CDN:** Capas padronizadas verticais (600x900), banners hero e logos transparentes.
-   - **Background Queue Não-Bloqueante:** Ao colocar centenas de ROMs, os jogos entram instantaneamente no catálogo com capa padrão ("Zero Delay") enquanto um Background Worker com taxa suave (1.5s) vai enriquecendo capas, sinopses e metadados em tempo real.
+     * **SteamGridDB, TheGamesDB & Libretro CDN:** Capas padronizadas verticais HD (600x900), banners hero e acervo oficial Libretro por região.
+   - **Background Queue Não-Bloqueante & Regra Zero-Redownload:** Ao colocar centenas de ROMs, os jogos entram instantaneamente no catálogo com capa padrão ("Zero Delay") enquanto um Background Worker com taxa suave (1.5s) vai enriquecendo e baixando capas e metadados diretamente para a pasta local `covers/`. Uma vez atribuída e salva no disco, a capa **nunca mais é baixada novamente em scans futuros** (permanece imutável). Em cada abertura do software, o scanner apenas detecta novas ROMs adicionadas e busca capas estritamente para os jogos que ainda não possuem arte atribuída.
 
 5. **Mapeamento Embutido de Emuladores:**
    - RetroArch como motor unificado (80% dos consoles retrô via DLL de cores) e emuladores standalone para sistemas pesados (DuckStation para PS1, PCSX2 para PS2, Dolphin para Wii/GC, PPSSPP para PSP e RPCS3 para PS3).
@@ -451,9 +481,11 @@ HydraRetro/
    - O backend Node captura a saída, registra as horas jogadas e o `FocusHelper` restaura instantaneamente a janela do catálogo em tela cheia com foco total.
 
 8. **Seletor de Capas Multi-Fonte & Armazenamento Local:**
-   - Cada jogo suporta múltiplas capas de diferentes origens (arquivos locais em `media/covers/<console>/`, artes do CoinOps, CDN da Libretro por região e artes em HD do SteamGridDB).
+   - **ScreenScraper como Fonte Primária:** Apresenta boxarts 2D e 3D em primeiro lugar, com fallbacks ordenados para SteamGridDB, TheGamesDB, acervo Libretro CDN por região e arquivos locais.
+   - **Seletor de Fonte na UI:** Chips/abas interativas permitem alternar a fonte de busca entre "Todas as Fontes", "ScreenScraper (Primária)", "SteamGridDB", "TheGamesDB", "Libretro CDN" e "Local (covers/)".
+   - **Atalho no Controle:** Botões de ombro (LB / RB) alternam a fonte de busca instantaneamente no modal.
    - O usuário pode copiar pastas de covers do CoinOps ou imagens próprias diretamente para `media/covers/<console>/` que o sistema as detecta e prioriza automaticamente.
-   - Modal interativo na UI permite navegar entre as capas encontradas e escolher a preferida com 1 clique (ou botão A do controle), salvando-a permanentemente no disco.
+   - Modal interativo na UI permite navegar entre as capas encontradas e escolher a preferida com 1 clique (ou botão A do controle), salvando-a permanentemente no disco via pipeline de proxy e download local.
 
 9. **Backup e Exportação de Saves em Arquivo Único (ZIP):**
    - Varredura e consolidação automática de saves, memory cards e savestates de todos os emuladores (RetroArch, DuckStation, PCSX2, Dolphin, PPSSPP, RPCS3) + banco de dados.

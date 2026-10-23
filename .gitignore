@@ -1,3 +1,4 @@
+scratch/
 node_modules/
 data/webview_profile/
 data/database.json
@@ -32,6 +33,8 @@ ROMS/**/*
 !ROMS/GBC/.gitkeep
 !ROMS/GB/
 !ROMS/GB/.gitkeep
+!ROMS/SWITCH/
+!ROMS/SWITCH/.gitkeep
 
 BIOS/**/*
 !BIOS/
@@ -106,3 +109,10 @@ emulators/rpcs3/crash_dumps/
 backups/**/*
 !backups/
 !backups/.gitkeep
+
+emulators/ryujinx/portable/bis/
+emulators/ryujinx/portable/system/*
+!emulators/ryujinx/portable/system/.gitkeep
+emulators/ryujinx/portable/sdcard/
+emulators/ryujinx/portable/logs/
+emulators/ryujinx/*.log

@@ -30,3 +30,8 @@ Execute o script `build.bat` para compilar os executáveis e espelhar tudo em `C
 ```bat
 build.bat
 ```
+
+
+## 📄 Licença e Distribuição Livre
+
+O **HydraRetro** é um software de código aberto, gratuito e livre de qualquer forma de monetização, anúncios ou rastreamento comercial, distribuído sob a licença [MIT](LICENSE). Todos os emuladores suportados são projetos de código aberto com suas respectivas licenças GPL/MIT mantidas integralmente.

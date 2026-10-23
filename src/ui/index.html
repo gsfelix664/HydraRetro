@@ -91,6 +91,11 @@
             <span class="nav-title">Nintendo Wii</span>
             <span class="nav-badge" id="badge-wii">0</span>
           </button>
+          <button class="nav-btn" data-tab="SWITCH">
+            <span class="nav-icon console-pill switch">NSW</span>
+            <span class="nav-title">Nintendo Switch</span>
+            <span class="nav-badge" id="badge-switch">0</span>
+          </button>
           <button class="nav-btn" data-tab="GB">
             <span class="nav-icon console-pill gb">GB</span>
             <span class="nav-title">Game Boy</span>
@@ -406,6 +411,30 @@
             <span>🔍 Buscar Capas</span>
           </button>
         </div>
+        <div class="cover-source-filter-row">
+          <span class="cover-filter-label">Fonte:</span>
+          <div class="cover-source-chips" id="cover-source-chips">
+            <button class="source-chip active" data-source="all" title="Buscar em todas as fontes (ScreenScraper em 1º lugar)">
+              <span>Todas as Fontes</span>
+            </button>
+            <button class="source-chip" data-source="screenscraper" title="ScreenScraper.fr (Fonte Primária - Capas 2D/3D)">
+              <span>ScreenScraper</span>
+              <span class="source-badge-pill primary">Primária</span>
+            </button>
+            <button class="source-chip" data-source="steamgriddb" title="SteamGridDB (Capas em Alta Definição 600x900)">
+              <span>SteamGridDB</span>
+            </button>
+            <button class="source-chip" data-source="thegamesdb" title="TheGamesDB (Boxarts da Comunidade)">
+              <span>TheGamesDB</span>
+            </button>
+            <button class="source-chip" data-source="libretro" title="Libretro Thumbnails CDN (Acervo Oficial)">
+              <span>Libretro CDN</span>
+            </button>
+            <button class="source-chip" data-source="local" title="Arquivos locais na pasta covers/ e pasta de ROMs">
+              <span>Local (covers/)</span>
+            </button>
+          </div>
+        </div>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <button id="btn-open-covers-folder" class="chip-btn" title="Abrir pasta no Windows Explorer">
             <span>📂 Pasta Covers</span>
@@ -420,7 +449,7 @@
           <button id="btn-refresh-covers" class="chip-btn">
             <span>🔄 Recarregar</span>
           </button>
-          <span class="modal-hint">Capas encontradas na pasta local covers, ScreenScraper, Libretro e SteamGridDB</span>
+          <span class="modal-hint">ScreenScraper (Primária) • SteamGridDB • TheGamesDB • Libretro • Pastas Locais</span>
         </div>
       </div>
 
@@ -433,6 +462,7 @@
 
       <div class="modal-footer">
         <div class="modal-footer-hints">
+          <span><kbd class="key-pill">LB</kbd> <kbd class="key-pill">RB</kbd> Mudar Fonte</span>
           <span><kbd class="key-pill">A</kbd> Escolher Capa</span>
           <span><kbd class="key-pill">B</kbd> ou <kbd class="key-pill">Esc</kbd> Fechar</span>
         </div>

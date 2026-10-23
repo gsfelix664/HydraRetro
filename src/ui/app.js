@@ -242,6 +242,7 @@ function updateSidebarStats() {
   setBadge('badge-mame', games.filter(g => g.consoleId === 'MAME').length);
   setBadge('badge-ps2', games.filter(g => g.consoleId === 'PS2').length);
   setBadge('badge-wii', games.filter(g => g.consoleId === 'WII').length);
+  setBadge('badge-switch', games.filter(g => g.consoleId === 'SWITCH').length);
   setBadge('badge-gc', games.filter(g => g.consoleId === 'GC').length);
   setBadge('badge-psp', games.filter(g => g.consoleId === 'PSP').length);
   setBadge('badge-ps3', games.filter(g => g.consoleId === 'PS3').length);
@@ -345,6 +346,7 @@ function renderCatalogue(resetScroll = false) {
     MAME: ['Arcade / MAME (FBNeo)', `${filtered.length} sucessos de fliperama • FBNeo`],
     PS2: ['PlayStation 2 (PCSX2)', `${filtered.length} sucessos em 3D • PCSX2 Qt`],
     WII: ['Nintendo Wii (Dolphin)', `${filtered.length} clássicos Nintendo • Dolphin Emulator`],
+    SWITCH: ['Nintendo Switch (Ryujinx)', `${filtered.length} títulos híbridos modernos • Ryujinx`],
     GC: ['Nintendo GameCube (Dolphin)', `${filtered.length} clássicos GameCube • Dolphin Emulator`],
     PSP: ['PlayStation Portable (PPSSPP)', `${filtered.length} sucessos portáteis • PPSSPP`],
     PS3: ['PlayStation 3 (RPCS3)', `${filtered.length} títulos PlayStation 3 • RPCS3`],
@@ -1073,9 +1075,9 @@ function renderSettingsView() {
     </div>
 
     <div class="settings-card">
-      <h3>🌐 ScreenScraper.fr — Metadados & Box Arts por Hash (2D / 3D)</h3>
+      <h3>🌐 ScreenScraper.fr (Fonte Primária) — Metadados & Box Arts por Hash (2D / 3D)</h3>
       <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">
-        O padrão de excelência de scraping retrô (Batocera, RetroPie). Identifica ROMs por hash (CRC32/MD5) e nome exato, trazendo capas oficiais 2D/3D, sinopses e ano de lançamento.
+        Padrão de excelência em scraping retrô (Batocera, RetroPie), configurado como <strong>FONTE PRIMÁRIA</strong> no HydraRetro. A sua conta de usuário (ssid/sspassword) define seu limite de requisições por dia (20.000 grátis / até 100.000 apoiadores), enquanto o Dev ID autoriza a conexão da aplicação.
       </p>
       <div class="field-row">
         <label>Usuário ScreenScraper (ssid):</label>
@@ -1106,8 +1108,21 @@ function renderSettingsView() {
         <span id="ss-test-status" style="font-size:12px;color:var(--text-muted);"></span>
       </div>
       <p style="font-size:11px;color:#6b7280;margin-top:8px;">
-        💡 Crie uma conta gratuita em <a href="https://www.screenscraper.fr" target="_blank" style="color:var(--accent);text-decoration:underline;">screenscraper.fr</a>. As credenciais Dev ID e Dev Password podem ser solicitadas na aba de desenvolvedores do ScreenScraper.
+        💡 Crie uma conta gratuita em <a href="https://www.screenscraper.fr" target="_blank" style="color:var(--accent);text-decoration:underline;">screenscraper.fr</a>. As credenciais Dev ID e Dev Password podem ser solicitadas na aba de desenvolvedores do fórum do ScreenScraper.
       </p>
+    </div>
+
+    <div class="settings-card">
+      <h3>🎮 TheGamesDB (Opcional) — Boxarts Oficiais da Comunidade</h3>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">
+        Banco de dados aberto TheGamesDB. Obtenha uma API Key gratuita criando uma conta em <a href="https://thegamesdb.net" target="_blank" style="color:var(--accent);text-decoration:underline;">thegamesdb.net</a>.
+      </p>
+      <div class="field-row">
+        <label>API Key TheGamesDB:</label>
+        <div class="field-input-group">
+          <input type="password" id="cfg-tgdb-key" placeholder="Sua API Key do TheGamesDB" value="${appState.config?.theGamesDbApiKey || ''}">
+        </div>
+      </div>
     </div>
 
 <div class="settings-card">
@@ -1183,9 +1198,30 @@ window.testScreenScraper = async () => {
 };
 
 // --- COVER SELECTOR MODAL ---
-async function openCoverSelector(gameId, customSearch = null) {
+let currentCoverSource = 'all';
+let currentSourcesConfigured = {};
+const COVER_SOURCES = ['all', 'screenscraper', 'steamgriddb', 'thegamesdb', 'libretro', 'local'];
+
+function switchCoverSourceFilter(delta) {
+  let idx = COVER_SOURCES.indexOf(currentCoverSource);
+  if (idx === -1) idx = 0;
+  idx = (idx + delta + COVER_SOURCES.length) % COVER_SOURCES.length;
+  currentCoverSource = COVER_SOURCES[idx];
+  playSfx('nav');
+  const game = appState.games.find(g => g.id === selectedGameId);
+  if (game) {
+    const searchInput = document.getElementById('cover-search-term');
+    openCoverSelector(game.id, searchInput ? searchInput.value.trim() : null, currentCoverSource);
+  }
+}
+
+async function openCoverSelector(gameId, customSearch = null, source = null) {
   const game = appState.games.find(g => g.id === gameId);
   if (!game) return;
+
+  if (source !== null) {
+    currentCoverSource = source;
+  }
 
   const modal = document.getElementById('cover-modal');
   modal.classList.remove('hidden');
@@ -1200,16 +1236,26 @@ async function openCoverSelector(gameId, customSearch = null) {
     searchInput.value = customSearch !== null ? customSearch : (game.title || '');
     searchInput.onkeydown = (e) => {
       if (e.key === 'Enter') {
-        openCoverSelector(game.id, searchInput.value.trim());
+        openCoverSelector(game.id, searchInput.value.trim(), currentCoverSource);
       }
     };
   }
+
+  // Bind Source Filter Chips
+  document.querySelectorAll('.source-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.source === currentCoverSource);
+    chip.onclick = () => {
+      const src = chip.dataset.source || 'all';
+      playSfx('select');
+      openCoverSelector(game.id, searchInput ? searchInput.value.trim() : null, src);
+    };
+  });
 
   const btnSearch = document.getElementById('btn-search-covers');
   if (btnSearch) {
     btnSearch.onclick = () => {
       const term = searchInput ? searchInput.value.trim() : '';
-      openCoverSelector(game.id, term);
+      openCoverSelector(game.id, term, currentCoverSource);
     };
   }
 
@@ -1285,7 +1331,7 @@ async function openCoverSelector(gameId, customSearch = null) {
   }
 
   const btnRefresh = document.getElementById('btn-refresh-covers');
-  if (btnRefresh) btnRefresh.onclick = () => openCoverSelector(game.id, null);
+  if (btnRefresh) btnRefresh.onclick = () => openCoverSelector(game.id, null, currentCoverSource);
 
   const btnClose = document.getElementById('close-cover-modal');
   if (btnClose) btnClose.onclick = closeCoverModal;
@@ -1294,15 +1340,63 @@ async function openCoverSelector(gameId, customSearch = null) {
   if (btnCancel) btnCancel.onclick = closeCoverModal;
 
   try {
-    let url = `/api/covers/list?gameId=${encodeURIComponent(game.id)}`;
+    let url = `/api/covers/list?gameId=${encodeURIComponent(game.id)}&source=${encodeURIComponent(currentCoverSource)}`;
     if (customSearch) {
       url += `&q=${encodeURIComponent(customSearch)}`;
     }
     const res = await fetch(url);
     const data = await res.json();
     loading.classList.add('hidden');
+
+    currentSourcesConfigured = data.sourcesConfigured || {};
+
     if (!res.ok || !data.covers || data.covers.length === 0) {
-      grid.innerHTML = '<div style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px 0;">Nenhuma capa encontrada. Digite outro nome na barra de busca acima, envie uma imagem do PC ou adicione arquivos na pasta covers/!</div>';
+      if (currentCoverSource === 'screenscraper' && !currentSourcesConfigured.screenscraper) {
+        grid.innerHTML = `
+          <div class="cover-not-configured-card">
+            <div class="not-cfg-icon">🌐</div>
+            <h3>ScreenScraper.fr (Fonte Primária) não configurado</h3>
+            <p>Para buscar capas oficiais 2D/3D e metadados por hash, cadastre seu Usuário e Dev ID nas Configurações.</p>
+            <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn-primary" style="cursor:pointer;" onclick="closeCoverModal(); switchTab('SETTINGS');">⚙️ Abrir Configurações</button>
+              <button class="btn-secondary" style="cursor:pointer;" onclick="openCoverSelector('${game.id}', '${customSearch || ''}', 'all');">Ver Todas as Fontes</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentCoverSource === 'steamgriddb' && !currentSourcesConfigured.steamgriddb) {
+        grid.innerHTML = `
+          <div class="cover-not-configured-card">
+            <div class="not-cfg-icon">🎨</div>
+            <h3>SteamGridDB não configurado</h3>
+            <p>Cadastre uma API Key gratuita do SteamGridDB nas Configurações para obter pôsteres verticais em alta resolução (600x900).</p>
+            <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn-primary" style="cursor:pointer;" onclick="closeCoverModal(); switchTab('SETTINGS');">⚙️ Abrir Configurações</button>
+              <button class="btn-secondary" style="cursor:pointer;" onclick="openCoverSelector('${game.id}', '${customSearch || ''}', 'all');">Ver Todas as Fontes</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentCoverSource === 'thegamesdb' && !currentSourcesConfigured.thegamesdb) {
+        grid.innerHTML = `
+          <div class="cover-not-configured-card">
+            <div class="not-cfg-icon">🎮</div>
+            <h3>TheGamesDB não configurado</h3>
+            <p>Insira sua API Key gratuita do TheGamesDB nas Configurações para buscar boxarts oficiais da comunidade.</p>
+            <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn-primary" style="cursor:pointer;" onclick="closeCoverModal(); switchTab('SETTINGS');">⚙️ Abrir Configurações</button>
+              <button class="btn-secondary" style="cursor:pointer;" onclick="openCoverSelector('${game.id}', '${customSearch || ''}', 'all');">Ver Todas as Fontes</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = '<div style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px 0;">Nenhuma capa encontrada para esta busca. Tente buscar por outro nome acima, enviar uma imagem do PC ou adicionar arquivos na pasta covers/!</div>';
       return;
     }
 
@@ -1323,8 +1417,25 @@ function renderCoverModalCards(game) {
     card.className = `cover-card ${isActive ? 'active-cover' : ''} ${idx === coverModalIndex ? 'gamepad-focused' : ''}`;
     card.dataset.index = idx;
 
-    const sourceTagClass = c.type === 'current' ? 'active' : (c.type === 'steamgriddb' ? 'steamgriddb' : (c.type === 'screenscraper' ? 'screenscraper' : (c.type === 'libretro' ? 'libretro' : 'local')));
-    const sourceTagText = isActive ? 'ATIVA' : (c.type === 'steamgriddb' ? 'STEAMGRID' : (c.type === 'screenscraper' ? 'SCREENSCRAPER' : (c.type === 'libretro' ? 'LIBRETRO' : 'LOCAL')));
+    let sourceTagClass = 'local';
+    let sourceTagText = 'LOCAL';
+
+    if (isActive) {
+      sourceTagClass = 'active';
+      sourceTagText = 'ATIVA';
+    } else if (c.type === 'screenscraper') {
+      sourceTagClass = 'screenscraper';
+      sourceTagText = 'SCREENSCRAPER (PRIMÁRIA)';
+    } else if (c.type === 'steamgriddb') {
+      sourceTagClass = 'steamgriddb';
+      sourceTagText = 'STEAMGRID';
+    } else if (c.type === 'thegamesdb') {
+      sourceTagClass = 'thegamesdb';
+      sourceTagText = 'THEGAMESDB';
+    } else if (c.type === 'libretro') {
+      sourceTagClass = 'libretro';
+      sourceTagText = 'LIBRETRO';
+    }
 
     card.innerHTML = `
       <img src="${c.thumbUrl || c.url}" class="cover-card-art" loading="lazy" alt="Cover">
@@ -1378,6 +1489,9 @@ function closeCoverModal() {
   activeZone = selectedGameId ? 'DETAILS' : 'GRID';
   playSfx('back');
 }
+window.closeCoverModal = closeCoverModal;
+window.switchTab = switchTab;
+window.openCoverSelector = openCoverSelector;
 
 // --- SAVES BACKUP & EXPORT ---
 window.exportSavesBackup = async () => {
@@ -1488,6 +1602,7 @@ window.saveSettings = async () => {
       raUsername: document.getElementById('cfg-ra-user')?.value || '',
       raWebApiKey: document.getElementById('cfg-ra-key')?.value || '',
       steamGridDbApiKey: document.getElementById('cfg-steamgrid-key')?.value || '',
+      theGamesDbApiKey: document.getElementById('cfg-tgdb-key')?.value || '',
       ssUsername: document.getElementById('cfg-ss-user')?.value || '',
       ssPassword: document.getElementById('cfg-ss-pass')?.value || '',
       ssDevId: document.getElementById('cfg-ss-devid')?.value || '',
@@ -1659,6 +1774,10 @@ function handleGamepadButtonY() {
 }
 
 function handleGamepadShoulder(delta) {
+  if (activeZone === 'COVER_MODAL') {
+    switchCoverSourceFilter(delta);
+    return;
+  }
   let idx = TABS_ORDER.indexOf(currentTab);
   if (idx === -1) idx = 0;
   idx = (idx + delta + TABS_ORDER.length) % TABS_ORDER.length;
