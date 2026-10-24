@@ -40,6 +40,7 @@ copy /Y "C:\PROJETOS\HydraRetro\LICENSE" "%TARGET_DIR%\LICENSE"
 copy /Y "C:\PROJETOS\HydraRetro\README.md" "%TARGET_DIR%\README.md"
 copy /Y "C:\PROJETOS\HydraRetro\package.json" "%TARGET_DIR%\package.json"
 copy /Y "C:\PROJETOS\HydraRetro\gemini.md" "%TARGET_DIR%\gemini.md"
+copy /Y "C:\PROJETOS\HydraRetro\build.bat" "%TARGET_DIR%\build.bat"
 
 
 robocopy "C:\PROJETOS\HydraRetro\emulators" "%TARGET_DIR%\emulators" /E /NFL /NDL /NJH /NJS /nc /ns /np

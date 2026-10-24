@@ -543,7 +543,7 @@ C:\PROJETOS\HydraRetro\build.bat
 
 O script:
 
-1. Cria a árvore de diretórios em `C:\games\HydraRetro` se não existir.
+1. Cria a árvore de diretórios em `D:\games\HydraRetro` se não existir.
 
 2. Copia os arquivos de backend (`server.js`), frontend (`ui/`) e metadados (`data/`).
 
@@ -551,5 +551,5 @@ O script:
 
 4. Compila `FocusHelper.cs` e `Launcher.cs` usando o compilador C# do .NET Framework (`csc.exe`).
 
-5. Entrega os executáveis prontos para uso em `C:\games\HydraRetro\HydraRetro.exe`.
+5. Entrega os executáveis prontos para uso em `D:\games\HydraRetro\HydraRetro.exe`.
 
