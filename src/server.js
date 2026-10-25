@@ -1213,11 +1213,67 @@ function scanLibrary() {
       });
     }
 
+    // Fast local cover index for instant offline matching
+    const localCoversMap = new Map();
+    const cSub = consoleId.toLowerCase();
+    const consoleCoverDirs = [
+      path.join(COVERS_DIR, cSub),
+      path.join(APP_ROOT, 'covers', cSub)
+    ];
+    for (const dir of consoleCoverDirs) {
+      if (fs.existsSync(dir)) {
+        try {
+          const cFiles = fs.readdirSync(dir);
+          for (const cf of cFiles) {
+            const ext = path.extname(cf).toLowerCase();
+            if (['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
+              const full = path.join(dir, cf);
+              const url = formatLocalCoverUrl(full);
+              const base = path.basename(cf, ext);
+              const norm = base.toLowerCase().replace(/[^a-z0-9]/g, '');
+              const cl = cleanTitle(base).toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (!localCoversMap.has(base)) localCoversMap.set(base, url);
+              if (!localCoversMap.has(norm)) localCoversMap.set(norm, url);
+              if (cl && !localCoversMap.has(cl)) localCoversMap.set(cl, url);
+            }
+          }
+        } catch {}
+      }
+    }
+
+    const resolveLocalCover = (bName, clTitle) => {
+      if (!bName && !clTitle) return null;
+      if (bName && localCoversMap.has(bName)) return localCoversMap.get(bName);
+      const normB = (bName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (normB && localCoversMap.has(normB)) return localCoversMap.get(normB);
+      if (clTitle && localCoversMap.has(clTitle)) return localCoversMap.get(clTitle);
+      const normC = (clTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (normC && localCoversMap.has(normC)) return localCoversMap.get(normC);
+      const clB = cleanTitle(bName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clB && localCoversMap.has(clB)) return localCoversMap.get(clB);
+      return null;
+    };
+
     for (const [groupId, g] of groups.entries()) {
       foundKeys.add(groupId);
       g.discs.sort((a, b) => a.fileName.localeCompare(b.fileName));
       const primary = g.discs[0];
       const primaryBase = path.basename(primary.fileName, path.extname(primary.fileName));
+
+      const existing = db.games[groupId];
+      const totalSizeBytes = g.discs.reduce((acc, d) => acc + d.sizeBytes, 0);
+      const isQuickMatch = existing && existing.romPath === primary.path && existing.sizeBytes === totalSizeBytes;
+
+      const localCover = resolveLocalCover(primaryBase, g.title) || findLocalArtwork(cCfg.romFolder, primaryBase, g.title, consoleId);
+
+      if (isQuickMatch) {
+        existing.discs = g.discs;
+        if (!existing.customCoverUrl && localCover && (!existing.coverUrl || !isLocalCover(existing.coverUrl))) {
+          existing.coverUrl = localCover;
+          existing.fallbackCoverUrl = localCover;
+        }
+        continue;
+      }
 
       // Smart metadata lookup: exact, cleaned, stripped, or fuzzy
       const curated = (() => {
@@ -1241,9 +1297,6 @@ function scanLibrary() {
       if (curated && curated.title) {
         g.title = curated.title;
       }
-
-      const existing = db.games[groupId];
-      const localCover = findLocalArtwork(cCfg.romFolder, primaryBase, g.title, consoleId);
       const localLogo = null;
       const localVideo = null;
 
@@ -1376,11 +1429,11 @@ function scanLibrary() {
         existing.sizeBytes = g.discs.reduce((acc, d) => acc + d.sizeBytes, 0);
 
         let effectiveCover = existing.customCoverUrl;
-        if (!effectiveCover && isLocalCover(existing.coverUrl)) {
-          effectiveCover = existing.coverUrl;
-        }
         if (!effectiveCover && localCover) {
           effectiveCover = localCover;
+        }
+        if (!effectiveCover && isLocalCover(existing.coverUrl)) {
+          effectiveCover = existing.coverUrl;
         }
         if (!effectiveCover && existing.coverUrl) {
           effectiveCover = existing.coverUrl;
@@ -1916,23 +1969,7 @@ function launchGame(gameId, discIndex = 0) {
   return { status: 'launched', pid: child.pid, gameId };
 }
 
-// Initial scan at startup
-const initialScan = scanLibrary();
-console.log(`HydraRetro scanned library: ${initialScan.totalGames} games (${initialScan.newGamesCount} new).`);
-
-// Auto-watch ROM directories for hot-plugging new ROMs
-for (const [cid, cCfg] of Object.entries(db.config.consoles)) {
-  if (cCfg.romFolder && fs.existsSync(cCfg.romFolder)) {
-    let debounceTimer = null;
-    fs.watch(cCfg.romFolder, () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        console.log(`Detected change in ${cid} ROM folder, rescanning...`);
-        scanLibrary();
-      }, 1500);
-    });
-  }
-}
+// ROM watchers & initial scan moved to server.listen for instant startup
 
 function getSaveDirectories() {
   const dirs = [];
@@ -2353,82 +2390,7 @@ const server = http.createServer(async (req, res) => {
       seenUrls.add(game.coverUrl);
     }
 
-    // 2. ScreenScraper Covers (FONTE PRIMÁRIA)
-    if (checkSS && db.config.ssDevId && db.config.ssDevPassword) {
-      try {
-        const ssCovers = await fetchScreenScraperCovers(game, querySearch);
-        for (const ssc of ssCovers) {
-          if (!seenUrls.has(ssc.url) && !seenUrls.has(ssc.rawUrl)) {
-            seenUrls.add(ssc.url);
-            if (ssc.rawUrl) seenUrls.add(ssc.rawUrl);
-            covers.push(ssc);
-          }
-        }
-      } catch (err) {
-        console.error('ScreenScraper covers query error:', err.message);
-      }
-    }
-
-    // 3. SteamGridDB HD alternatives
-    const sgKey = db.config.steamGridDbApiKey;
-    if (checkSG && sgKey) {
-      try {
-        const sgGrids = await fetchSteamGridDbGrids(querySearch, sgKey);
-        for (const grid of sgGrids) {
-          if (!seenUrls.has(grid.url)) {
-            seenUrls.add(grid.url);
-            covers.push(grid);
-          }
-        }
-      } catch (err) {
-        console.error('SteamGridDB query error:', err.message);
-      }
-    }
-
-    // 4. TheGamesDB covers
-    const tgdbKey = db.config.theGamesDbApiKey;
-    if (checkTGDB && tgdbKey) {
-      try {
-        const tgdbCovers = await fetchTheGamesDbCovers(querySearch, game.consoleId, tgdbKey);
-        for (const tgc of tgdbCovers) {
-          if (!seenUrls.has(tgc.url)) {
-            seenUrls.add(tgc.url);
-            covers.push(tgc);
-          }
-        }
-      } catch (err) {
-        console.error('TheGamesDB query error:', err.message);
-      }
-    }
-
-    // 5. Libretro Boxart Candidates (dynamic with querySearch and candidate regions)
-    if (checkLibretro) {
-      const libretroCandidates = getArtworkCandidates(primaryBase, null, querySearch);
-      libretroCandidates.forEach((candBase, idx) => {
-        const candUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', candBase);
-        if (candUrl && !seenUrls.has(candUrl)) {
-          seenUrls.add(candUrl);
-          let regLabel = 'Libretro CDN';
-          if (candBase.includes('(USA)')) regLabel = 'Libretro CDN (USA)';
-          else if (candBase.includes('(World)')) regLabel = 'Libretro CDN (World)';
-          else if (candBase.includes('(Europe)')) regLabel = 'Libretro CDN (Europe)';
-          else if (candBase.includes('(Japan)')) regLabel = 'Libretro CDN (Japan)';
-          else if (candBase.includes('(Brazil)')) regLabel = 'Libretro CDN (Brasil)';
-          else if (candBase.includes('(USA, Europe)')) regLabel = 'Libretro CDN (USA, Europe)';
-          else regLabel = `Libretro CDN (${candBase})`;
-
-          covers.push({
-            id: `libretro_${idx}`,
-            type: 'libretro',
-            label: regLabel,
-            url: candUrl,
-            thumbUrl: candUrl
-          });
-        }
-      });
-    }
-
-    // 6. Local covers in covers/ and media/covers/<consoleId>/
+    // 2. Local covers in covers/ and media/covers/<consoleId>/ (FONTE PRIMÁRIA OFFLINE)
     if (checkLocal) {
       const checkCoverDirs = [
         { dir: path.join(COVERS_DIR, game.consoleId.toLowerCase()), prefix: `/media/covers/${game.consoleId.toLowerCase()}` },
@@ -2480,12 +2442,87 @@ const server = http.createServer(async (req, res) => {
         covers.push({
           id: 'rom_folder_cover',
           type: 'local_rom',
-          label: 'Pasta de ROMs (Local)',
+          label: 'Local (Pasta de ROMs)',
           url: romLocal,
           thumbUrl: romLocal,
           isLocal: true
         });
       }
+    }
+
+    // 3. ScreenScraper Covers (FONTE ONLINE PRIMÁRIA)
+    if (checkSS && db.config.ssDevId && db.config.ssDevPassword) {
+      try {
+        const ssCovers = await fetchScreenScraperCovers(game, querySearch);
+        for (const ssc of ssCovers) {
+          if (!seenUrls.has(ssc.url) && !seenUrls.has(ssc.rawUrl)) {
+            seenUrls.add(ssc.url);
+            if (ssc.rawUrl) seenUrls.add(ssc.rawUrl);
+            covers.push(ssc);
+          }
+        }
+      } catch (err) {
+        console.error('ScreenScraper covers query error:', err.message);
+      }
+    }
+
+    // 4. SteamGridDB HD alternatives
+    const sgKey = db.config.steamGridDbApiKey;
+    if (checkSG && sgKey) {
+      try {
+        const sgGrids = await fetchSteamGridDbGrids(querySearch, sgKey);
+        for (const grid of sgGrids) {
+          if (!seenUrls.has(grid.url)) {
+            seenUrls.add(grid.url);
+            covers.push(grid);
+          }
+        }
+      } catch (err) {
+        console.error('SteamGridDB query error:', err.message);
+      }
+    }
+
+    // 5. TheGamesDB covers
+    const tgdbKey = db.config.theGamesDbApiKey;
+    if (checkTGDB && tgdbKey) {
+      try {
+        const tgdbCovers = await fetchTheGamesDbCovers(querySearch, game.consoleId, tgdbKey);
+        for (const tgc of tgdbCovers) {
+          if (!seenUrls.has(tgc.url)) {
+            seenUrls.add(tgc.url);
+            covers.push(tgc);
+          }
+        }
+      } catch (err) {
+        console.error('TheGamesDB query error:', err.message);
+      }
+    }
+
+    // 6. Libretro Boxart Candidates (dynamic with querySearch and candidate regions)
+    if (checkLibretro) {
+      const libretroCandidates = getArtworkCandidates(primaryBase, null, querySearch);
+      libretroCandidates.forEach((candBase, idx) => {
+        const candUrl = libretroUrl(cCfg.libretroThumbRepo, 'Named_Boxarts', candBase);
+        if (candUrl && !seenUrls.has(candUrl)) {
+          seenUrls.add(candUrl);
+          let regLabel = 'Libretro CDN';
+          if (candBase.includes('(USA)')) regLabel = 'Libretro CDN (USA)';
+          else if (candBase.includes('(World)')) regLabel = 'Libretro CDN (World)';
+          else if (candBase.includes('(Europe)')) regLabel = 'Libretro CDN (Europe)';
+          else if (candBase.includes('(Japan)')) regLabel = 'Libretro CDN (Japan)';
+          else if (candBase.includes('(Brazil)')) regLabel = 'Libretro CDN (Brasil)';
+          else if (candBase.includes('(USA, Europe)')) regLabel = 'Libretro CDN (USA, Europe)';
+          else regLabel = `Libretro CDN (${candBase})`;
+
+          covers.push({
+            id: `libretro_${idx}`,
+            type: 'libretro',
+            label: regLabel,
+            url: candUrl,
+            thumbUrl: candUrl
+          });
+        }
+      });
     }
 
     return sendJson(res, 200, {
@@ -2778,4 +2815,28 @@ const server = http.createServer(async (req, res) => {
 const PORT = 38475;
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`HydraRetro Backend listening on http://127.0.0.1:${PORT}`);
+
+  // Non-blocking initial scan and watcher initialization
+  setImmediate(() => {
+    try {
+      const initialScan = scanLibrary();
+      console.log(`HydraRetro scanned library: ${initialScan.totalGames} games (${initialScan.newGamesCount} new).`);
+    } catch (e) {
+      console.error('Error during initial library scan:', e);
+    }
+
+    // Auto-watch ROM directories for hot-plugging new ROMs
+    for (const [cid, cCfg] of Object.entries(db.config.consoles)) {
+      if (cCfg.romFolder && fs.existsSync(cCfg.romFolder)) {
+        let debounceTimer = null;
+        fs.watch(cCfg.romFolder, () => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            console.log(`Detected change in ${cid} ROM folder, rescanning...`);
+            scanLibrary();
+          }, 1500);
+        });
+      }
+    }
+  });
 });

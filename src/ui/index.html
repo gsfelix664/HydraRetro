@@ -414,12 +414,15 @@
         <div class="cover-source-filter-row">
           <span class="cover-filter-label">Fonte:</span>
           <div class="cover-source-chips" id="cover-source-chips">
-            <button class="source-chip active" data-source="all" title="Buscar em todas as fontes (ScreenScraper em 1º lugar)">
+            <button class="source-chip active" data-source="all" title="Buscar em todas as fontes (Capas locais em 1º lugar)">
               <span>Todas as Fontes</span>
             </button>
-            <button class="source-chip" data-source="screenscraper" title="ScreenScraper.fr (Fonte Primária - Capas 2D/3D)">
+            <button class="source-chip" data-source="local" title="Capas locais offline no disco (covers/ e media/covers/)">
+              <span>Local (Offline)</span>
+              <span class="source-badge-pill primary">Padrão</span>
+            </button>
+            <button class="source-chip" data-source="screenscraper" title="ScreenScraper.fr (Capas oficiais 2D/3D)">
               <span>ScreenScraper</span>
-              <span class="source-badge-pill primary">Primária</span>
             </button>
             <button class="source-chip" data-source="steamgriddb" title="SteamGridDB (Capas em Alta Definição 600x900)">
               <span>SteamGridDB</span>
@@ -429,9 +432,6 @@
             </button>
             <button class="source-chip" data-source="libretro" title="Libretro Thumbnails CDN (Acervo Oficial)">
               <span>Libretro CDN</span>
-            </button>
-            <button class="source-chip" data-source="local" title="Arquivos locais na pasta covers/ e pasta de ROMs">
-              <span>Local (covers/)</span>
             </button>
           </div>
         </div>
@@ -449,7 +449,7 @@
           <button id="btn-refresh-covers" class="chip-btn">
             <span>🔄 Recarregar</span>
           </button>
-          <span class="modal-hint">ScreenScraper (Primária) • SteamGridDB • TheGamesDB • Libretro • Pastas Locais</span>
+          <span class="modal-hint">Local (Offline Padrão) • ScreenScraper • SteamGridDB • TheGamesDB • Libretro</span>
         </div>
       </div>
 
