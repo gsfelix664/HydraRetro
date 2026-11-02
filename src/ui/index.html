@@ -316,6 +316,9 @@
             <button type="button" class="home-tab-btn" data-category="achievements">
               <span>🏆 Games to Beat</span>
             </button>
+            <button type="button" class="home-tab-btn" data-category="all">
+              <span>🌐 Catálogo Completo (210k+ Jogos)</span>
+            </button>
           </div>
 
           <div class="home-filters-row">
@@ -334,15 +337,14 @@
                 <option value="Action">Ação (Action)</option>
                 <option value="Adventure">Aventura (Adventure)</option>
                 <option value="RPG">RPG</option>
-                <option value="Strategy">Estratégia</option>
-                <option value="Shooter">Tiro (Shooter)</option>
-                <option value="Racing">Corrida</option>
-                <option value="Sports">Esportes</option>
+                <option value="Strategy">Estratégia (Strategy)</option>
+                <option value="Simulation">Simulação (Simulation)</option>
+                <option value="Sports">Esportes (Sports)</option>
+                <option value="Racing">Corrida (Racing)</option>
+                <option value="Casual">Casual</option>
                 <option value="Indie">Indie</option>
-                <option value="Simulation">Simulação</option>
-                <option value="Fighting">Luta</option>
-                <option value="Horror">Terror / Horror</option>
-                <option value="Platformer">Plataforma</option>
+                <option value="Massively Multiplayer">MMO / Multijogador Massivo</option>
+                <option value="Early Access">Acesso Antecipado</option>
               </select>
             </div>
 
@@ -353,6 +355,8 @@
                 <option value="alphabetical:asc">Alfabética (A-Z)</option>
                 <option value="hydraScore:desc">Melhor Avaliados (Hydra Score)</option>
                 <option value="releaseDate:desc">Lançamento Recente</option>
+                <option value="releaseDate:asc">Mais Antigos</option>
+                <option value="alphabetical:desc">Alfabética (Z-A)</option>
               </select>
             </div>
           </div>
@@ -365,6 +369,20 @@
 
         <!-- Games Grid for Home -->
         <div id="home-grid" class="games-grid home-games-grid"></div>
+
+        <!-- Home / Catalogue Pagination Bar -->
+        <div id="home-pagination" class="home-pagination-bar hidden">
+          <div class="pagination-info" id="home-pagination-info">
+            Página <span id="home-current-page" class="pagination-highlight">1</span> de <span id="home-total-pages" class="pagination-highlight">1</span> <span class="pagination-count-badge">(<span id="home-total-count">0</span> jogos)</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" id="btn-home-first" class="pagination-btn" title="Primeira Página">⏮</button>
+            <button type="button" id="btn-home-prev" class="pagination-btn" title="Página Anterior">◀ Anterior</button>
+            <div id="home-page-numbers" class="pagination-numbers"></div>
+            <button type="button" id="btn-home-next" class="pagination-btn" title="Próxima Página">Próxima ▶</button>
+            <button type="button" id="btn-home-last" class="pagination-btn" title="Última Página">⏭</button>
+          </div>
+        </div>
       </section>
 
       <!-- Downloads Manager View -->

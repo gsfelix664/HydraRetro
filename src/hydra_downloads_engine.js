@@ -699,13 +699,18 @@ class HydraDownloadsEngine {
   // 3. HYDRA HOME & STORE CATALOGUE (HOT NOW, WEEKLY, GAMES TO BEAT, SEARCH)
   // ============================================================================
 
-  async fetchHomeCatalogue(category = 'hot') {
-    const validCategories = ['hot', 'weekly', 'achievements', 'featured'];
+  async fetchHomeCatalogue(category = 'hot', options = {}) {
+    const validCategories = ['hot', 'weekly', 'achievements', 'featured', 'all', 'catalogue'];
     const cat = validCategories.includes(category) ? category : 'hot';
+
+    if (cat === 'all' || cat === 'catalogue') {
+      return await this.searchStoreCatalogue('', options);
+    }
 
     const cached = this.homeCatalogueCache[cat];
     if (cached && Date.now() - cached.at < 5 * 60 * 1000) {
-      return this.enrichStoreItemsWithLocalState(cached.items);
+      const items = this.enrichStoreItemsWithLocalState(cached.items);
+      return { count: items.length, items };
     }
 
     try {
@@ -750,24 +755,29 @@ class HydraDownloadsEngine {
           logoUrl: entry.logoImageUrl || null,
           genres: entry.genres || [],
           publisher: entry.publisher || '',
-          developer: entry.developer || ''
+          developer: entry.developer || '',
+          releaseYear: entry.releaseDate ? new Date(entry.releaseDate).getFullYear() : null,
+          rating: entry.rating || null
         };
       });
 
       this.homeCatalogueCache[cat] = { at: Date.now(), items };
-      return this.enrichStoreItemsWithLocalState(items);
+      const enriched = this.enrichStoreItemsWithLocalState(items);
+      return { count: enriched.length, items: enriched };
     } catch (err) {
       console.warn(`[HydraHome] Falha ao buscar /catalogue/${cat}:`, err.message);
-      return [];
+      return { count: 0, items: [] };
     }
   }
 
   async searchStoreCatalogue(query, options = {}) {
     const q = String(query || '').trim();
+    const take = Math.max(5, Math.min(100, parseInt(options.take || '30', 10)));
+    const skip = Math.max(0, parseInt(options.skip !== undefined ? options.skip : (parseInt(options.page || '0', 10) * take), 10));
     const payload = {
       title: q,
-      take: options.take || 36,
-      skip: options.skip || 0
+      take,
+      skip
     };
     if (options.genre && options.genre !== 'all') {
       payload.genres = [options.genre];
@@ -793,9 +803,10 @@ class HydraDownloadsEngine {
       });
       clearTimeout(t);
 
-      if (!res.ok) return [];
+      if (!res.ok) return { count: 0, items: [] };
       const data = await res.json();
       const list = Array.isArray(data) ? data : (Array.isArray(data?.edges) ? data.edges : []);
+      const count = typeof data?.count === 'number' ? data.count : list.length;
 
       const items = list.map(entry => {
         const objectId = String(entry.objectId || entry.id || '');
@@ -805,8 +816,8 @@ class HydraDownloadsEngine {
           shop,
           title: entry.title || '',
           coverUrl:
-            entry.libraryImageUrl ||
             entry.coverImageUrl ||
+            entry.libraryImageUrl ||
             (shop === 'steam' && objectId
               ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900.jpg`
               : ''),
@@ -822,9 +833,10 @@ class HydraDownloadsEngine {
         };
       });
 
-      return this.enrichStoreItemsWithLocalState(items);
-    } catch {
-      return [];
+      return { count, items: this.enrichStoreItemsWithLocalState(items) };
+    } catch (e) {
+      console.warn('[HydraStore] Falha em searchStoreCatalogue:', e.message);
+      return { count: 0, items: [] };
     }
   }
 

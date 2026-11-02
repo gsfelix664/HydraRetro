@@ -3327,6 +3327,10 @@ window.addXboxFolder = async () => {
 let homeSearchDebounceTimer = null;
 let currentHomeGenre = '';
 let currentHomeSort = 'popularity:desc';
+let homeCurrentPage = 0;
+let homePageSize = 30;
+let homeTotalCount = 0;
+let homeTotalPages = 1;
 
 async function renderHomeView() {
   setupHomeControls();
@@ -3338,12 +3342,13 @@ function setupHomeControls() {
     btn.classList.toggle('active', btn.dataset.category === currentHomeCategory);
     btn.onclick = () => {
       currentHomeCategory = btn.dataset.category;
+      homeCurrentPage = 0;
       playSfx('nav');
       document.querySelectorAll('.home-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
       const searchInput = document.getElementById('home-search-input');
       if (searchInput) searchInput.value = '';
       document.getElementById('home-clear-search')?.classList.add('hidden');
-      loadHomeCategory(currentHomeCategory);
+      triggerHomeCatalogueLoad(true);
     };
   });
 
@@ -3354,9 +3359,10 @@ function setupHomeControls() {
     searchInput.oninput = (e) => {
       const q = e.target.value.trim();
       if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+      homeCurrentPage = 0;
       clearTimeout(homeSearchDebounceTimer);
       homeSearchDebounceTimer = setTimeout(() => {
-        triggerHomeCatalogueLoad();
+        triggerHomeCatalogueLoad(true);
       }, 350);
     };
   }
@@ -3366,7 +3372,8 @@ function setupHomeControls() {
     clearBtn.onclick = () => {
       if (searchInput) searchInput.value = '';
       clearBtn.classList.add('hidden');
-      triggerHomeCatalogueLoad();
+      homeCurrentPage = 0;
+      triggerHomeCatalogueLoad(true);
     };
   }
 
@@ -3375,8 +3382,9 @@ function setupHomeControls() {
     genreSelect._hasGenreHandler = true;
     genreSelect.onchange = (e) => {
       currentHomeGenre = e.target.value;
+      homeCurrentPage = 0;
       playSfx('nav');
-      triggerHomeCatalogueLoad();
+      triggerHomeCatalogueLoad(true);
     };
   }
 
@@ -3385,8 +3393,9 @@ function setupHomeControls() {
     sortSelect._hasSortHandler = true;
     sortSelect.onchange = (e) => {
       currentHomeSort = e.target.value;
+      homeCurrentPage = 0;
       playSfx('nav');
-      triggerHomeCatalogueLoad();
+      triggerHomeCatalogueLoad(true);
     };
   }
 
@@ -3394,47 +3403,174 @@ function setupHomeControls() {
   if (btnSurprise) {
     btnSurprise.onclick = () => surpriseMe();
   }
+
+  const btnFirst = document.getElementById('btn-home-first');
+  const btnPrev = document.getElementById('btn-home-prev');
+  const btnNext = document.getElementById('btn-home-next');
+  const btnLast = document.getElementById('btn-home-last');
+
+  if (btnFirst && !btnFirst._hasHandler) {
+    btnFirst._hasHandler = true;
+    btnFirst.onclick = () => {
+      if (homeCurrentPage > 0) changeHomePage(0);
+    };
+  }
+  if (btnPrev && !btnPrev._hasHandler) {
+    btnPrev._hasHandler = true;
+    btnPrev.onclick = () => {
+      if (homeCurrentPage > 0) changeHomePage(homeCurrentPage - 1);
+    };
+  }
+  if (btnNext && !btnNext._hasHandler) {
+    btnNext._hasHandler = true;
+    btnNext.onclick = () => {
+      if (homeCurrentPage < homeTotalPages - 1) changeHomePage(homeCurrentPage + 1);
+    };
+  }
+  if (btnLast && !btnLast._hasHandler) {
+    btnLast._hasHandler = true;
+    btnLast.onclick = () => {
+      if (homeCurrentPage < homeTotalPages - 1) changeHomePage(homeTotalPages - 1);
+    };
+  }
 }
 
-async function triggerHomeCatalogueLoad() {
+function changeHomePage(newPage) {
+  if (newPage < 0) newPage = 0;
+  if (newPage >= homeTotalPages) newPage = Math.max(0, homeTotalPages - 1);
+  if (newPage === homeCurrentPage) return;
+  homeCurrentPage = newPage;
+  playSfx('nav');
+  triggerHomeCatalogueLoad(true);
+}
+
+async function triggerHomeCatalogueLoad(scrollToTop = false) {
   const searchInput = document.getElementById('home-search-input');
   const query = searchInput ? searchInput.value.trim() : '';
+  const paginationBar = document.getElementById('home-pagination');
+  const loading = document.getElementById('home-grid-loading');
 
-  if (query || currentHomeGenre || currentHomeSort !== 'popularity:desc') {
-    // Advanced Store Catalogue Search
-    const loading = document.getElementById('home-grid-loading');
-    if (loading) loading.classList.remove('hidden');
-    try {
-      const res = await fetch(`/api/home/search?q=${encodeURIComponent(query)}&genre=${encodeURIComponent(currentHomeGenre)}&order=${encodeURIComponent(currentHomeSort)}`);
+  if (loading) loading.classList.remove('hidden');
+
+  const isFullCatalogue = (currentHomeCategory === 'all' || currentHomeCategory === 'catalogue');
+  const hasCustomFilters = Boolean(query || currentHomeGenre || currentHomeSort !== 'popularity:desc');
+
+  try {
+    if (isFullCatalogue || hasCustomFilters) {
+      // Full Hydra Catalogue (213,000+ games) with pagination, search, genre and ordering
+      const url = `/api/home/search?q=${encodeURIComponent(query)}&genre=${encodeURIComponent(currentHomeGenre)}&order=${encodeURIComponent(currentHomeSort)}&page=${homeCurrentPage}&take=${homePageSize}`;
+      const res = await fetch(url);
       const data = await res.json();
       homeGamesCache = data.games || data.items || [];
+      homeTotalCount = typeof data.count === 'number' ? data.count : homeGamesCache.length;
+      homeTotalPages = Math.max(1, Math.ceil(homeTotalCount / homePageSize));
+
+      if (homeGamesCache.length > 0 && homeCurrentPage === 0 && !query) {
+        updateHomeHero(homeGamesCache[0]);
+      }
+      renderHomeGrid(homeGamesCache);
+      renderHomePagination();
+      if (paginationBar) paginationBar.classList.remove('hidden');
+    } else {
+      // Curated categories: hot, weekly, achievements
+      const res = await fetch(`/api/home/catalogue?category=${currentHomeCategory}`);
+      const data = await res.json();
+      homeGamesCache = data.games || data.items || [];
+      homeTotalCount = homeGamesCache.length;
+      homeTotalPages = 1;
+      homeCurrentPage = 0;
+
       if (homeGamesCache.length > 0) updateHomeHero(homeGamesCache[0]);
       renderHomeGrid(homeGamesCache);
-    } catch {
-      showToast('Erro na consulta do catálogo Hydra');
-    } finally {
-      loading?.classList.add('hidden');
+      if (paginationBar) paginationBar.classList.add('hidden');
     }
-  } else {
-    // Default categories: hot, weekly, achievements
-    await loadHomeCategory(currentHomeCategory);
+
+    if (scrollToTop) {
+      const controlsBar = document.querySelector('.home-controls-bar');
+      if (controlsBar) controlsBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } catch (err) {
+    console.error('Erro ao carregar catálogo Hydra:', err);
+    showToast('Erro ao consultar catálogo Hydra');
+  } finally {
+    if (loading) loading.classList.add('hidden');
+  }
+}
+
+function renderHomePagination() {
+  const paginationBar = document.getElementById('home-pagination');
+  if (!paginationBar) return;
+
+  const curPageElem = document.getElementById('home-current-page');
+  const totalPagesElem = document.getElementById('home-total-pages');
+  const totalCountElem = document.getElementById('home-total-count');
+  const btnFirst = document.getElementById('btn-home-first');
+  const btnPrev = document.getElementById('btn-home-prev');
+  const btnNext = document.getElementById('btn-home-next');
+  const btnLast = document.getElementById('btn-home-last');
+  const numbersWrap = document.getElementById('home-page-numbers');
+
+  if (curPageElem) curPageElem.textContent = String(homeCurrentPage + 1);
+  if (totalPagesElem) totalPagesElem.textContent = Number(homeTotalPages).toLocaleString('pt-BR');
+  if (totalCountElem) totalCountElem.textContent = Number(homeTotalCount).toLocaleString('pt-BR');
+
+  if (btnFirst) btnFirst.disabled = (homeCurrentPage === 0);
+  if (btnPrev) btnPrev.disabled = (homeCurrentPage === 0);
+  if (btnNext) btnNext.disabled = (homeCurrentPage >= homeTotalPages - 1);
+  if (btnLast) btnLast.disabled = (homeCurrentPage >= homeTotalPages - 1);
+
+  if (numbersWrap) {
+    numbersWrap.innerHTML = '';
+    const visibleRadius = 2;
+    let startPage = Math.max(0, homeCurrentPage - visibleRadius);
+    let endPage = Math.min(homeTotalPages - 1, homeCurrentPage + visibleRadius);
+
+    if (startPage > 0) {
+      const p1Btn = document.createElement('button');
+      p1Btn.type = 'button';
+      p1Btn.className = 'pagination-number-btn';
+      p1Btn.textContent = '1';
+      p1Btn.onclick = () => changeHomePage(0);
+      numbersWrap.appendChild(p1Btn);
+
+      if (startPage > 1) {
+        const dots = document.createElement('span');
+        dots.className = 'pagination-ellipsis';
+        dots.textContent = '...';
+        numbersWrap.appendChild(dots);
+      }
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `pagination-number-btn ${p === homeCurrentPage ? 'active' : ''}`;
+      btn.textContent = String(p + 1);
+      btn.onclick = () => changeHomePage(p);
+      numbersWrap.appendChild(btn);
+    }
+
+    if (endPage < homeTotalPages - 1) {
+      if (endPage < homeTotalPages - 2) {
+        const dots = document.createElement('span');
+        dots.className = 'pagination-ellipsis';
+        dots.textContent = '...';
+        numbersWrap.appendChild(dots);
+      }
+      const pLastBtn = document.createElement('button');
+      pLastBtn.type = 'button';
+      pLastBtn.className = 'pagination-number-btn';
+      pLastBtn.textContent = String(homeTotalPages);
+      pLastBtn.onclick = () => changeHomePage(homeTotalPages - 1);
+      numbersWrap.appendChild(pLastBtn);
+    }
   }
 }
 
 async function loadHomeCategory(category) {
-  const loading = document.getElementById('home-grid-loading');
-  if (loading) loading.classList.remove('hidden');
-  try {
-    const res = await fetch(`/api/home/catalogue?category=${category}`);
-    const data = await res.json();
-    homeGamesCache = data.games || data.items || [];
-    if (homeGamesCache.length > 0) updateHomeHero(homeGamesCache[0]);
-    renderHomeGrid(homeGamesCache);
-  } catch (e) {
-    console.error('Error loading home category:', e);
-  } finally {
-    if (loading) loading.classList.add('hidden');
-  }
+  currentHomeCategory = category;
+  homeCurrentPage = 0;
+  await triggerHomeCatalogueLoad();
 }
 
 function updateHomeHero(game) {
@@ -3564,6 +3700,8 @@ function renderHomeGrid(games) {
           rating: g.rating || 4.8,
           genres: g.genres || ['Ação', 'Aventura'],
           objectId: g.objectId,
+          steamAppId: g.shop === 'steam' ? g.objectId : null,
+          hydraObjectId: g.objectId,
           shop: g.shop || 'steam'
         };
         selectGame(virtualGame);
@@ -4340,6 +4478,15 @@ function handleGamepadStart() {
 }
 
 function handlePageJump(delta) {
+  if (currentTab === 'HOME') {
+    const isFullCatalogue = (currentHomeCategory === 'all' || currentHomeCategory === 'catalogue');
+    const searchInput = document.getElementById('home-search-input');
+    const hasSearch = Boolean(searchInput && searchInput.value.trim());
+    if (isFullCatalogue || hasSearch || currentHomeGenre) {
+      changeHomePage(homeCurrentPage + delta);
+      return;
+    }
+  }
   if (activeZone !== 'GRID' || currentCatalogueList.length === 0) return;
   const viewSection = document.getElementById('view-catalogue');
   if (!viewSection) return;

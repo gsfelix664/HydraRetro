@@ -5322,9 +5322,16 @@ const server = http.createServer(async (req, res) => {
   // --- HYDRA STORE & HOME CATALOGUE ENDPOINTS ---
   if (pathname === '/api/home/catalogue' && req.method === 'GET') {
     const category = urlObj.searchParams.get('category') || 'hot';
+    const page = parseInt(urlObj.searchParams.get('page') || '0', 10);
+    const take = parseInt(urlObj.searchParams.get('take') || '30', 10);
+    const skip = parseInt(urlObj.searchParams.get('skip') || String(page * take), 10);
+    const order = urlObj.searchParams.get('order') || 'popularity:desc';
+    const genre = urlObj.searchParams.get('genre') || 'all';
     try {
-      const items = await downloadsEngine.fetchHomeCatalogue(category);
-      return sendJson(res, 200, { ok: true, category, items, games: items });
+      const result = await downloadsEngine.fetchHomeCatalogue(category, { page, take, skip, order, genre });
+      const items = Array.isArray(result) ? result : (result.items || []);
+      const count = result.count !== undefined ? result.count : items.length;
+      return sendJson(res, 200, { ok: true, category, count, page, take, skip, items, games: items });
     } catch (e) {
       return sendJson(res, 500, { ok: false, error: e.message });
     }
@@ -5334,15 +5341,23 @@ const server = http.createServer(async (req, res) => {
     let q = urlObj.searchParams.get('q') || '';
     let genre = urlObj.searchParams.get('genre') || 'all';
     let order = urlObj.searchParams.get('order') || 'popularity:desc';
+    let page = parseInt(urlObj.searchParams.get('page') || '0', 10);
+    let take = parseInt(urlObj.searchParams.get('take') || '30', 10);
+    let skip = parseInt(urlObj.searchParams.get('skip') || String(page * take), 10);
     if (req.method === 'POST') {
       const body = await readBody(req);
-      if (body.q) q = body.q;
-      if (body.genre) genre = body.genre;
-      if (body.order) order = body.order;
+      if (body.q !== undefined) q = body.q;
+      if (body.genre !== undefined) genre = body.genre;
+      if (body.order !== undefined) order = body.order;
+      if (body.page !== undefined) page = parseInt(body.page, 10);
+      if (body.take !== undefined) take = parseInt(body.take, 10);
+      if (body.skip !== undefined) skip = parseInt(body.skip, 10);
     }
     try {
-      const items = await downloadsEngine.searchStoreCatalogue(q, { genre, order });
-      return sendJson(res, 200, { ok: true, query: q, genre, order, items, games: items });
+      const result = await downloadsEngine.searchStoreCatalogue(q, { genre, order, page, take, skip });
+      const items = Array.isArray(result) ? result : (result.items || []);
+      const count = result.count !== undefined ? result.count : items.length;
+      return sendJson(res, 200, { ok: true, query: q, genre, order, count, page, take, skip, items, games: items });
     } catch (e) {
       return sendJson(res, 500, { ok: false, error: e.message });
     }
