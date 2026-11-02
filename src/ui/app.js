@@ -2038,16 +2038,17 @@ function renderSettingsView() {
       group: 'CLÁSSICOS & RETRÔ',
       icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="12" y2="12"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="15" x2="15.01" y1="13" y2="13"></line><line x1="18" x2="18.01" y1="11" y2="11"></line><rect width="20" height="12" x="2" y="6" rx="6"></rect></svg>`
     },
-    {
+    ...(currentUserProfile?.isLoggedInHydra ? [{
       id: 'account',
       label: 'Conta & perfil',
       group: 'USUÁRIO',
       icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0c-.69 0-1.84.2-3.25.68A19.06 19.06 0 0 0 1.25 2.37a.75.75 0 0 0-.5.71c0 4.18 1.2 8.23 3.66 10.97A9.87 9.87 0 0 0 8 16a9.87 9.87 0 0 0 3.59-1.95c2.46-2.74 3.66-6.79 3.66-10.97a.75.75 0 0 0-.5-.71 19.06 19.06 0 0 0-3.5-1.69C9.84.2 8.69 0 8 0Zm0 1.55c.67 0 1.68.18 2.97.62a17.5 17.5 0 0 1 3.03 1.4c0 3.65-1.03 7.15-3.15 9.5A8.37 8.37 0 0 1 8 14.5a8.37 8.37 0 0 1-2.85-1.43c-2.12-2.35-3.15-5.85-3.15-9.5a17.5 17.5 0 0 1 3.03-1.4c1.29-.44 2.3-.62 2.97-.62Z"></path></svg>`
-    }
+    }] : [])
   ];
 
   if (!currentSettingsSubTab) currentSettingsSubTab = 'general';
   if (currentSettingsSubTab === 'download_sources') currentSettingsSubTab = 'sources';
+  if (currentSettingsSubTab === 'account' && !currentUserProfile?.isLoggedInHydra) currentSettingsSubTab = 'general';
 
   // Render Sidebar
   if (sidebar) {
@@ -2609,36 +2610,56 @@ function renderSettingsView() {
     `;
   } else if (currentSettingsSubTab === 'account') {
     const prof = currentUserProfile || {};
-    html = `
-      <div class="settings-card">
-        <h3>👤 Perfil do Jogador & Conta Hydra</h3>
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
-          Configure suas informações visuais locais ou sincronize com sua conta oficial da Hydra Launcher Network.
-        </p>
-        <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
-          <img src="${prof.profileImageUrl || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100'}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #38bdf8;">
-          <div>
-            <h4 style="margin:0 0 4px 0;color:#fff;font-size:16px;">${prof.displayName || 'Gamer'} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">(@${prof.username || 'gamer'})</span></h4>
-            <span style="font-size:12px;color:#10b981;font-weight:600;">${prof.subscription ? `Hydra ${prof.subscription}` : 'Modo Local / Conectado'}</span>
-          </div>
-          <div style="margin-left:auto;display:flex;gap:10px;">
-            <button class="chip-btn primary" onclick="window.openEditProfileModal()">✏️ Editar Perfil</button>
-            <button class="chip-btn" onclick="window.switchTab('PROFILE')">Ver Página de Perfil</button>
-          </div>
-        </div>
+    const isLoggedIn = Boolean(prof.isLoggedInHydra);
 
-        <div style="padding:16px;background:rgba(2,132,199,0.08);border:1px solid rgba(2,132,199,0.3);border-radius:10px;">
-          <strong style="color:#38bdf8;font-size:13px;display:block;margin-bottom:6px;">🔑 Conexão com API Oficial Hydra (Bearer Token)</strong>
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
-            Ao conectar seu token da API do Hydra (<code>https://api.hydralauncher.gg</code>), seu karma, perfil em nuvem e histórico são sincronizados automaticamente.
+    if (!isLoggedIn) {
+      html = `
+        <div class="settings-card" style="text-align:center;padding:48px 20px;">
+          <div style="font-size:46px;margin-bottom:14px;">👤</div>
+          <h3 style="font-size:18px;margin-bottom:6px;color:#fff;">Você não está conectado</h3>
+          <p style="font-size:12.5px;color:var(--text-muted);max-width:440px;margin:0 auto 22px auto;line-height:1.5;">
+            Conecte sua conta oficial do Hydra Launcher para acessar seu perfil na nuvem, amigos, reputação e conquistas.
           </p>
-          <div style="display:flex;gap:10px;">
-            <button class="chip-btn" style="background:#0284c7;color:#fff;border-color:#0284c7;" onclick="window.openEditProfileModal()">Gerenciar Token Hydra</button>
-            <button class="chip-btn danger" onclick="window.logoutProfile()">Restaurar Perfil Padrão</button>
+          <button type="button" class="chip-btn primary" onclick="window.openHydraAuth()" style="display:inline-flex;padding:10px 24px;font-size:13.5px;">
+            <span>🔑 Entrar com Hydra</span>
+          </button>
+        </div>
+      `;
+    } else {
+      html = `
+        <div class="settings-card">
+          <h3>👤 Conta Oficial Hydra & Privacidade</h3>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+            Informações da sua conta conectada à Hydra Network.
+          </p>
+          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+            ${prof.profileImageUrl ? `
+              <img src="${escapeHtml(prof.profileImageUrl)}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #38bdf8;">
+            ` : `
+              <div style="width:56px;height:56px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #38bdf8;">👤</div>
+            `}
+            <div>
+              <h4 style="margin:0 0 4px 0;color:#fff;font-size:16px;">${escapeHtml(prof.displayName || prof.username || 'Usuário')} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">(@${escapeHtml(prof.username || '')})</span></h4>
+              <span style="font-size:12px;color:#10b981;font-weight:600;">${prof.subscription ? `Hydra ${escapeHtml(prof.subscription)}` : 'Conectado'}</span>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:10px;">
+              <button class="chip-btn" onclick="window.switchTab('PROFILE')">Ver Página de Perfil</button>
+              <button class="chip-btn danger" onclick="window.openSignOutModal()">Sair da Conta</button>
+            </div>
+          </div>
+
+          <div style="padding:16px;background:rgba(2,132,199,0.08);border:1px solid rgba(2,132,199,0.3);border-radius:10px;">
+            <strong style="color:#38bdf8;font-size:13px;display:block;margin-bottom:6px;">🔑 Sessão Ativa</strong>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+              Sua conta está autenticada na API oficial do Hydra. Conquistas e reputação são sincronizadas automaticamente.
+            </p>
+            <div style="display:flex;gap:10px;">
+              <button class="chip-btn danger" onclick="window.openSignOutModal()">Desconectar Conta</button>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    }
   }
 
   if (panelContent) {
