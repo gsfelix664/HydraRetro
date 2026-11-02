@@ -640,11 +640,11 @@
             <button id="btn-fav-toggle" class="fav-btn-large" title="Favoritar / Desfavoritar (F / Y)">
               ☆
             </button>
-            <button id="btn-open-cover-selector" class="hydra-tool-btn" title="Escolher Capa / Alternativas">
-              <span>🖼️ Capas</span>
+            <button id="btn-game-properties" class="hydra-tool-btn" title="Propriedades do Jogo & Customização">
+              <span>⚙️ Propriedades</span>
             </button>
-            <button id="btn-steamgrid-game" class="hydra-tool-btn" title="Baixar Artes HD (Hydra API / SteamGridDB)">
-              <span>🎨 Artes HD</span>
+            <button id="btn-open-cover-selector" class="hydra-tool-btn" title="Escolher Capa / Alternativas">
+              <span>🖼️ Artes</span>
             </button>
             <button id="btn-open-file-loc" class="hydra-tool-btn" title="Abrir local do arquivo no Windows Explorer">
               <span>📂 Local</span>
@@ -791,7 +791,7 @@
     <div class="ctx-header" id="ctx-game-title">Jogo</div>
     <button type="button" class="ctx-item" id="ctx-play">
       <span class="ctx-icon">▶</span>
-      <span>Jogar Agora</span>
+      <span id="ctx-play-label">Jogar Agora</span>
     </button>
     <button type="button" class="ctx-item" id="ctx-details">
       <span class="ctx-icon">📖</span>
@@ -802,17 +802,17 @@
       <span class="ctx-icon" id="ctx-fav-icon">☆</span>
       <span id="ctx-fav-label">Adicionar aos Favoritos</span>
     </button>
+    <button type="button" class="ctx-item" id="ctx-properties">
+      <span class="ctx-icon">⚙️</span>
+      <span>Propriedades do Jogo</span>
+    </button>
     <button type="button" class="ctx-item" id="ctx-cover">
-      <span class="ctx-icon">🖼️</span>
-      <span>Escolher Capa / Alternativas</span>
-    </button>
-    <button type="button" class="ctx-item" id="ctx-hd-art">
       <span class="ctx-icon">🎨</span>
-      <span>Baixar Artes HD (Hydra / SteamGrid)</span>
+      <span>Customizar Artes (Cover, Hero, Logo, Icon)</span>
     </button>
-    <button type="button" class="ctx-item" id="ctx-sync-ach">
-      <span class="ctx-icon">🏆</span>
-      <span>Sincronizar Conquistas e Metadados</span>
+    <button type="button" class="ctx-item" id="ctx-shortcuts">
+      <span class="ctx-icon">🔗</span>
+      <span>Criar Atalho na Área de Trabalho</span>
     </button>
     <div class="ctx-divider"></div>
     <button type="button" class="ctx-item" id="ctx-open-folder">
@@ -1205,6 +1205,58 @@
         <button type="button" id="btn-confirm-delete-all-sources" class="button button--danger" onclick="window.confirmDeleteAllSources()">
           <span>Sim, excluir tudo</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Options & Properties Modal (Hydra Launcher Authentic Split Layout) -->
+  <div id="game-properties-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog game-options-modal__dialog">
+      <div class="modal-header">
+        <div>
+          <h2 id="prop-modal-game-title">Propriedades do Jogo</h2>
+          <p id="prop-modal-game-sub">Personalize executável, opções de inicialização, atalhos e artes</p>
+        </div>
+        <button id="close-game-properties-modal" class="modal-close-btn" onclick="window.closeGamePropertiesModal()">✕</button>
+      </div>
+
+      <div class="game-options-container">
+        <!-- Sidebar Navigation (Hydra Authentic) -->
+        <aside class="game-options-sidebar" id="game-options-sidebar">
+          <button type="button" class="game-options-nav-btn active" data-tab="general" onclick="window.switchPropertiesTab('general')">
+            <span class="nav-icon">⚙️</span>
+            <span>Geral</span>
+          </button>
+          <button type="button" class="game-options-nav-btn" data-tab="locations" onclick="window.switchPropertiesTab('locations')">
+            <span class="nav-icon">📂</span>
+            <span>Locais de Arquivo</span>
+          </button>
+          <button type="button" class="game-options-nav-btn" data-tab="assets" onclick="window.switchPropertiesTab('assets')">
+            <span class="nav-icon">🖼️</span>
+            <span>Artes & Visual</span>
+          </button>
+          <button type="button" class="game-options-nav-btn" data-tab="compatibility" onclick="window.switchPropertiesTab('compatibility')">
+            <span class="nav-icon">🔧</span>
+            <span>Compatibilidade</span>
+          </button>
+          <button type="button" class="game-options-nav-btn danger" data-tab="danger_zone" onclick="window.switchPropertiesTab('danger_zone')">
+            <span class="nav-icon">⚠️</span>
+            <span>Zona de Perigo</span>
+          </button>
+        </aside>
+
+        <!-- Dynamic Content Panel -->
+        <div class="game-options-panel" id="game-options-panel">
+          <!-- Rendered dynamically by renderGamePropertiesTab() in app.js -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <span class="modal-hint" id="prop-modal-hint">Hydra Engine • Alterações salvas instantaneamente no banco de dados</span>
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="button button--outline" onclick="window.closeGamePropertiesModal()">Fechar</button>
+          <button type="button" id="btn-save-game-properties" class="button button--primary" onclick="window.saveCurrentGameProperties()">Salvar Alterações</button>
+        </div>
       </div>
     </div>
   </div>

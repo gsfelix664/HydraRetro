@@ -913,6 +913,11 @@ function selectGame(game) {
     coverBtn.onclick = () => openCoverSelector(game.id);
   }
 
+  const propsBtn = document.getElementById('btn-game-properties');
+  if (propsBtn) {
+    propsBtn.onclick = () => window.openGamePropertiesModal(game.id, 'general');
+  }
+
   const openLocBtn = document.getElementById('btn-open-file-loc');
   if (openLocBtn) {
     openLocBtn.onclick = () => openGameFileLocation(game.id);
@@ -1324,11 +1329,29 @@ function openGameContextMenu(e, game) {
     showToast(game.favorite ? `Removido dos favoritos: ${game.title}` : `⭐ Adicionado aos favoritos: ${game.title}`);
   };
 
-  document.getElementById('ctx-cover').onclick = () => {
-    closeGameContextMenu();
-    selectedGameId = game.id;
-    openCoverSelector(game.id);
-  };
+  const ctxProps = document.getElementById('ctx-properties');
+  if (ctxProps) {
+    ctxProps.onclick = () => {
+      closeGameContextMenu();
+      window.openGamePropertiesModal(game.id, 'general');
+    };
+  }
+
+  const ctxCover = document.getElementById('ctx-cover');
+  if (ctxCover) {
+    ctxCover.onclick = () => {
+      closeGameContextMenu();
+      window.openGamePropertiesModal(game.id, 'assets');
+    };
+  }
+
+  const ctxShortcuts = document.getElementById('ctx-shortcuts');
+  if (ctxShortcuts) {
+    ctxShortcuts.onclick = async () => {
+      closeGameContextMenu();
+      await window.createDesktopShortcutUI(game.id);
+    };
+  }
 
   document.getElementById('ctx-hd-art').onclick = async () => {
     closeGameContextMenu();
@@ -1817,14 +1840,47 @@ async function launchSelectedGame(gameId, discIndex = 0) {
   }
 }
 
-async function toggleFavorite(gameId) {
-  const res = await fetch('/api/favorite', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gameId })
+async function toggleFavorite(gameId, optionalGameData = null) {
+  let g = (appState.games || []).find(x => x.id === gameId);
+  if (!g && window.homeCatalogueGames) {
+    g = window.homeCatalogueGames.find(x => x.id === gameId);
+  }
+  if (!g && currentSelectedGame && currentSelectedGame.id === gameId) {
+    g = currentSelectedGame;
+  }
+  if (!g && optionalGameData) {
+    g = optionalGameData;
+  }
+
+  // Instant optimistic toggle
+  const newFavStatus = g ? !g.favorite : true;
+  if (g) g.favorite = newFavStatus;
+
+  const favBtn = document.getElementById('btn-fav-toggle');
+  if (favBtn && currentFullDetailsGameId === gameId) {
+    favBtn.textContent = newFavStatus ? '★' : '☆';
+  }
+
+  // Update card stars in view
+  document.querySelectorAll(`.card-fav-star[data-id="${gameId}"]`).forEach(star => {
+    star.textContent = newFavStatus ? '★' : '☆';
+    star.classList.toggle('active', newFavStatus);
   });
-  if (res.ok) {
-    await fetchState();
+
+  try {
+    const res = await fetch('/api/favorite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId, game: g })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (g) g.favorite = data.favorite;
+      showToast(data.favorite ? `⭐ Adicionado aos favoritos: ${g ? g.title : 'Jogo'}` : `Removido dos favoritos: ${g ? g.title : 'Jogo'}`);
+      await fetchState();
+    }
+  } catch (err) {
+    console.error('Erro ao alternar favorito:', err);
   }
 }
 
@@ -1951,6 +2007,11 @@ function renderSettingsView() {
       icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-1.2 8.725-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 2.83 2.83l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg>`
     },
     {
+      id: 'notifications',
+      label: 'Notificações',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75v1.759c0 .545-.197 1.074-.558 1.487l-.98 1.119A1.75 1.75 0 0 0 3.77 12.5h8.46a1.75 1.75 0 0 0 1.308-2.885l-.98-1.12a2.25 2.25 0 0 1-.558-1.486V5.25C12 3.19 10.363 1.5 8 1.5ZM8 14.5a2 2 0 0 1-1.938-1.5h3.876A2 2 0 0 1 8 14.5Z"></path></svg>`
+    },
+    {
       id: 'folders',
       label: 'Pastas monitoradas',
       icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"></path></svg>`
@@ -1959,6 +2020,17 @@ function renderSettingsView() {
       id: 'integrations',
       label: 'Lojas & integrações',
       icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4.5 13a3.5 3.5 0 0 1-.5-6.964 5.5 5.5 0 0 1 10.457-1.396A4 4 0 0 1 13 13H4.5Z"></path></svg>`
+    },
+    {
+      id: 'retroachievements',
+      label: 'RetroAchievements',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm0 14.5a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13Zm1.25-9.75a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0ZM8 6.75a.75.75 0 0 0-.75.75v4a.75.75 0 0 0 1.5 0v-4A.75.75 0 0 0 8 6.75Z"></path></svg>`
+    },
+    {
+      id: 'compatibility',
+      label: 'Compatibilidade & Redist',
+      group: 'SISTEMA & RUNTIMES',
+      icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`
     },
     {
       id: 'emulators',
@@ -2074,7 +2146,25 @@ function renderSettingsView() {
           <label>Pasta Padrão de Downloads:</label>
           <div class="field-input-group">
             <input type="text" id="cfg-dl-path-general" value="${dlCfg.downloadPath || 'D:\\HydraDownloads'}">
-            <button type="button" class="btn-secondary" onclick="window.openExplorer('${(dlCfg.downloadPath || 'D:\\HydraDownloads').replace(/\\/g, '\\\\')}')">📂 Abrir Pasta</button>
+            <button type="button" class="btn-secondary" onclick="window.pickFolder('cfg-dl-path-general')">🔍 Procurar</button>
+            <button type="button" class="btn-secondary" onclick="window.openExplorer('${(dlCfg.downloadPath || 'D:\\HydraDownloads').replace(/\\/g, '\\\\')}')">📂 Abrir</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Pasta de Capturas de Tela (Screenshots):</label>
+          <div class="field-input-group">
+            <input type="text" id="cfg-screenshots-path" value="${cfg.screenshotsPath || 'D:\\HydraScreenshots'}">
+            <button type="button" class="btn-secondary" onclick="window.pickFolder('cfg-screenshots-path')">🔍 Procurar</button>
+            <button type="button" class="btn-secondary" onclick="window.openExplorer('${(cfg.screenshotsPath || 'D:\\HydraScreenshots').replace(/\\/g, '\\\\')}')">📂 Abrir</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Chave da API SteamGridDB (Opcional):</label>
+          <div class="field-input-group">
+            <input type="password" id="cfg-steamgrid-key" placeholder="Cole sua chave de API para capas HD e artes alternativas" value="${cfg.steamGridDbApiKey || ''}">
+            <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" class="btn-secondary" style="display:inline-flex;align-items:center;text-decoration:none;">🔑 Obter Chave</a>
           </div>
         </div>
 
@@ -2108,6 +2198,7 @@ function renderSettingsView() {
           <label>Pasta Destino dos Downloads:</label>
           <div class="field-input-group">
             <input type="text" id="cfg-dl-path" value="${dlCfg.downloadPath || 'D:\\HydraDownloads'}">
+            <button type="button" class="btn-secondary" onclick="window.pickFolder('cfg-dl-path')">🔍 Procurar</button>
             <button type="button" class="btn-secondary" onclick="window.openExplorer('${(dlCfg.downloadPath || 'D:\\HydraDownloads').replace(/\\/g, '\\\\')}')">📂 Abrir</button>
           </div>
         </div>
@@ -2244,6 +2335,52 @@ function renderSettingsView() {
         }).join('')}
       </ul>
     `;
+  } else if (currentSettingsSubTab === 'notifications') {
+    html = `
+      <div class="settings-card">
+        <h3>🔔 Sistema de Notificações</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+          Configure quando o HydraRetro deve enviar alertas na área de trabalho do Windows e na central de ações.
+        </p>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Notificações Ativadas:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-notif-enabled" ${cfg.notificationsEnabled !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Habilita notificações nativas do sistema operacional</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Conclusão de Download:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-notif-dl" ${cfg.notifyOnDownloadFinished !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Notifica quando um jogo ou torrent terminar de baixar</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Conquistas Desbloqueadas:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-notif-ach" ${cfg.notifyOnAchievementUnlocked !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Exibe banner pop-up ao desbloquear troféus e conquistas</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Sons de Notificação:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-notif-sound" ${cfg.notificationSounds !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Reproduz som ao emitir alertas</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+          <button type="button" class="play-btn-large" style="max-width:220px;" onclick="window.saveNotificationSettings()">💾 Salvar Notificações</button>
+          <button type="button" class="btn-secondary" onclick="window.testWindowsNotification()">🔔 Testar Notificação do Windows</button>
+        </div>
+      </div>
+    `;
   } else if (currentSettingsSubTab === 'folders') {
     html = `
       <div class="settings-card">
@@ -2365,6 +2502,81 @@ function renderSettingsView() {
         </div>
       </div>
     `;
+  } else if (currentSettingsSubTab === 'retroachievements') {
+    html = `
+      <div class="settings-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+          <div>
+            <h3>🏆 RetroAchievements Oficial (DuckStation, PCSX2, Dolphin & RetroArch)</h3>
+            <p style="font-size:12px;color:var(--text-muted);margin:0;">
+              Conquistas e troféus sincronizados diretamente nos emuladores ao jogar clássicos retrô.
+            </p>
+          </div>
+          <span class="badge ${cfg.raToken ? 'badge--matched' : 'badge--matching'}">
+            ${cfg.raToken ? '✅ Conectado' : '⚡ Aguardando Conexão'}
+          </span>
+        </div>
+
+        <div class="field-row">
+          <label>Usuário RetroAchievements:</label>
+          <div class="field-input-group">
+            <input type="text" id="cfg-ra-user" placeholder="Seu usuário no RetroAchievements" value="${cfg.raUsername || ''}">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Senha RetroAchievements (para Token):</label>
+          <div class="field-input-group">
+            <input type="password" id="cfg-ra-pass" placeholder="${cfg.raToken ? 'Token já configurado (digite para renovar)' : 'Sua senha'}" value="">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Web API Key RetroAchievements:</label>
+          <div class="field-input-group">
+            <input type="password" id="cfg-ra-key" placeholder="Sua Web API Key (em Settings de RetroAchievements.org)" value="${cfg.raWebApiKey || ''}">
+            <a href="https://retroachievements.org/controlpanel.php" target="_blank" class="btn-secondary" style="display:inline-flex;align-items:center;text-decoration:none;">🔑 Obter Chave</a>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Modo Hardcore (Troféus Oficiais):</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-ra-hardcore" ${cfg.raHardcore ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Desativa savestates e trapaças nos emuladores para validar troféus na comunidade</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+          <button type="button" class="play-btn-large" style="max-width:280px;" onclick="window.connectRetroAchievementsEmulators()">
+            🔗 Conectar & Injetar nos Emuladores
+          </button>
+          <button type="button" class="btn-secondary" onclick="window.scanPcLocalAchievements()">
+            🔍 Escanear Conquistas Locais de PC
+          </button>
+        </div>
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'compatibility') {
+    html = `
+      <div class="settings-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+          <div>
+            <h3>🛠️ Pacotes Redistribuíveis Comuns (Common Redistributables)</h3>
+            <p style="font-size:12px;color:var(--text-muted);margin:0;">
+              Componentes essenciais de runtime para execução perfeita de jogos de PC e emuladores no Windows.
+            </p>
+          </div>
+          <button type="button" class="chip-btn primary" id="btn-install-all-redist" onclick="window.installRedistributables()" style="background:#10b981;border-color:#10b981;">
+            <span>📥 Instalar / Reparar Todos</span>
+          </button>
+        </div>
+
+        <div id="redist-status-container" class="redist-list">
+          <div style="font-size:12px;color:var(--text-dim);padding:14px 0;">Verificando componentes do sistema...</div>
+        </div>
+      </div>
+    `;
   } else if (currentSettingsSubTab === 'emulators') {
     html = `
       <div class="settings-card">
@@ -2438,6 +2650,7 @@ function renderSettingsView() {
   if (currentSettingsSubTab === 'emulators') window.loadBackupsList();
   if (currentSettingsSubTab === 'integrations') window.loadStoresStatus();
   if (currentSettingsSubTab === 'folders') window.loadPcFoldersList();
+  if (currentSettingsSubTab === 'compatibility') window.loadRedistStatus();
   if (currentSettingsSubTab === 'sources' || currentSettingsSubTab === 'download_sources') {
     if (!window._cachedDownloadSourcesLoaded) {
       window.loadDownloadSources(true);
@@ -3257,12 +3470,27 @@ window.saveGeneralSettings = async () => {
   const launchMin = Boolean(document.getElementById('cfg-launch-minimized')?.checked);
   const minTray = Boolean(document.getElementById('cfg-minimize-tray')?.checked);
   const dlPath = document.getElementById('cfg-dl-path-general')?.value?.trim();
+  const screenshotsPath = document.getElementById('cfg-screenshots-path')?.value?.trim();
+  const steamGridKey = document.getElementById('cfg-steamgrid-key')?.value?.trim();
+  const appLanguage = document.getElementById('cfg-app-language')?.value;
 
   try {
     await fetch('/api/config/startup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ launchOnStartup: launchStartup, launchMinimized: launchMin })
+    });
+
+    await fetch('/api/config/save-general', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        launchOnStartup: launchStartup,
+        launchMinimized: launchMin,
+        minimizeToTray: minTray,
+        screenshotsPath: screenshotsPath || undefined,
+        appLanguage: appLanguage || 'pt-BR'
+      })
     });
 
     const res = await fetch('/api/config', {
@@ -3272,6 +3500,8 @@ window.saveGeneralSettings = async () => {
         launchOnStartup: launchStartup,
         launchMinimized: launchMin,
         minimizeToTray: minTray,
+        screenshotsPath: screenshotsPath || undefined,
+        steamGridDbApiKey: steamGridKey !== undefined ? steamGridKey : undefined,
         downloadSettings: {
           ...(appState.config?.downloadSettings || {}),
           ...(dlPath ? { downloadPath: dlPath } : {})
@@ -3321,6 +3551,599 @@ window.saveDownloadConfig = async () => {
   } catch {
     showToast('Erro ao salvar opções de download');
   }
+};
+
+window.saveNotificationSettings = async () => {
+  const enabled = Boolean(document.getElementById('cfg-notif-enabled')?.checked);
+  const dl = Boolean(document.getElementById('cfg-notif-dl')?.checked);
+  const ach = Boolean(document.getElementById('cfg-notif-ach')?.checked);
+  const sound = Boolean(document.getElementById('cfg-notif-sound')?.checked);
+
+  try {
+    const res = await fetch('/api/config/save-general', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        notificationsEnabled: enabled,
+        notifyOnDownloadFinished: dl,
+        notifyOnAchievementUnlocked: ach,
+        notificationSounds: sound
+      })
+    });
+    if (res.ok) {
+      showToast('Preferências de notificação salvas!');
+      playSfx('fav');
+      await fetchState();
+    }
+  } catch {
+    showToast('Erro ao salvar preferências de notificação');
+  }
+};
+
+window.testWindowsNotification = () => {
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification('HydraRetro', {
+        body: 'Sistema de notificações do Windows funcionando perfeitamente!',
+        icon: '/media/thumbs/pc/icon.webp'
+      });
+      playSfx('select');
+      showToast('🔔 Notificação enviada!');
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification('HydraRetro', {
+            body: 'Sistema de notificações do Windows autorizado!',
+            icon: '/media/thumbs/pc/icon.webp'
+          });
+          playSfx('select');
+          showToast('🔔 Notificação autorizada e enviada!');
+        }
+      });
+    } else {
+      showToast('Notificações estão bloqueadas no navegador/WebView.');
+    }
+  } else {
+    showToast('Notificações de desktop não suportadas neste ambiente.');
+  }
+};
+
+window.loadRedistStatus = async () => {
+  const container = document.getElementById('redist-status-container');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/redist/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    const items = [
+      { name: 'Microsoft Visual C++ 2015-2022 (x64)', desc: 'vcruntime140.dll e msvcp140.dll (64-bit)', status: data.vc14_x64 },
+      { name: 'Microsoft Visual C++ 2015-2022 (x86)', desc: 'vcruntime140.dll e msvcp140.dll (32-bit)', status: data.vc14_x86 },
+      { name: 'Microsoft Visual C++ 2012 (x64)', desc: 'msvcr110.dll e msvcp110.dll', status: data.vc11_x64 },
+      { name: 'Microsoft Visual C++ 2010 (x86/x64)', desc: 'msvcr100.dll e msvcp100.dll', status: data.vc10_x86 || data.vc10_x64 },
+      { name: 'DirectX End-User Runtimes (June 2010)', desc: 'd3dx9_43.dll, XInput e DirectSound', status: data.directx },
+      { name: 'OpenAL 3D Audio Library', desc: 'OpenAL32.dll para áudio espacial em jogos', status: data.openal },
+      { name: 'Microsoft .NET Framework 4.8+', desc: 'CLR Runtime do Windows', status: data.dotnet }
+    ];
+
+    container.innerHTML = items.map(item => `
+      <div class="redist-card">
+        <div class="redist-info">
+          <h4>${item.name}</h4>
+          <p>${item.desc}</p>
+        </div>
+        <span class="redist-badge ${item.status ? 'installed' : 'missing'}">
+          ${item.status ? '✅ Instalado' : '⚠️ Não Detectado'}
+        </span>
+      </div>
+    `).join('');
+  } catch {
+    container.innerHTML = '<div style="color:#f87171;font-size:12px;padding:8px 0;">Erro ao consultar status dos redistribuíveis.</div>';
+  }
+};
+
+window.installRedistributables = async () => {
+  const btn = document.getElementById('btn-install-all-redist');
+  if (btn) btn.disabled = true;
+  showToast('📥 Baixando e instalando componentes do sistema em segundo plano...');
+  try {
+    const res = await fetch('/api/redist/install', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(data.message || 'Instalação iniciada!');
+      setTimeout(() => {
+        window.loadRedistStatus();
+        if (btn) btn.disabled = false;
+      }, 5000);
+    } else {
+      showToast(data.error || 'Falha ao iniciar instalação');
+      if (btn) btn.disabled = false;
+    }
+  } catch {
+    showToast('Erro de comunicação com o instalador');
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.pickFolder = async (inputFieldId) => {
+  try {
+    const res = await fetch('/api/game/pick-file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'folder' })
+    });
+    const data = await res.json();
+    if (res.ok && data.path) {
+      const el = document.getElementById(inputFieldId);
+      if (el) el.value = data.path;
+      showToast(`Pasta selecionada: ${data.path}`);
+      playSfx('select');
+    }
+  } catch {}
+};
+
+window.pickFileForProperty = async (inputFieldId, type = 'file', filter = 'executables') => {
+  try {
+    const res = await fetch('/api/game/pick-file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, filter })
+    });
+    const data = await res.json();
+    if (res.ok && data.path) {
+      const el = document.getElementById(inputFieldId);
+      if (el) el.value = data.path;
+      showToast(`Arquivo selecionado: ${data.path}`);
+      playSfx('select');
+    }
+  } catch {}
+};
+
+window.createDesktopShortcutUI = async (gameId) => {
+  showToast('🔗 Criando atalho na Área de Trabalho do Windows...');
+  try {
+    const res = await fetch('/api/game/shortcuts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId, type: 'desktop' })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('✅ Atalho criado na Área de Trabalho com sucesso!');
+      playSfx('fav');
+    } else {
+      showToast(data.error || 'Erro ao criar atalho');
+    }
+  } catch {
+    showToast('Falha na comunicação ao criar atalho');
+  }
+};
+
+// --- GAME PROPERTIES & CUSTOM ART MANAGEMENT (HYDRA LAUNCHER STYLE) ---
+let currentPropsGameId = null;
+let currentPropsData = null;
+let currentPropsTab = 'general';
+let currentAssetSubTab = 'grid';
+
+window.openGamePropertiesModal = async (gameId, initialTab = 'general') => {
+  currentPropsGameId = gameId;
+  currentPropsTab = initialTab || 'general';
+  currentAssetSubTab = 'grid';
+
+  const modal = document.getElementById('game-properties-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  playSfx('nav');
+
+  let localGame = (appState.games || []).find(g => g.id === gameId);
+  if (!localGame && window.homeCatalogueGames) {
+    localGame = window.homeCatalogueGames.find(g => g.id === gameId);
+  }
+  if (!localGame && currentSelectedGame && currentSelectedGame.id === gameId) {
+    localGame = currentSelectedGame;
+  }
+
+  const titleEl = document.getElementById('prop-modal-game-title');
+  const subEl = document.getElementById('prop-modal-game-sub');
+  if (titleEl) titleEl.textContent = localGame ? localGame.title : 'Propriedades do Jogo';
+  if (subEl) subEl.textContent = localGame ? `${localGame.console || localGame.consoleId || 'PC'} • Personalize executável, opções e artes` : 'Carregando propriedades...';
+
+  try {
+    const qParams = new URLSearchParams({
+      gameId: gameId,
+      title: localGame?.title || '',
+      consoleId: localGame?.console || localGame?.consoleId || 'PC',
+      shop: localGame?.shop || 'steam',
+      coverUrl: localGame?.coverUrl || localGame?.cover || '',
+      heroUrl: localGame?.heroUrl || ''
+    });
+    const res = await fetch(`/api/game/properties?${qParams.toString()}`);
+    if (res.ok) {
+      const data = await res.json();
+      currentPropsData = data.properties;
+    } else {
+      currentPropsData = {
+        id: gameId,
+        title: localGame?.title || gameId,
+        originalTitle: localGame?.title || gameId,
+        consoleId: localGame?.console || localGame?.consoleId || 'PC',
+        shop: localGame?.shop || 'steam',
+        romPath: localGame?.romPath || '',
+        executablePath: localGame?.executablePath || localGame?.romPath || '',
+        launchOptions: localGame?.launchOptions || '',
+        savePath: '',
+        favorite: Boolean(localGame?.favorite),
+        playTimeSeconds: localGame?.playTimeSeconds || 0,
+        assets: {
+          grid: localGame?.coverUrl || '',
+          hero: localGame?.heroUrl || '',
+          logo: localGame?.logoUrl || '',
+          icon: localGame?.iconUrl || ''
+        },
+        originalAssets: {
+          grid: localGame?.coverUrl || '',
+          hero: localGame?.heroUrl || '',
+          logo: localGame?.logoUrl || '',
+          icon: localGame?.iconUrl || ''
+        }
+      };
+    }
+  } catch {
+    currentPropsData = {
+      id: gameId,
+      title: localGame?.title || gameId,
+      originalTitle: localGame?.title || gameId,
+      consoleId: localGame?.console || 'PC',
+      assets: { grid: '', hero: '', logo: '', icon: '' }
+    };
+  }
+
+  window.switchPropertiesTab(currentPropsTab);
+};
+
+window.closeGamePropertiesModal = () => {
+  const modal = document.getElementById('game-properties-modal');
+  if (modal) modal.classList.add('hidden');
+  currentPropsGameId = null;
+  currentPropsData = null;
+};
+
+window.switchPropertiesTab = (tabName) => {
+  currentPropsTab = tabName || 'general';
+  const sidebar = document.getElementById('game-options-sidebar');
+  if (sidebar) {
+    sidebar.querySelectorAll('.game-options-nav-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === currentPropsTab);
+    });
+  }
+  renderGamePropertiesTab(currentPropsTab);
+};
+
+window.switchAssetSubTab = (assetType) => {
+  currentAssetSubTab = assetType;
+  renderGamePropertiesTab('assets');
+};
+
+function renderGamePropertiesTab(tab) {
+  const panel = document.getElementById('game-options-panel');
+  if (!panel || !currentPropsData) return;
+
+  if (tab === 'general') {
+    panel.innerHTML = `
+      <div class="prop-section-title">⚙️ Opções Gerais do Jogo</div>
+      <div class="prop-section-sub">Personalize o título de exibição, parâmetros de inicialização e atalhos na Área de Trabalho.</div>
+
+      <div class="prop-field-group">
+        <label for="prop-game-title">Título do Jogo:</label>
+        <div class="prop-input-row">
+          <input type="text" id="prop-game-title" class="prop-text-input" value="${escapeHtml(currentPropsData.title || '')}">
+        </div>
+      </div>
+
+      <div class="prop-field-group">
+        <label for="prop-launch-options">Opções de Inicialização (Launch Options / Arguments):</label>
+        <div class="prop-input-row">
+          <input type="text" id="prop-launch-options" class="prop-text-input" placeholder="-fullscreen -skipintro --novid" value="${escapeHtml(currentPropsData.launchOptions || '')}">
+        </div>
+        <span style="font-size:11px;color:var(--text-muted);">Argumentos passados diretamente para o executável ou emulador ao iniciar.</span>
+      </div>
+
+      <div class="prop-field-group" style="flex-direction:row;align-items:center;gap:10px;margin-top:6px;">
+        <input type="checkbox" id="prop-favorite" ${currentPropsData.favorite ? 'checked' : ''} style="width:18px;height:18px;">
+        <label for="prop-favorite" style="cursor:pointer;user-select:none;">⭐ Marcar este jogo como Favorito</label>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;margin-top:10px;">
+        <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:8px;">🔗 Atalhos do Sistema</div>
+        <button type="button" class="btn-secondary" onclick="window.createDesktopShortcutUI('${currentPropsData.id}')">
+          <span>🖥️ Criar Atalho na Área de Trabalho</span>
+        </button>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;margin-top:10px;display:flex;gap:24px;">
+        <div>
+          <span style="font-size:11px;color:var(--text-muted);display:block;">TEMPO TOTAL JOGADO</span>
+          <strong style="font-size:14px;color:#10b981;">${formatPlaytime(currentPropsData.playTimeSeconds)}</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;color:var(--text-muted);display:block;">SESSÕES</span>
+          <strong style="font-size:14px;color:#fff;">${currentPropsData.playCount || 0} vezes</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;color:var(--text-muted);display:block;">ÚLTIMA SESSÃO</span>
+          <strong style="font-size:14px;color:#cbd5e1;">${formatDate(currentPropsData.lastPlayedAt)}</strong>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'locations') {
+    panel.innerHTML = `
+      <div class="prop-section-title">📂 Locais de Arquivos & Executável</div>
+      <div class="prop-section-sub">Caminho para o binário do jogo ou ROM e pasta de gravação de saves/memory cards.</div>
+
+      <div class="prop-field-group">
+        <label for="prop-executable-path">Executável ou Arquivo de ROM:</label>
+        <div class="prop-input-row">
+          <input type="text" id="prop-executable-path" class="prop-text-input" value="${escapeHtml(currentPropsData.executablePath || currentPropsData.romPath || '')}">
+          <button type="button" class="btn-secondary" onclick="window.pickFileForProperty('prop-executable-path', 'file', 'executables')">🔍 Procurar</button>
+          <button type="button" class="btn-secondary" onclick="window.openExplorer('${escapeHtml((currentPropsData.executablePath || currentPropsData.romPath || '').replace(/\\/g, '\\\\'))}')">📂 Abrir Pasta</button>
+        </div>
+      </div>
+
+      <div class="prop-field-group">
+        <label>Pasta de Saves & Memory Cards:</label>
+        <div class="prop-input-row">
+          <input type="text" class="prop-text-input" value="${escapeHtml(currentPropsData.savePath || 'Padrão do Emulador / AppData')}" readonly disabled>
+          <button type="button" class="btn-secondary" onclick="window.openExplorer('${escapeHtml((currentPropsData.savePath || '').replace(/\\/g, '\\\\'))}')" ${!currentPropsData.savePath ? 'disabled' : ''}>📂 Abrir Pasta</button>
+        </div>
+      </div>
+    `;
+  } else if (tab === 'assets') {
+    const assetTypeLabels = {
+      grid: 'Capa Vertical (Grid 600x900)',
+      hero: 'Banner Hero (1920x620)',
+      logo: 'Logotipo (Logo 640x360)',
+      icon: 'Ícone de Aplicativo (256x256)'
+    };
+    const currentAssetUrl = currentPropsData.assets ? currentPropsData.assets[currentAssetSubTab] : '';
+    const aspectClass = `aspect-${currentAssetSubTab}`;
+
+    panel.innerHTML = `
+      <div class="prop-section-title">🖼️ Customização de Artes Visuais (Hydra Style)</div>
+      <div class="prop-section-sub">Personalize as 4 artes oficiais do jogo: Capa de grade, Banner hero, Logotipo transparente e Ícone.</div>
+
+      <div class="asset-type-tabs">
+        <button type="button" class="asset-tab-btn ${currentAssetSubTab === 'grid' ? 'active' : ''}" onclick="window.switchAssetSubTab('grid')">Capa (Grid)</button>
+        <button type="button" class="asset-tab-btn ${currentAssetSubTab === 'hero' ? 'active' : ''}" onclick="window.switchAssetSubTab('hero')">Banner (Hero)</button>
+        <button type="button" class="asset-tab-btn ${currentAssetSubTab === 'logo' ? 'active' : ''}" onclick="window.switchAssetSubTab('logo')">Logotipo (Logo)</button>
+        <button type="button" class="asset-tab-btn ${currentAssetSubTab === 'icon' ? 'active' : ''}" onclick="window.switchAssetSubTab('icon')">Ícone (Icon)</button>
+      </div>
+
+      <div class="asset-preview-stage">
+        <div class="asset-preview-frame ${aspectClass}" id="asset-live-frame">
+          ${currentAssetUrl ? `<img src="${currentAssetUrl}" alt="${assetTypeLabels[currentAssetSubTab]}">` : `<span style="font-size:12px;color:var(--text-muted);">Sem imagem definida</span>`}
+        </div>
+        <span style="font-size:11px;color:var(--text-muted);margin-top:10px;">${assetTypeLabels[currentAssetSubTab]}</span>
+      </div>
+
+      <div class="asset-actions-row">
+        <button type="button" class="chip-btn primary" onclick="window.searchWebAssets('${currentAssetSubTab}')">
+          <span>🔍 Buscar na Web (SteamGridDB)</span>
+        </button>
+        <label class="chip-btn" style="cursor:pointer;">
+          <span>📁 Carregar Imagem do PC</span>
+          <input type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="window.handleAssetFileUpload(event, '${currentAssetSubTab}')">
+        </label>
+        <button type="button" class="chip-btn" onclick="window.resetCustomAsset('${currentAssetSubTab}')">
+          <span>🔄 Restaurar Original</span>
+        </button>
+      </div>
+
+      <div id="asset-search-results" class="asset-search-grid"></div>
+    `;
+  } else if (tab === 'compatibility') {
+    panel.innerHTML = `
+      <div class="prop-section-title">🔧 Informações de Compatibilidade & Plataforma</div>
+      <div class="prop-section-sub">Configurações de execução e motor embutido associado ao jogo.</div>
+
+      <div class="prop-field-group">
+        <label>Plataforma / Console:</label>
+        <input type="text" class="prop-text-input" value="${escapeHtml(currentPropsData.consoleId || 'PC')}" readonly disabled>
+      </div>
+
+      <div class="prop-field-group">
+        <label>Motor de Execução / Emulador:</label>
+        <input type="text" class="prop-text-input" value="${escapeHtml(currentPropsData.emulatorInfo?.name || 'Execução Nativa do Windows')}" readonly disabled>
+      </div>
+
+      <div class="prop-field-group">
+        <label>Executável do Emulador:</label>
+        <input type="text" class="prop-text-input" value="${escapeHtml(currentPropsData.emulatorInfo?.executable || 'N/A')}" readonly disabled>
+      </div>
+
+      ${currentPropsData.emulatorInfo?.core ? `
+        <div class="prop-field-group">
+          <label>Core Libretro:</label>
+          <input type="text" class="prop-text-input" value="${escapeHtml(currentPropsData.emulatorInfo.core)}" readonly disabled>
+        </div>
+      ` : ''}
+    `;
+  } else if (tab === 'danger_zone') {
+    panel.innerHTML = `
+      <div class="prop-section-title" style="color:#ef4444;">⚠️ Zona de Perigo</div>
+      <div class="prop-section-sub">Ações destrutivas ou de remoção do jogo da sua biblioteca.</div>
+
+      <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <div>
+          <h4 style="margin:0 0 4px 0;font-size:13.5px;color:#fff;">Remover da Biblioteca</h4>
+          <p style="margin:0;font-size:11.5px;color:var(--text-muted);">Remove o jogo do catálogo HydraRetro sem apagar os arquivos do computador.</p>
+        </div>
+        <button type="button" class="button button--danger" onclick="window.removeCurrentGameFromLibrary()">
+          <span>Remover</span>
+        </button>
+      </div>
+    `;
+  }
+}
+
+window.searchWebAssets = async (assetType) => {
+  const container = document.getElementById('asset-search-results');
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;"><span class="hltb-spinner"></span> Buscando artes na web (SteamGridDB & Steam CDN)...</div>';
+
+  try {
+    const res = await fetch(`/api/game/assets/search?gameId=${encodeURIComponent(currentPropsGameId)}&type=${assetType}`);
+    const data = await res.json();
+    if (res.ok && data.items && data.items.length > 0) {
+      const gridClass = assetType === 'hero' ? 'hero-grid' : (assetType === 'logo' ? 'logo-grid' : '');
+      container.className = `asset-search-grid ${gridClass}`;
+      container.innerHTML = data.items.map(item => `
+        <div class="asset-search-card" onclick="window.selectCustomAsset('${assetType}', '${escapeHtml(item.url)}')">
+          <img src="${escapeHtml(item.thumbUrl || item.url)}" loading="lazy" alt="Arte">
+          <div class="asset-search-card-meta">
+            <span>${item.width ? `${item.width}x${item.height}` : 'HD'}</span>
+            <span>${escapeHtml(item.author || 'Web')}</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      container.className = 'asset-search-grid';
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;">Nenhuma imagem adicional encontrada para este termo. Você pode carregar um arquivo do seu computador acima.</div>';
+    }
+  } catch {
+    container.className = 'asset-search-grid';
+    container.innerHTML = '<div style="color:#f87171;font-size:12px;padding:16px 0;">Erro ao consultar artes na web.</div>';
+  }
+};
+
+window.selectCustomAsset = async (assetType, url) => {
+  showToast('Aplicando arte...');
+  try {
+    const res = await fetch('/api/game/assets/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: currentPropsGameId, type: assetType, url })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`Arte (${assetType}) atualizada com sucesso!`);
+      playSfx('fav');
+      if (currentPropsData) {
+        if (!currentPropsData.assets) currentPropsData.assets = {};
+        currentPropsData.assets[assetType] = data.assetUrl;
+      }
+      renderGamePropertiesTab('assets');
+      await fetchState();
+    } else {
+      showToast(data.error || 'Erro ao aplicar arte');
+    }
+  } catch {
+    showToast('Erro de comunicação ao aplicar arte');
+  }
+};
+
+window.handleAssetFileUpload = (event, assetType) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64Data = e.target.result;
+    showToast('Enviando arte local...');
+    try {
+      const res = await fetch('/api/game/assets/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: currentPropsGameId, type: assetType, dataBase64: base64Data })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Arte personalizada enviada com sucesso!`);
+        playSfx('fav');
+        if (currentPropsData) {
+          if (!currentPropsData.assets) currentPropsData.assets = {};
+          currentPropsData.assets[assetType] = data.assetUrl;
+        }
+        renderGamePropertiesTab('assets');
+        await fetchState();
+      } else {
+        showToast(data.error || 'Erro ao enviar arte');
+      }
+    } catch {
+      showToast('Erro de comunicação');
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+window.resetCustomAsset = async (assetType) => {
+  showToast('Restaurando arte original...');
+  try {
+    const res = await fetch('/api/game/assets/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: currentPropsGameId, type: assetType })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Arte original restaurada!');
+      playSfx('fav');
+      if (currentPropsData && currentPropsData.originalAssets) {
+        currentPropsData.assets[assetType] = currentPropsData.originalAssets[assetType];
+      }
+      renderGamePropertiesTab('assets');
+      await fetchState();
+    }
+  } catch {}
+};
+
+window.saveCurrentGameProperties = async () => {
+  if (!currentPropsGameId) return;
+
+  const title = document.getElementById('prop-game-title')?.value?.trim();
+  const exe = document.getElementById('prop-executable-path')?.value?.trim();
+  const launchOpts = document.getElementById('prop-launch-options')?.value;
+  const favorite = document.getElementById('prop-favorite')?.checked;
+
+  try {
+    const res = await fetch('/api/game/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: currentPropsGameId,
+        title: title || undefined,
+        executablePath: exe !== undefined ? exe : undefined,
+        launchOptions: launchOpts !== undefined ? launchOpts : undefined,
+        favorite: favorite !== undefined ? favorite : undefined
+      })
+    });
+    if (res.ok) {
+      showToast('Propriedades do jogo salvas com sucesso!');
+      playSfx('fav');
+      window.closeGamePropertiesModal();
+      await fetchState();
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Erro ao salvar propriedades');
+    }
+  } catch {
+    showToast('Falha na comunicação ao salvar propriedades');
+  }
+};
+
+window.removeCurrentGameFromLibrary = async () => {
+  if (!currentPropsGameId) return;
+  if (!confirm('Deseja realmente remover este jogo da sua biblioteca?')) return;
+  try {
+    const res = await fetch('/api/game/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: currentPropsGameId })
+    });
+    if (res.ok) {
+      showToast('Jogo removido da biblioteca.');
+      playSfx('select');
+      window.closeGamePropertiesModal();
+      await fetchState();
+    }
+  } catch {}
 };
 
 window.loadDownloadSources = async (rerender = false) => {
@@ -4703,6 +5526,12 @@ function handleGamepadButtonB() {
   const ctxMenu = document.getElementById('game-context-menu');
   if (ctxMenu && !ctxMenu.classList.contains('hidden')) {
     closeGameContextMenu();
+    return;
+  }
+  const propsModal = document.getElementById('game-properties-modal');
+  if (propsModal && !propsModal.classList.contains('hidden')) {
+    window.closeGamePropertiesModal();
+    playSfx('back');
     return;
   }
   const removeModal = document.getElementById('remove-game-modal');

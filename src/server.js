@@ -692,6 +692,164 @@ async function fetchSteamGridDbGrids(cleanTitleStr, apiKey) {
   return [];
 }
 
+async function fetchSteamGridDbByType(cleanTitleStr, assetType, apiKey) {
+  const effectiveKey = apiKey || db?.config?.steamGridDbApiKey || 'e075e88bb00392f5d72392764f529db7';
+  const opt = {
+    headers: { 'Authorization': `Bearer ${effectiveKey}`, 'User-Agent': 'HydraRetro/1.0' }
+  };
+  try {
+    const searchUrl = `https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(cleanTitleStr)}`;
+    const searchRes = await fetchJson(searchUrl, opt);
+    if (!searchRes || !searchRes.success || !searchRes.data || searchRes.data.length === 0) {
+      return [];
+    }
+    const gameId = searchRes.data[0].id;
+    let endpoint = `grids/game/${gameId}?dimensions=600x900&types=static`;
+    if (assetType === 'hero') endpoint = `heroes/game/${gameId}?types=static`;
+    else if (assetType === 'logo') endpoint = `logos/game/${gameId}?types=static`;
+    else if (assetType === 'icon') endpoint = `icons/game/${gameId}`;
+
+    const res = await fetchJson(`https://www.steamgriddb.com/api/v2/${endpoint}`, opt);
+    if (res && res.success && Array.isArray(res.data)) {
+      return res.data.slice(0, 24).map((item, index) => ({
+        id: `sgdb_${assetType}_${item.id || index}`,
+        type: 'steamgriddb',
+        assetType,
+        url: item.url,
+        thumbUrl: item.thumb || item.url,
+        width: item.width || 0,
+        height: item.height || 0,
+        author: item.author?.name || 'SteamGridDB',
+        score: item.score || 0
+      }));
+    }
+  } catch (e) {
+    console.warn('SteamGridDB by type error:', e.message);
+  }
+  return [];
+}
+
+function getGameSavePath(game) {
+  if (!game) return '';
+  const cid = (game.consoleId || '').toUpperCase();
+  if (cid === 'PS1') return path.join(APP_ROOT, 'emulators', 'duckstation', 'memcards');
+  if (cid === 'PS2') return path.join(APP_ROOT, 'emulators', 'pcsx2', 'memcards');
+  if (cid === 'PS3') return path.join(APP_ROOT, 'emulators', 'rpcs3', 'dev_hdd0', 'home', '00000001', 'savedata');
+  if (cid === 'PSP') return path.join(APP_ROOT, 'emulators', 'ppsspp', 'memstick', 'PSP', 'SAVEDATA');
+  if (['SNES', 'GENESIS', 'MAME', 'N64', 'GBA', 'GBC', 'GB'].includes(cid)) return path.join(APP_ROOT, 'emulators', 'retroarch', 'saves');
+  if (cid === 'GC' || cid === 'WII') return path.join(APP_ROOT, 'emulators', 'dolphin', 'User', 'GC');
+  if (cid === 'SWITCH') return path.join(APP_ROOT, 'emulators', 'ryujinx', 'portable', 'bis', 'user', 'save');
+  if (game.romPath) return path.dirname(game.romPath);
+  return path.join(APP_ROOT, 'backups', 'saves');
+}
+
+function getGameEmulatorInfo(game) {
+  if (!game) return null;
+  const cid = (game.consoleId || '').toUpperCase();
+  const cCfg = db?.config?.consoles?.[cid] || {};
+  return {
+    consoleId: cid,
+    consoleName: cCfg.name || cid,
+    emulatorPath: cCfg.emulatorPath || 'Embutido / Standalone',
+    corePath: cCfg.corePath || null,
+    isPc: ['PC', 'STEAM', 'EPIC', 'GOG', 'XBOX'].includes(cid)
+  };
+}
+
+function createDesktopShortcut({ title, gameId, iconPath }) {
+  const desktopDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Public', 'Desktop');
+  const safeTitle = (title || 'Jogo').replace(/[<>:"/\\|?*]/g, '_').trim();
+  const lnkPath = path.join(desktopDir, `${safeTitle}.lnk`);
+  const exePath = path.join(APP_ROOT, 'HydraRetro.exe');
+  const args = `--launch "${gameId}"`;
+  const icon = (iconPath && fs.existsSync(iconPath)) ? iconPath : exePath;
+
+  const ps = `
+    $ws = New-Object -ComObject WScript.Shell;
+    $s = $ws.CreateShortcut('${lnkPath.replace(/'/g, "''")}');
+    $s.TargetPath = '${exePath.replace(/'/g, "''")}';
+    $s.Arguments = '${args.replace(/'/g, "''")}';
+    $s.WorkingDirectory = '${APP_ROOT.replace(/'/g, "''")}';
+    $s.IconLocation = '${icon.replace(/'/g, "''")}';
+    $s.Save();
+  `;
+  return new Promise((resolve) => {
+    execFile('powershell.exe', ['-NoProfile', '-Command', ps], { windowsHide: true }, (err) => {
+      resolve(!err && fs.existsSync(lnkPath));
+    });
+  });
+}
+
+function checkCommonRedist() {
+  const sys32 = process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32') : 'C:\\Windows\\System32';
+  const dotNetDir = path.join(process.env.SystemRoot || 'C:\\Windows', 'Microsoft.NET', 'Framework', 'v4.0.30319');
+
+  const checks = [
+    {
+      id: 'vcredist',
+      name: 'Visual C++ 2015-2022 Runtime (x86/x64)',
+      installed: fs.existsSync(path.join(sys32, 'vcruntime140.dll')) && fs.existsSync(path.join(sys32, 'msvcp140.dll')),
+      file: 'vcruntime140.dll / msvcp140.dll',
+      requiredFor: 'PCSX2, RPCS3, Ryujinx e Jogos Modernos de PC'
+    },
+    {
+      id: 'directx',
+      name: 'DirectX June 2010 End-User Runtimes',
+      installed: fs.existsSync(path.join(sys32, 'd3dx9_43.dll')),
+      file: 'd3dx9_43.dll',
+      requiredFor: 'Jogos Clássicos de PC e Emuladores Direct3D'
+    },
+    {
+      id: 'openal',
+      name: 'OpenAL 3D Audio Library',
+      installed: fs.existsSync(path.join(sys32, 'OpenAL32.dll')),
+      file: 'OpenAL32.dll',
+      requiredFor: 'Áudio 3D e Emuladores'
+    },
+    {
+      id: 'dotnet',
+      name: 'Microsoft .NET Framework 4.x Runtime',
+      installed: fs.existsSync(path.join(dotNetDir, 'clr.dll')),
+      file: 'clr.dll',
+      requiredFor: 'Suporte a Ferramentas e Launchers de PC'
+    }
+  ];
+
+  const allInstalled = checks.every(c => c.installed);
+  return { allInstalled, checks };
+}
+
+async function installCommonRedist() {
+  const redistDir = path.join(APP_ROOT, 'emulators', 'redist');
+  fs.mkdirSync(redistDir, { recursive: true });
+
+  const files = [
+    'VisualCppRedist_AIO_x86_x64.exe',
+    'directx_Jun2010_redist.exe',
+    'oalinst.exe',
+    'install.bat'
+  ];
+
+  for (const f of files) {
+    const dest = path.join(redistDir, f);
+    if (!fs.existsSync(dest)) {
+      try {
+        const url = `https://github.com/hydralauncher/hydra-common-redist/raw/refs/heads/main/${f}`;
+        await downloadImage(url, dest);
+      } catch (err) {
+        console.warn(`[CommonRedist] Erro ao baixar ${f}:`, err.message);
+      }
+    }
+  }
+
+  const installBat = path.join(redistDir, 'install.bat');
+  if (fs.existsSync(installBat)) {
+    spawn('cmd.exe', ['/c', installBat], { cwd: redistDir, detached: true, stdio: 'ignore' }).unref();
+    return true;
+  }
+  return false;
+}
+
 let activeSession = null;
 let shutdownTimer = null;
 
@@ -3776,11 +3934,44 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/favorite' && req.method === 'POST') {
     const body = await readBody(req);
-    const g = db.games[body.gameId];
+    const gameId = body.gameId || body.id;
+    let g = db.games[gameId];
+
+    if (!g && body.game) {
+      // Add Store / Catalogue game to library as favorite
+      const raw = body.game;
+      g = {
+        id: gameId,
+        title: raw.title || 'Jogo',
+        sortTitle: raw.title || 'Jogo',
+        cleanTitle: cleanTitle(raw.title || 'Jogo'),
+        consoleId: raw.consoleId || 'PC',
+        shop: raw.shop || 'steam',
+        objectId: raw.objectId || '',
+        steamAppId: raw.steamAppId || null,
+        installed: false,
+        favorite: true,
+        coverUrl: raw.coverUrl || '',
+        heroUrl: raw.heroUrl || '',
+        logoUrl: raw.logoUrl || '',
+        description: raw.description || '',
+        developer: raw.developer || '',
+        publisher: raw.publisher || '',
+        releaseYear: raw.releaseYear || '',
+        genres: raw.genres || [],
+        playTimeSeconds: 0,
+        playCount: 0,
+        addedAt: new Date().toISOString()
+      };
+      db.games[gameId] = g;
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, favorite: true, game: g });
+    }
+
     if (!g) return sendJson(res, 404, { error: 'Not found' });
     g.favorite = !g.favorite;
     saveDb(db);
-    return sendJson(res, 200, { favorite: g.favorite, achievements: getGameAchievements(g) });
+    return sendJson(res, 200, { ok: true, favorite: g.favorite, achievements: getGameAchievements(g) });
   }
 
   if (pathname === '/api/steamgrid/sync' && req.method === 'POST') {
@@ -5060,6 +5251,440 @@ const server = http.createServer(async (req, res) => {
     }
 
     return sendJson(res, 404, { error: 'Arquivo ou pasta não existe no disco' });
+  }
+
+  // --- GAME PROPERTIES & CUSTOM ART MANAGEMENT (HYDRA LAUNCHER STYLE) ---
+  if (pathname === '/api/game/properties' && req.method === 'GET') {
+    const gameId = urlObj.searchParams.get('gameId');
+    let game = gameId ? db.games[gameId] : null;
+    if (!game) {
+      const qTitle = urlObj.searchParams.get('title') || gameId || 'Jogo';
+      const qConsole = urlObj.searchParams.get('consoleId') || 'PC';
+      const qShop = urlObj.searchParams.get('shop') || 'steam';
+      const qCover = urlObj.searchParams.get('coverUrl') || '';
+      const qHero = urlObj.searchParams.get('heroUrl') || '';
+      game = {
+        id: gameId,
+        title: qTitle,
+        originalTitle: qTitle,
+        cleanTitle: cleanTitle(qTitle),
+        consoleId: qConsole,
+        shop: qShop,
+        romPath: '',
+        executablePath: '',
+        launchOptions: '',
+        coverUrl: qCover,
+        heroUrl: qHero,
+        favorite: false,
+        playTimeSeconds: 0,
+        playCount: 0,
+        installed: false
+      };
+    }
+
+    return sendJson(res, 200, {
+      ok: true,
+      properties: {
+        id: game.id,
+        title: game.title,
+        originalTitle: game.originalTitle || game.title,
+        cleanTitle: cleanTitle(game.title),
+        consoleId: game.consoleId || 'PC',
+        shop: game.shop || 'steam',
+        objectId: game.objectId || '',
+        steamAppId: game.steamAppId || null,
+        romPath: game.romPath || '',
+        executablePath: game.executablePath || game.romPath || '',
+        launchOptions: game.launchOptions || '',
+        savePath: getGameSavePath(game),
+        favorite: Boolean(game.favorite),
+        playTimeSeconds: game.playTimeSeconds || 0,
+        playCount: game.playCount || 0,
+        lastPlayedAt: game.lastPlayedAt || null,
+        assets: {
+          grid: game.customCoverUrl || game.coverUrl || '',
+          hero: game.customHeroUrl || game.heroUrl || '',
+          logo: game.customLogoUrl || game.logoUrl || '',
+          icon: game.customIconUrl || game.iconUrl || '',
+          customGrid: game.customCoverUrl || null,
+          customHero: game.customHeroUrl || null,
+          customLogo: game.customLogoUrl || null,
+          customIcon: game.customIconUrl || null
+        },
+        originalAssets: {
+          grid: game.originalCoverUrl || game.fallbackCoverUrl || game.coverUrl || '',
+          hero: game.originalHeroUrl || game.heroUrl || '',
+          logo: game.originalLogoUrl || game.fallbackLogoUrl || game.logoUrl || '',
+          icon: game.originalIconUrl || game.iconUrl || ''
+        },
+        emulatorInfo: getGameEmulatorInfo(game)
+      }
+    });
+  }
+
+  if (pathname === '/api/game/properties' && req.method === 'POST') {
+    const body = await readBody(req);
+    let game = body.gameId ? db.games[body.gameId] : null;
+    if (!game && body.gameId) {
+      game = {
+        id: body.gameId,
+        title: body.title || body.gameId,
+        originalTitle: body.title || body.gameId,
+        cleanTitle: cleanTitle(body.title || body.gameId),
+        consoleId: body.consoleId || 'PC',
+        shop: body.shop || 'steam',
+        installed: false,
+        favorite: Boolean(body.favorite),
+        addedAt: new Date().toISOString()
+      };
+      db.games[body.gameId] = game;
+    }
+    if (!game) {
+      return sendJson(res, 400, { error: 'gameId required' });
+    }
+
+    if (body.title && body.title.trim()) {
+      if (!game.originalTitle) game.originalTitle = game.title;
+      game.title = body.title.trim();
+      game.sortTitle = game.title;
+      game.cleanTitle = cleanTitle(game.title);
+    }
+    if (body.executablePath !== undefined) {
+      game.executablePath = body.executablePath.trim();
+      if (body.executablePath.trim()) game.romPath = body.executablePath.trim();
+    }
+    if (body.launchOptions !== undefined) {
+      game.launchOptions = body.launchOptions.trim();
+    }
+    if (body.favorite !== undefined) {
+      game.favorite = Boolean(body.favorite);
+    }
+
+    saveDb(db);
+    return sendJson(res, 200, { ok: true, game });
+  }
+
+  if (pathname === '/api/game/shortcuts' && req.method === 'POST') {
+    const body = await readBody(req);
+    const game = body.gameId ? db.games[body.gameId] : null;
+    if (!game) {
+      return sendJson(res, 404, { error: 'Jogo não encontrado' });
+    }
+
+    const type = body.type || 'desktop';
+    if (type === 'desktop') {
+      let iconFile = null;
+      if (game.iconUrl && !game.iconUrl.startsWith('http')) {
+        const fullIcon = path.join(APP_ROOT, game.iconUrl.replace(/^\//, ''));
+        if (fs.existsSync(fullIcon)) iconFile = fullIcon;
+      }
+      const success = await createDesktopShortcut({
+        title: game.title,
+        gameId: game.id,
+        iconPath: iconFile
+      });
+      return sendJson(res, 200, { ok: success, message: success ? 'Atalho criado na Área de Trabalho!' : 'Não foi possível criar o atalho' });
+    }
+
+    if (type === 'steam') {
+      return sendJson(res, 200, { ok: true, message: 'Atalho pronto para ser adicionado aos jogos não-Steam.' });
+    }
+
+    return sendJson(res, 400, { error: 'Tipo de atalho desconhecido' });
+  }
+
+  if (pathname === '/api/game/assets/search' && req.method === 'GET') {
+    const gameId = urlObj.searchParams.get('gameId');
+    const assetType = urlObj.searchParams.get('type') || 'grid'; // grid, hero, logo, icon
+    const game = gameId ? db.games[gameId] : null;
+    let titleQuery = urlObj.searchParams.get('query') || (game ? game.title : '');
+    titleQuery = cleanTitle(titleQuery);
+
+    const items = await fetchSteamGridDbByType(titleQuery, assetType, db.config.steamGridDbApiKey);
+
+    // Fallback: If Steam App ID is known, add Steam CDN direct links
+    const steamAppId = game?.steamAppId || null;
+    if (steamAppId) {
+      if (assetType === 'grid') {
+        items.unshift({
+          id: `steam_grid_${steamAppId}`,
+          type: 'steam_store',
+          assetType: 'grid',
+          url: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_600x900_2x.jpg`,
+          thumbUrl: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_600x900.jpg`,
+          width: 600,
+          height: 900,
+          author: 'Steam Oficial',
+          score: 100
+        });
+      } else if (assetType === 'hero') {
+        items.unshift({
+          id: `steam_hero_${steamAppId}`,
+          type: 'steam_store',
+          assetType: 'hero',
+          url: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_hero.jpg`,
+          thumbUrl: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_hero.jpg`,
+          width: 1920,
+          height: 620,
+          author: 'Steam Oficial',
+          score: 100
+        });
+      } else if (assetType === 'logo') {
+        items.unshift({
+          id: `steam_logo_${steamAppId}`,
+          type: 'steam_store',
+          assetType: 'logo',
+          url: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/logo.png`,
+          thumbUrl: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/logo.png`,
+          width: 640,
+          height: 360,
+          author: 'Steam Oficial',
+          score: 100
+        });
+      } else if (assetType === 'icon') {
+        items.unshift({
+          id: `steam_icon_${steamAppId}`,
+          type: 'steam_store',
+          assetType: 'icon',
+          url: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`,
+          thumbUrl: `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`,
+          width: 256,
+          height: 256,
+          author: 'Steam Oficial',
+          score: 100
+        });
+      }
+    }
+
+    return sendJson(res, 200, { ok: true, assetType, items });
+  }
+
+  if (pathname === '/api/game/assets/select' && req.method === 'POST') {
+    const body = await readBody(req);
+    let game = body.gameId ? db.games[body.gameId] : null;
+    if (!game && body.gameId) {
+      game = {
+        id: body.gameId,
+        title: body.title || body.gameId,
+        originalTitle: body.title || body.gameId,
+        cleanTitle: cleanTitle(body.title || body.gameId),
+        consoleId: body.consoleId || 'PC',
+        shop: body.shop || 'steam',
+        installed: false,
+        favorite: false,
+        addedAt: new Date().toISOString()
+      };
+      db.games[body.gameId] = game;
+    }
+    if (!game) {
+      return sendJson(res, 404, { error: 'Jogo não encontrado' });
+    }
+
+    const assetType = body.type || 'grid'; // grid, hero, logo, icon
+    const rawUrl = body.url;
+    if (!rawUrl) {
+      return sendJson(res, 400, { error: 'URL da imagem não fornecida' });
+    }
+
+    try {
+      const customFolder = path.join(APP_ROOT, 'media', 'custom', assetType);
+      fs.mkdirSync(customFolder, { recursive: true });
+      const safeId = game.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const ext = rawUrl.toLowerCase().includes('.png') ? '.png' : (rawUrl.toLowerCase().includes('.webp') ? '.webp' : '.jpg');
+      const fileName = `${safeId}_custom${ext}`;
+      const destPath = path.join(customFolder, fileName);
+
+      if (rawUrl.startsWith('http')) {
+        await downloadImage(rawUrl, destPath);
+      } else if (fs.existsSync(rawUrl)) {
+        fs.copyFileSync(rawUrl, destPath);
+      }
+
+      const webPath = `/media/custom/${assetType}/${fileName}`;
+      if (assetType === 'grid') {
+        game.customCoverUrl = webPath;
+        game.coverUrl = webPath;
+      } else if (assetType === 'hero') {
+        game.customHeroUrl = webPath;
+        game.heroUrl = webPath;
+      } else if (assetType === 'logo') {
+        game.customLogoUrl = webPath;
+        game.logoUrl = webPath;
+      } else if (assetType === 'icon') {
+        game.customIconUrl = webPath;
+        game.iconUrl = webPath;
+      }
+
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, assetType, assetUrl: webPath, game });
+    } catch (err) {
+      return sendJson(res, 500, { error: `Erro ao baixar e aplicar arte: ${err.message}` });
+    }
+  }
+
+  if (pathname === '/api/game/assets/upload' && req.method === 'POST') {
+    const body = await readBody(req);
+    let game = body.gameId ? db.games[body.gameId] : null;
+    if (!game && body.gameId) {
+      game = {
+        id: body.gameId,
+        title: body.title || body.gameId,
+        originalTitle: body.title || body.gameId,
+        cleanTitle: cleanTitle(body.title || body.gameId),
+        consoleId: body.consoleId || 'PC',
+        shop: body.shop || 'steam',
+        installed: false,
+        favorite: false,
+        addedAt: new Date().toISOString()
+      };
+      db.games[body.gameId] = game;
+    }
+    if (!game) {
+      return sendJson(res, 404, { error: 'Jogo não encontrado' });
+    }
+
+    const assetType = body.type || 'grid';
+    const base64Data = body.dataBase64 || '';
+    if (!base64Data) {
+      return sendJson(res, 400, { error: 'Dados da imagem não fornecidos' });
+    }
+
+    try {
+      const customFolder = path.join(APP_ROOT, 'media', 'custom', assetType);
+      fs.mkdirSync(customFolder, { recursive: true });
+      const safeId = game.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileName = `${safeId}_upload_${Date.now()}.png`;
+      const destPath = path.join(customFolder, fileName);
+
+      const buf = Buffer.from(base64Data.replace(/^data:[^;]+;base64,/, ''), 'base64');
+      fs.writeFileSync(destPath, buf);
+
+      const webPath = `/media/custom/${assetType}/${fileName}`;
+      if (assetType === 'grid') {
+        game.customCoverUrl = webPath;
+        game.coverUrl = webPath;
+      } else if (assetType === 'hero') {
+        game.customHeroUrl = webPath;
+        game.heroUrl = webPath;
+      } else if (assetType === 'logo') {
+        game.customLogoUrl = webPath;
+        game.logoUrl = webPath;
+      } else if (assetType === 'icon') {
+        game.customIconUrl = webPath;
+        game.iconUrl = webPath;
+      }
+
+      saveDb(db);
+      return sendJson(res, 200, { ok: true, assetType, assetUrl: webPath, game });
+    } catch (err) {
+      return sendJson(res, 500, { error: `Erro ao salvar upload: ${err.message}` });
+    }
+  }
+
+  if (pathname === '/api/game/assets/reset' && req.method === 'POST') {
+    const body = await readBody(req);
+    let game = body.gameId ? db.games[body.gameId] : null;
+    if (!game) {
+      return sendJson(res, 404, { error: 'Jogo não encontrado' });
+    }
+
+    const assetType = body.type || 'all';
+    if (assetType === 'grid' || assetType === 'all') {
+      game.customCoverUrl = null;
+      game.coverUrl = game.originalCoverUrl || game.fallbackCoverUrl || game.coverUrl;
+    }
+    if (assetType === 'hero' || assetType === 'all') {
+      game.customHeroUrl = null;
+      game.heroUrl = game.originalHeroUrl || '';
+    }
+    if (assetType === 'logo' || assetType === 'all') {
+      game.customLogoUrl = null;
+      game.logoUrl = game.originalLogoUrl || game.fallbackLogoUrl || '';
+    }
+    if (assetType === 'icon' || assetType === 'all') {
+      game.customIconUrl = null;
+      game.iconUrl = game.originalIconUrl || '';
+    }
+
+    saveDb(db);
+    return sendJson(res, 200, { ok: true, game });
+  }
+
+  if (pathname === '/api/game/pick-file' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const isFolder = body.type === 'folder';
+    const filter = body.filter || 'all';
+
+    let psScript = '';
+    if (isFolder) {
+      psScript = `
+        Add-Type -AssemblyName System.Windows.Forms;
+        $d = New-Object System.Windows.Forms.FolderBrowserDialog;
+        $d.Description = 'Selecione a pasta';
+        $d.ShowNewFolderButton = $true;
+        if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+          Write-Output $d.SelectedPath;
+        }
+      `;
+    } else {
+      let filterStr = 'Todos os Arquivos (*.*)|*.*';
+      if (filter === 'exe') filterStr = 'Executáveis e Atalhos (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|Todos os Arquivos (*.*)|*.*';
+      else if (filter === 'image') filterStr = 'Imagens (*.png;*.jpg;*.jpeg;*.webp;*.ico)|*.png;*.jpg;*.jpeg;*.webp;*.ico|Todos os Arquivos (*.*)|*.*';
+      else if (filter === 'rom') filterStr = 'Arquivos de Jogos e ROMs (*.*)|*.*';
+
+      psScript = `
+        Add-Type -AssemblyName System.Windows.Forms;
+        $d = New-Object System.Windows.Forms.OpenFileDialog;
+        $d.Title = 'Selecione o arquivo do jogo';
+        $d.Filter = '${filterStr}';
+        if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+          Write-Output $d.FileName;
+        }
+      `;
+    }
+
+    execFile('powershell.exe', ['-NoProfile', '-Command', psScript], { windowsHide: false }, (err, stdout) => {
+      const chosen = (stdout || '').trim();
+      return sendJson(res, 200, { ok: true, path: chosen || null });
+    });
+    return;
+  }
+
+  // --- REDISTRIBUTABLES & SYSTEM COMPONENTS ENDPOINTS ---
+  if (pathname === '/api/redist/status' && req.method === 'GET') {
+    return sendJson(res, 200, { ok: true, ...checkCommonRedist() });
+  }
+
+  if (pathname === '/api/redist/install' && req.method === 'POST') {
+    try {
+      const started = await installCommonRedist();
+      return sendJson(res, 200, { ok: started, message: started ? 'Instalação de redistributables iniciada em segundo plano.' : 'Nenhum instalador encontrado.' });
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: err.message });
+    }
+  }
+
+  // --- GENERAL SETTINGS PREFERENCES ENDPOINT ---
+  if (pathname === '/api/config/save-general' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!db.config) db.config = {};
+
+    if (body.appLanguage !== undefined) db.config.appLanguage = body.appLanguage;
+    if (body.launchOnStartup !== undefined) {
+      db.config.launchOnStartup = Boolean(body.launchOnStartup);
+      await downloadsEngine.setWindowsAutoLaunch(db.config.launchOnStartup, Boolean(body.launchMinimized));
+    }
+    if (body.launchMinimized !== undefined) db.config.launchMinimized = Boolean(body.launchMinimized);
+    if (body.minimizeToTray !== undefined) db.config.minimizeToTray = Boolean(body.minimizeToTray);
+    if (body.screenshotsPath !== undefined) db.config.screenshotsPath = body.screenshotsPath.trim();
+    if (body.notificationsEnabled !== undefined) db.config.notificationsEnabled = Boolean(body.notificationsEnabled);
+    if (body.notifyOnDownloadFinished !== undefined) db.config.notifyOnDownloadFinished = Boolean(body.notifyOnDownloadFinished);
+    if (body.notifyOnAchievementUnlocked !== undefined) db.config.notifyOnAchievementUnlocked = Boolean(body.notifyOnAchievementUnlocked);
+    if (body.sfxEnabled !== undefined) db.config.sfxEnabled = Boolean(body.sfxEnabled);
+    if (body.steamGridDbApiKey !== undefined) db.config.steamGridDbApiKey = body.steamGridDbApiKey.trim();
+
+    saveDb(db);
+    return sendJson(res, 200, { ok: true, config: db.config });
   }
 
   if (pathname === '/api/game/full-details' && req.method === 'POST') {

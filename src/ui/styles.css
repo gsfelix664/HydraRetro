@@ -4466,3 +4466,367 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ==========================================================================
+   GAME OPTIONS & PROPERTIES MODAL (HYDRA LAUNCHER AUTHENTIC)
+   ========================================================================== */
+.game-options-modal__dialog {
+  width: 90vw;
+  max-width: 940px;
+  height: 82vh;
+  max-height: 760px;
+}
+
+.game-options-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game-options-sidebar {
+  width: 220px;
+  min-width: 200px;
+  background: #111114;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.game-options-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.game-options-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.game-options-nav-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 600;
+  border-left: 3px solid #10b981;
+}
+
+.game-options-nav-btn.danger {
+  color: #f87171;
+}
+
+.game-options-nav-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.game-options-nav-btn.danger.active {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-left: 3px solid #ef4444;
+}
+
+.game-options-panel {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: #161619;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prop-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prop-section-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.prop-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.prop-field-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.prop-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.prop-text-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.prop-text-input:focus {
+  border-color: #10b981;
+}
+
+/* Asset Customization Styles */
+.asset-type-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.asset-tab-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #a1a1aa;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.asset-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.asset-tab-btn.active {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+  font-weight: 600;
+}
+
+.asset-preview-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #0d0d10;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  margin-bottom: 18px;
+  min-height: 220px;
+}
+
+.asset-preview-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.asset-preview-frame.aspect-grid {
+  width: 140px;
+  height: 210px;
+}
+
+.asset-preview-frame.aspect-hero {
+  width: 440px;
+  height: 142px;
+}
+
+.asset-preview-frame.aspect-logo {
+  width: 320px;
+  height: 180px;
+  background: repeating-conic-gradient(#1c1c22 0% 25%, #141418 0% 50%) 50% / 16px 16px;
+}
+
+.asset-preview-frame.aspect-logo img {
+  max-width: 90%;
+  max-height: 85%;
+  object-fit: contain;
+}
+
+.asset-preview-frame.aspect-icon {
+  width: 110px;
+  height: 110px;
+  background: #141418;
+}
+
+.asset-preview-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.asset-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.asset-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 8px 4px;
+}
+
+.asset-search-grid.hero-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.asset-search-grid.logo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.asset-search-card {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background: #111114;
+  aspect-ratio: 2 / 3;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.asset-search-grid.hero-grid .asset-search-card {
+  aspect-ratio: 3.1 / 1;
+}
+
+.asset-search-grid.logo-grid .asset-search-card {
+  aspect-ratio: 16 / 9;
+  background: repeating-conic-gradient(#1c1c22 0% 25%, #141418 0% 50%) 50% / 14px 14px;
+}
+
+.asset-search-card:hover {
+  transform: translateY(-2px);
+  border-color: #10b981;
+}
+
+.asset-search-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.asset-search-grid.logo-grid .asset-search-card img {
+  object-fit: contain;
+  padding: 8px;
+}
+
+.asset-search-card-meta {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  padding: 6px 8px;
+  font-size: 10px;
+  color: #cbd5e1;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Common Redistributables Styles */
+.redist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.redist-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.redist-info h4 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 3px 0;
+}
+
+.redist-info p {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.redist-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.redist-badge.installed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.redist-badge.missing {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.redist-badge.installing {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
