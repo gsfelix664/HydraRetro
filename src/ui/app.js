@@ -338,11 +338,35 @@ function updateRunningBanner() {
   }
 }
 
+function isGameInstalled(game) {
+  if (!game) return false;
+  // If explicitly marked not installed
+  if (game.installed === false || game.isInstalled === false) return false;
+  // If it's a virtual catalogue item from Hydra Store / Início
+  if (typeof game.id === 'string' && game.id.startsWith('hydra_cat_')) {
+    const match = (appState.games || []).find(lg =>
+      lg.id === game.id ||
+      (lg.title && game.title && lg.title.trim().toLowerCase() === game.title.trim().toLowerCase())
+    );
+    if (!match) return false;
+    if (match.installed === false || match.isInstalled === false) return false;
+    return Boolean(match.romPath || match.launchUrl);
+  }
+  // Check if present in local library database
+  const inLibrary = (appState.games || []).find(lg => lg.id === game.id);
+  if (inLibrary) {
+    if (inLibrary.installed === false || inLibrary.isInstalled === false) return false;
+    return Boolean(inLibrary.romPath || inLibrary.launchUrl);
+  }
+  return Boolean(game.romPath || game.launchUrl);
+}
+window.isGameInstalled = isGameInstalled;
+
 function getFilteredGames() {
   let list = [...(appState.games || [])];
 
   if (showInstalledOnly) {
-    list = list.filter(g => g.isInstalled !== false);
+    list = list.filter(g => isGameInstalled(g));
   }
 
   if (currentTab === 'FAVORITES') {
@@ -410,8 +434,8 @@ function getFilteredGames() {
     list.sort((a, b) => getAchScore(b) - getAchScore(a) || (getSortKey(a) < getSortKey(b) ? -1 : 1));
   } else if (sortMode === 'INSTALLED_FIRST') {
     list.sort((a, b) => {
-      const aInst = a.isInstalled !== false ? 1 : 0;
-      const bInst = b.isInstalled !== false ? 1 : 0;
+      const aInst = isGameInstalled(a) ? 1 : 0;
+      const bInst = isGameInstalled(b) ? 1 : 0;
       if (aInst !== bInst) return bInst - aInst;
       const sa = getSortKey(a);
       const sb = getSortKey(b);
@@ -761,10 +785,9 @@ window.closeGameDetails = closeGameDetails;
 
 function selectGame(game) {
   closeGameContextMenu();
+  currentSelectedGame = game;
   selectedGameId = game.id;
   activeZone = 'DETAILS';
-  const hudA = document.getElementById('hud-label-a');
-  if (hudA) hudA.textContent = 'JOGAR AGORA';
   document.querySelectorAll('.game-card').forEach(el => {
     el.classList.toggle('selected', el.dataset.id === game.id);
   });
@@ -984,35 +1007,44 @@ function selectGame(game) {
     }).catch(() => {});
   }
 
+  const isInstalled = isGameInstalled(game);
   const btnPlayMain = document.getElementById('btn-play-main');
   const btnPlayIcon = document.getElementById('btn-play-main-icon');
   const btnPlayText = document.getElementById('btn-play-main-text');
   const btnDlOptions = document.getElementById('btn-download-options');
+  const hudA = document.getElementById('hud-label-a');
   if (btnDlOptions) btnDlOptions.classList.add('hidden');
 
-  if (game.isInstalled === false) {
+  if (!isInstalled) {
     if (btnPlayMain) {
       btnPlayMain.classList.remove('hidden');
       btnPlayMain.classList.add('dl-btn-accent');
       if (btnPlayIcon) btnPlayIcon.textContent = '📥';
       if (btnPlayText) btnPlayText.textContent = 'BAIXAR JOGO';
+      btnPlayMain.title = 'Buscar repacks e fontes de download para este título';
       btnPlayMain.onclick = () => {
         playSfx('select');
-        openRepacksModal(game.title, { objectId: game.steamAppId || game.objectId || game.id, shop: game.shop || 'steam' });
+        openRepacksModal(game.title, {
+          objectId: game.steamAppId || game.objectId || game.hydraObjectId || '',
+          shop: game.shop || 'steam'
+        });
       };
     }
+    if (hudA) hudA.textContent = 'BAIXAR JOGO';
   } else {
     if (btnPlayMain) {
       btnPlayMain.classList.remove('hidden');
       btnPlayMain.classList.remove('dl-btn-accent');
       if (btnPlayIcon) btnPlayIcon.textContent = '▶';
       if (btnPlayText) btnPlayText.textContent = 'JOGAR AGORA';
+      btnPlayMain.title = 'Iniciar jogo em tela cheia com 1 clique';
       btnPlayMain.onclick = () => {
-        const discIdx = parseInt(discSelect.value || '0', 10);
+        const discIdx = parseInt(discSelect?.value || '0', 10);
         playSfx('launch');
         launchSelectedGame(game.id, discIdx);
       };
     }
+    if (hudA) hudA.textContent = 'JOGAR AGORA';
   }
 
   document.getElementById('btn-fav-toggle').onclick = () => {
@@ -1310,10 +1342,24 @@ function openGameContextMenu(e, game) {
   menu.style.left = `${Math.max(8, posX)}px`;
   menu.style.top = `${Math.max(8, posY)}px`;
 
+  const isInstalled = isGameInstalled(game);
+  const playLabel = document.getElementById('ctx-play-label');
+  const playIcon = document.getElementById('ctx-play-icon');
+  if (playLabel) playLabel.textContent = isInstalled ? 'Jogar Agora' : 'Baixar Jogo';
+  if (playIcon) playIcon.textContent = isInstalled ? '▶' : '📥';
+
   document.getElementById('ctx-play').onclick = () => {
     closeGameContextMenu();
-    playSfx('launch');
-    launchSelectedGame(game.id, 0);
+    if (!isInstalled) {
+      playSfx('select');
+      openRepacksModal(game.title, {
+        objectId: game.steamAppId || game.objectId || game.hydraObjectId || '',
+        shop: game.shop || 'steam'
+      });
+    } else {
+      playSfx('launch');
+      launchSelectedGame(game.id, 0);
+    }
   };
 
   document.getElementById('ctx-details').onclick = () => {
@@ -1772,9 +1818,20 @@ async function launchSelectedGame(gameId, discIndex = 0) {
     showToast('Aguarde, jogo já está iniciando...');
     return;
   }
-  isLaunching = true;
 
-  const game = (appState.games || []).find(g => g.id === gameId);
+  const game = (appState.games || []).find(g => g.id === gameId) || currentSelectedGame;
+  if (!game || !isGameInstalled(game)) {
+    isLaunching = false;
+    showToast('Este jogo ainda não está instalado. Abrindo opções de download...');
+    const title = game?.title || gameId;
+    openRepacksModal(title, {
+      objectId: game?.steamAppId || game?.objectId || game?.hydraObjectId || '',
+      shop: game?.shop || 'steam'
+    });
+    return;
+  }
+
+  isLaunching = true;
   const overlay = document.getElementById('game-launcher-overlay');
   const splashTitle = document.getElementById('splash-game-title');
   const splashSub = document.getElementById('splash-game-sub');
@@ -4659,10 +4716,18 @@ function updateHomeHero(game) {
     bg.style.backgroundImage = `url("${heroImg}")`;
   }
 
+  const isInstalled = isGameInstalled(game);
   if (btnPlay) {
+    btnPlay.classList.toggle('dl-btn-accent', !isInstalled);
+    btnPlay.innerHTML = isInstalled
+      ? `<span>▶ Jogar Agora</span>`
+      : `<span>📥 Baixar Jogo</span>`;
+
     btnPlay.onclick = () => {
       playSfx('select');
-      const local = (appState.games || []).find(g => g.title?.toLowerCase() === game.title?.toLowerCase());
+      const local = (appState.games || []).find(g =>
+        g.title?.toLowerCase() === game.title?.toLowerCase() && isGameInstalled(g)
+      );
       if (local) {
         selectGame(local);
       } else {
@@ -4672,14 +4737,20 @@ function updateHomeHero(game) {
           fileName: `${game.title}.exe`,
           consoleId: 'PC',
           isInstalled: false,
+          installed: false,
           coverUrl: game.coverUrl,
           heroUrl: game.heroUrl || game.coverUrl,
-          description: game.description,
+          logoUrl: game.logoUrl || null,
+          description: game.description || 'Título oficial do catálogo Hydra disponível para download e execução direta.',
           developer: game.developer || 'Hydra Catalogue',
           publisher: game.publisher || 'Acervo Oficial',
           releaseYear: game.releaseYear || '2024',
           rating: game.rating || 4.8,
-          genres: game.genres || ['Ação', 'Aventura']
+          genres: game.genres || ['Ação', 'Aventura'],
+          objectId: game.objectId,
+          steamAppId: game.shop === 'steam' ? game.objectId : null,
+          hydraObjectId: game.objectId,
+          shop: game.shop || 'steam'
         };
         selectGame(virtualGame);
       }
@@ -4694,7 +4765,9 @@ function surpriseMe() {
   const pick = pool[Math.floor(Math.random() * pool.length)];
   updateHomeHero(pick);
   showToast(`✨ Surpresa: ${pick.title}!`);
-  const local = (appState.games || []).find(g => g.title?.toLowerCase() === pick.title?.toLowerCase());
+  const local = (appState.games || []).find(g =>
+    g.title?.toLowerCase() === pick.title?.toLowerCase() && isGameInstalled(g)
+  );
   if (local) {
     selectGame(local);
   } else {
@@ -4704,14 +4777,20 @@ function surpriseMe() {
       fileName: `${pick.title}.exe`,
       consoleId: 'PC',
       isInstalled: false,
+      installed: false,
       coverUrl: pick.coverUrl,
       heroUrl: pick.heroUrl || pick.coverUrl,
-      description: pick.description,
+      logoUrl: pick.logoUrl || null,
+      description: pick.description || 'Título oficial do catálogo Hydra disponível para download e execução direta.',
       developer: pick.developer || 'Hydra Catalogue',
       publisher: pick.publisher || 'Acervo Oficial',
       releaseYear: pick.releaseYear || '2024',
       rating: pick.rating || 4.8,
-      genres: pick.genres || ['Ação', 'Aventura']
+      genres: pick.genres || ['Ação', 'Aventura'],
+      objectId: pick.objectId,
+      steamAppId: pick.shop === 'steam' ? pick.objectId : null,
+      hydraObjectId: pick.objectId,
+      shop: pick.shop || 'steam'
     };
     selectGame(virtualGame);
   }
@@ -4730,14 +4809,14 @@ function renderHomeGrid(games) {
   games.forEach(g => {
     const card = document.createElement('div');
     card.className = 'game-card';
-    const isLocal = (appState.games || []).some(lg => lg.title?.toLowerCase() === g.title?.toLowerCase() && lg.isInstalled !== false);
+    const isInstalled = isGameInstalled(g);
 
     card.innerHTML = `
       <div class="card-art-wrap">
         <img src="${g.coverUrl || ''}" class="card-art loaded" loading="lazy" alt="${g.title}" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'260\\' viewBox=\\'0 0 200 260\\'><rect width=\\'200\\' height=\\'260\\' fill=\\'%23161c28\\'/><text x=\\'50%\\' y=\\'50%\\' fill=\\'%23475569\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\' font-size=\\'13\\'>Sem Capa</text></svg>'">
         <div class="card-top-badges">
           <div class="card-badges-left">
-            <span class="card-console-tag ${isLocal ? 'pc' : 'steam'}">${isLocal ? 'INSTALADO' : 'CATÁLOGO'}</span>
+            <span class="card-console-tag ${isInstalled ? 'pc' : 'steam'}">${isInstalled ? 'INSTALADO' : 'CATÁLOGO'}</span>
             ${g.rating ? `<span class="card-rating-tag">★ ${(g.rating).toFixed(1)}</span>` : ''}
           </div>
         </div>
@@ -4745,15 +4824,17 @@ function renderHomeGrid(games) {
       <div class="card-info">
         <div class="card-title" title="${g.title}">${g.title}</div>
         <div class="card-meta">
-          <span>${g.releaseYear || (isLocal ? 'Pronto para Jogar' : 'Disponível')}</span>
-          <span style="color:#10b981;font-weight:700;">${isLocal ? '▶ Jogar' : '📥 Baixar'}</span>
+          <span>${g.releaseYear || (isInstalled ? 'Pronto para Jogar' : 'Disponível')}</span>
+          <span style="color:${isInstalled ? '#10b981' : '#38bdf8'};font-weight:700;">${isInstalled ? '▶ Jogar' : '📥 Baixar'}</span>
         </div>
       </div>
     `;
 
     card.onclick = () => {
       playSfx('select');
-      const local = (appState.games || []).find(lg => lg.title?.toLowerCase() === g.title?.toLowerCase());
+      const local = (appState.games || []).find(lg =>
+        lg.title?.toLowerCase() === g.title?.toLowerCase() && isGameInstalled(lg)
+      );
       if (local) {
         selectGame(local);
       } else {
@@ -4762,9 +4843,11 @@ function renderHomeGrid(games) {
           title: g.title,
           fileName: `${g.title}.exe`,
           consoleId: 'PC',
-          isInstalled: Boolean(isLocal),
+          isInstalled: false,
+          installed: false,
           coverUrl: g.coverUrl,
           heroUrl: g.heroUrl || g.coverUrl,
+          logoUrl: g.logoUrl || null,
           description: g.description || 'Título oficial do catálogo Hydra disponível para download e execução direta.',
           developer: g.developer || 'Hydra Official',
           publisher: g.publisher || 'Steam / Hydra',
@@ -5530,6 +5613,15 @@ function handleGamepadButtonA() {
     playSfx('select');
     selectGame(game);
   } else if (activeZone === 'DETAILS') {
+    const game = (appState.games || []).find(g => g.id === selectedGameId) || currentSelectedGame;
+    if (game && !isGameInstalled(game)) {
+      playSfx('select');
+      openRepacksModal(game.title, {
+        objectId: game.steamAppId || game.objectId || game.hydraObjectId || '',
+        shop: game.shop || 'steam'
+      });
+      return;
+    }
     const discSelect = document.getElementById('disc-select');
     const discIdx = parseInt(discSelect?.value || '0', 10);
     playSfx('launch');
@@ -5579,6 +5671,15 @@ function handleGamepadButtonX() {
   if (activeZone === 'GRID') {
     const game = currentCatalogueList[gamepadGridIndex];
     if (game) {
+      if (!isGameInstalled(game)) {
+        playSfx('select');
+        selectGame(game);
+        openRepacksModal(game.title, {
+          objectId: game.steamAppId || game.objectId || game.hydraObjectId || '',
+          shop: game.shop || 'steam'
+        });
+        return;
+      }
       playSfx('launch');
       selectGame(game);
       launchSelectedGame(game.id, 0);

@@ -1120,13 +1120,11 @@ class HydraDownloadsEngine {
         (item.objectId && (String(g.steamAppId) === String(item.objectId) || String(g.hydraObjectId) === String(item.objectId))) ||
         this.normalizeTitle(g.title) === normItem
       );
-      const repacks = this.searchRepacksForGame(item.title);
       return {
         ...item,
         inLibrary: Boolean(localMatch),
         localGameId: localMatch ? localMatch.id : null,
-        installed: localMatch ? Boolean(localMatch.installed !== false) : false,
-        repacksCount: repacks.length
+        installed: localMatch ? Boolean(localMatch.installed !== false && (localMatch.romPath || localMatch.launchUrl)) : false
       };
     });
   }
