@@ -3348,7 +3348,7 @@ function setupHomeControls() {
       const searchInput = document.getElementById('home-search-input');
       if (searchInput) searchInput.value = '';
       document.getElementById('home-clear-search')?.classList.add('hidden');
-      triggerHomeCatalogueLoad(true);
+      triggerHomeCatalogueLoad(false);
     };
   });
 
@@ -3362,7 +3362,7 @@ function setupHomeControls() {
       homeCurrentPage = 0;
       clearTimeout(homeSearchDebounceTimer);
       homeSearchDebounceTimer = setTimeout(() => {
-        triggerHomeCatalogueLoad(true);
+        triggerHomeCatalogueLoad(false);
       }, 350);
     };
   }
@@ -3373,7 +3373,7 @@ function setupHomeControls() {
       if (searchInput) searchInput.value = '';
       clearBtn.classList.add('hidden');
       homeCurrentPage = 0;
-      triggerHomeCatalogueLoad(true);
+      triggerHomeCatalogueLoad(false);
     };
   }
 
@@ -3384,7 +3384,7 @@ function setupHomeControls() {
       currentHomeGenre = e.target.value;
       homeCurrentPage = 0;
       playSfx('nav');
-      triggerHomeCatalogueLoad(true);
+      triggerHomeCatalogueLoad(false);
     };
   }
 
@@ -3395,7 +3395,7 @@ function setupHomeControls() {
       currentHomeSort = e.target.value;
       homeCurrentPage = 0;
       playSfx('nav');
-      triggerHomeCatalogueLoad(true);
+      triggerHomeCatalogueLoad(false);
     };
   }
 
@@ -3486,8 +3486,8 @@ async function triggerHomeCatalogueLoad(scrollToTop = false) {
     }
 
     if (scrollToTop) {
-      const controlsBar = document.querySelector('.home-controls-bar');
-      if (controlsBar) controlsBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const vHome = document.getElementById('view-home');
+      if (vHome) vHome.scrollTo({ top: 0, behavior: 'smooth' });
     }
   } catch (err) {
     console.error('Erro ao carregar catálogo Hydra:', err);
@@ -4255,6 +4255,12 @@ function switchTab(tab) {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
 
+  const mainArea = document.querySelector('.main-area');
+  if (mainArea && mainArea.scrollTop !== 0) mainArea.scrollTop = 0;
+  if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
+  if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+  if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+
   const panel = document.getElementById('details-panel');
   if (panel) panel.classList.add('hidden');
   const video = document.getElementById('details-video');
@@ -4277,6 +4283,13 @@ function switchTab(tab) {
   vDl?.classList.add('hidden');
   vProf?.classList.add('hidden');
   document.getElementById('sidebar-profile-card')?.classList.toggle('active', tab === 'PROFILE');
+
+  if (vHome) vHome.scrollTop = 0;
+  if (vCat) vCat.scrollTop = 0;
+  if (vDl) vDl.scrollTop = 0;
+  if (vAch) vAch.scrollTop = 0;
+  if (vSet) vSet.scrollTop = 0;
+  if (vProf) vProf.scrollTop = 0;
 
   if (tab === 'DOWNLOADS') {
     startDownloadsPolling();
