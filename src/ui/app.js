@@ -6,11 +6,17 @@ let appState = {
   stats: {}
 };
 
-let currentTab = 'ALL'; // ALL, FAVORITES, RECENT, PS1, GENESIS, ACHIEVEMENTS, SETTINGS
+let currentTab = 'ALL'; // ALL, FAVORITES, RECENT, PC, STEAM, EPIC, GOG, XBOX, HOME, DOWNLOADS, consoles, ACHIEVEMENTS, SETTINGS
 let currentLetter = 'ALL';
 let searchQuery = '';
 let sortMode = 'ALPHA_ASC';
 let selectedGameId = null;
+let showInstalledOnly = false;
+let isLaunching = false;
+let currentHomeCategory = 'hot';
+let homeGamesCache = [];
+let downloadsPollingInterval = null;
+let currentSettingsSubTab = 'general';
 
 let activeZone = 'GRID'; // 'GRID', 'SIDEBAR', 'DETAILS', 'COVER_MODAL'
 let gamepadGridIndex = 0;
@@ -197,6 +203,21 @@ function syncVisibleCards(games) {
   }
 }
 
+let isBootSplashDismissed = false;
+let isInitialStateLoaded = false;
+
+function dismissBootSplash() {
+  if (isBootSplashDismissed) return;
+  isBootSplashDismissed = true;
+  const splash = document.getElementById('app-boot-splash');
+  if (splash) {
+    splash.classList.add('fade-out');
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 550);
+  }
+}
+
 async function fetchState() {
   try {
     const res = await fetch('/api/state');
@@ -204,16 +225,45 @@ async function fetchState() {
     updateSidebarStats();
     updateRunningBanner();
 
+    const splashStatus = document.getElementById('boot-splash-status');
+    const splashBar = document.getElementById('boot-progress-bar');
+
+    // While backend is scanning in background, keep splash screen active with live progress
+    if (appState.isScanning && !isBootSplashDismissed) {
+      if (splashStatus && appState.scanProgress?.message) {
+        splashStatus.textContent = appState.scanProgress.message;
+      }
+      if (splashBar && appState.scanProgress?.percent !== undefined) {
+        splashBar.style.animation = 'none';
+        splashBar.style.width = `${Math.min(98, Math.max(5, appState.scanProgress.percent))}%`;
+      }
+      setTimeout(fetchState, 350);
+      return;
+    }
+
+    // Backend finished scanning or is ready
+    if (!isInitialStateLoaded) {
+      isInitialStateLoaded = true;
+      if (splashStatus) splashStatus.textContent = 'Catálogo pronto!';
+      if (splashBar) {
+        splashBar.style.animation = 'none';
+        splashBar.style.width = '100%';
+      }
+      setTimeout(dismissBootSplash, 350);
+    }
+
     const currentKey = getGamesDataKey(appState.games);
     if (currentKey !== lastGamesDataKey) {
       lastGamesDataKey = currentKey;
       if (currentTab === 'ACHIEVEMENTS') {
         renderAchievementsView();
+      } else if (currentTab === 'PROFILE') {
+        renderProfileView();
       } else if (currentTab !== 'SETTINGS') {
         renderCatalogue();
       }
     } else {
-      if (currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS') {
+      if (currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS' && currentTab !== 'PROFILE') {
         syncVisibleCards(appState.games || []);
       }
     }
@@ -224,6 +274,11 @@ async function fetchState() {
     }
   } catch (e) {
     console.error('Error fetching state:', e);
+    const splashStatus = document.getElementById('boot-splash-status');
+    if (splashStatus && !isBootSplashDismissed) {
+      splashStatus.textContent = 'Conectando ao catálogo local...';
+    }
+    setTimeout(fetchState, 500);
   }
 }
 
@@ -236,6 +291,13 @@ function updateSidebarStats() {
   setBadge('badge-all', games.length);
   setBadge('badge-fav', games.filter(g => g.favorite).length);
   setBadge('badge-recent', games.filter(g => g.lastPlayedAt).length);
+  setBadge('badge-pc', games.filter(g => g.consoleId === 'PC').length);
+  setBadge('badge-steam', games.filter(g => g.consoleId === 'STEAM').length);
+  setBadge('badge-epic', games.filter(g => g.consoleId === 'EPIC').length);
+  setBadge('badge-gog', games.filter(g => g.consoleId === 'GOG').length);
+  setBadge('badge-xbox', games.filter(g => g.consoleId === 'XBOX').length);
+  const activeDl = appState.activeDownloadsCount || (appState.downloads || []).filter(d => d.status === 'downloading' || d.status === 'seeding' || d.status === 'extracting').length;
+  setBadge('badge-downloads', activeDl > 0 ? activeDl : 0);
   setBadge('badge-ps1', games.filter(g => g.consoleId === 'PS1').length);
   setBadge('badge-genesis', games.filter(g => g.consoleId === 'GENESIS').length);
   setBadge('badge-snes', games.filter(g => g.consoleId === 'SNES').length);
@@ -277,11 +339,15 @@ function updateRunningBanner() {
 function getFilteredGames() {
   let list = [...(appState.games || [])];
 
+  if (showInstalledOnly) {
+    list = list.filter(g => g.isInstalled !== false);
+  }
+
   if (currentTab === 'FAVORITES') {
     list = list.filter(g => g.favorite);
   } else if (currentTab === 'RECENT') {
     list = list.filter(g => Boolean(g.lastPlayedAt));
-  } else if (currentTab !== 'ALL' && currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS') {
+  } else if (currentTab !== 'ALL' && currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS' && currentTab !== 'HOME' && currentTab !== 'DOWNLOADS') {
     list = list.filter(g => g.consoleId === currentTab);
   }
 
@@ -298,28 +364,57 @@ function getFilteredGames() {
     list = list.filter(g => g.title.toLowerCase().includes(q) || g.fileName.toLowerCase().includes(q));
   }
 
+  const getSortKey = (g) => g._sortKey || (g._sortKey = (g.sortTitle || g.title || '').toLowerCase());
+
   if (currentTab === 'RECENT' && sortMode === 'ALPHA_ASC') {
     list.sort((a, b) => new Date(b.lastPlayedAt || 0) - new Date(a.lastPlayedAt || 0));
   } else if (sortMode === 'ALPHA_ASC') {
-    list.sort((a, b) => (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title, 'pt-BR', { numeric: true }));
+    list.sort((a, b) => {
+      const sa = getSortKey(a);
+      const sb = getSortKey(b);
+      return sa < sb ? -1 : (sa > sb ? 1 : 0);
+    });
   } else if (sortMode === 'ALPHA_DESC') {
-    list.sort((a, b) => (b.sortTitle || b.title).localeCompare(a.sortTitle || a.title, 'pt-BR', { numeric: true }));
+    list.sort((a, b) => {
+      const sa = getSortKey(a);
+      const sb = getSortKey(b);
+      return sa > sb ? -1 : (sa < sb ? 1 : 0);
+    });
   } else if (sortMode === 'RATING_DESC') {
     list.sort((a, b) => {
       const diff = (b.rating || 0) - (a.rating || 0);
       if (Math.abs(diff) > 0.001) return diff;
-      return (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title, 'pt-BR', { numeric: true });
+      const sa = getSortKey(a);
+      const sb = getSortKey(b);
+      return sa < sb ? -1 : (sa > sb ? 1 : 0);
     });
   } else if (sortMode === 'RATING_ASC') {
     list.sort((a, b) => {
       const diff = (a.rating || 0) - (b.rating || 0);
       if (Math.abs(diff) > 0.001) return diff;
-      return (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title, 'pt-BR', { numeric: true });
+      const sa = getSortKey(a);
+      const sb = getSortKey(b);
+      return sa < sb ? -1 : (sa > sb ? 1 : 0);
     });
   } else if (sortMode === 'PLAYTIME') {
-    list.sort((a, b) => (b.playTimeSeconds || 0) - (a.playTimeSeconds || 0) || a.title.localeCompare(b.title));
+    list.sort((a, b) => (b.playTimeSeconds || 0) - (a.playTimeSeconds || 0) || (getSortKey(a) < getSortKey(b) ? -1 : 1));
   } else if (sortMode === 'RECENT') {
-    list.sort((a, b) => new Date(b.lastPlayedAt || 0) - new Date(a.lastPlayedAt || 0) || a.title.localeCompare(b.title));
+    list.sort((a, b) => new Date(b.lastPlayedAt || 0) - new Date(a.lastPlayedAt || 0) || (getSortKey(a) < getSortKey(b) ? -1 : 1));
+  } else if (sortMode === 'ACHIEVEMENTS') {
+    const getAchScore = (g) => {
+      if (!g.achievements || g.achievements.length === 0) return 0;
+      return g.achievements.filter(a => a.unlocked).length;
+    };
+    list.sort((a, b) => getAchScore(b) - getAchScore(a) || (getSortKey(a) < getSortKey(b) ? -1 : 1));
+  } else if (sortMode === 'INSTALLED_FIRST') {
+    list.sort((a, b) => {
+      const aInst = a.isInstalled !== false ? 1 : 0;
+      const bInst = b.isInstalled !== false ? 1 : 0;
+      if (aInst !== bInst) return bInst - aInst;
+      const sa = getSortKey(a);
+      const sb = getSortKey(b);
+      return sa < sb ? -1 : (sa > sb ? 1 : 0);
+    });
   }
 
   return list;
@@ -340,6 +435,11 @@ function renderCatalogue(resetScroll = false) {
     ALL: ['Todos os Jogos', `${filtered.length} jogos prontos para iniciar com 1 clique`],
     FAVORITES: ['⭐ Meus Favoritos', `${filtered.length} clássicos marcados como favoritos`],
     RECENT: ['🕒 Últimos Jogados', `${filtered.length} jogos com histórico recente`],
+    PC: ['🖥️ Jogos de PC & Executáveis (.EXE)', `${filtered.length} jogos de PC instalados com lançamento direto`],
+    STEAM: ['🔵 Biblioteca Steam', `${filtered.length} jogos sincronizados da Steam (Local & Conta)`],
+    EPIC: ['⚫ Biblioteca Epic Games', `${filtered.length} jogos sincronizados da Epic Games (Local & Legendary)`],
+    GOG: ['🟣 Biblioteca GOG Galaxy', `${filtered.length} jogos instalados do GOG Galaxy`],
+    XBOX: ['🟢 Jogos Xbox & PC Game Pass', `${filtered.length} títulos Xbox / Game Pass instalados`],
     PS1: ['PlayStation 1 (DuckStation)', `${filtered.length} jogos em alta definição • DuckStation`],
     GENESIS: ['Sega Mega Drive (Genesis Plus GX)', `${filtered.length} jogos clássicos 16-bits • Genesis Plus GX`],
     SNES: ['Super Nintendo (Snes9x)', `${filtered.length} jogos clássicos 16-bits • Snes9x`],
@@ -487,10 +587,11 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
   const img = document.createElement('img');
   img.className = 'card-art';
   img.loading = 'lazy';
+  img.decoding = 'async';
   img.alt = game.title;
   img.src = game.thumbUrl || game.coverUrl || game.fallbackCoverUrl || '';
   let candIdx = 0;
-  img.onerror = () => {
+  img.onerror = async () => {
     while (game.coverCandidates && candIdx < game.coverCandidates.length) {
       const next = game.coverCandidates[candIdx++];
       if (next && next !== img.src) {
@@ -500,11 +601,30 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
     }
     if (game.fallbackCoverUrl && img.src !== window.location.origin + game.fallbackCoverUrl) {
       img.src = game.fallbackCoverUrl;
-    } else {
-      img.style.display = 'none';
-      const sh = artWrap.querySelector('.card-placeholder-shimmer');
-      if (sh) sh.remove();
+      return;
     }
+    if (!game._autoResolveAttempted) {
+      game._autoResolveAttempted = true;
+      try {
+        const res = await fetch('/api/covers/auto-resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: game.id })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok && data.coverUrl) {
+          game.coverUrl = data.coverUrl;
+          if (data.heroUrl) game.heroUrl = data.heroUrl;
+          if (data.logoUrl) game.logoUrl = data.logoUrl;
+          img.style.display = '';
+          img.src = data.coverUrl;
+          return;
+        }
+      } catch {}
+    }
+    img.style.display = 'none';
+    const sh = artWrap.querySelector('.card-placeholder-shimmer');
+    if (sh) sh.remove();
   };
 
   if (img.complete && img.naturalWidth > 0) {
@@ -529,7 +649,7 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
   const ratingVal = (typeof game.rating === 'number' ? game.rating : 4.8).toFixed(1);
   badges.innerHTML = `
     <div class="card-badges-left">
-      <span class="card-console-tag ${game.consoleId}">${game.consoleId === 'GENESIS' ? 'MD' : (game.consoleId === 'MAME' ? 'ARC' : game.consoleId)}</span>
+      <span class="card-console-tag ${game.consoleId}">${game.consoleId === 'GENESIS' ? 'MD' : (game.consoleId === 'MAME' ? 'ARC' : (game.consoleId === 'SWITCH' ? 'NSW' : game.consoleId))}</span>
       <span class="card-rating-tag" title="Avaliação: ${ratingVal} / 5.0">★ ${ratingVal}</span>
     </div>
     ${game.favorite ? '<span class="card-fav-star">★</span>' : ''}
@@ -554,20 +674,6 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
   `;
   artWrap.appendChild(bottomBadges);
 
-  const overlay = document.createElement('div');
-  overlay.className = 'card-play-overlay';
-  const playBtn = document.createElement('button');
-  playBtn.className = 'quick-play-circle';
-  playBtn.innerHTML = '▶';
-  playBtn.title = `Jogar ${game.title} agora`;
-  playBtn.onclick = (e) => {
-    e.stopPropagation();
-    selectGame(game);
-    launchSelectedGame(game.id, 0);
-  };
-  overlay.appendChild(playBtn);
-  artWrap.appendChild(overlay);
-
   const info = document.createElement('div');
   info.className = 'card-info';
   const ptText = game.playTimeSeconds > 0 ? formatPlaytime(game.playTimeSeconds) : formatSize(game.sizeBytes);
@@ -583,6 +689,7 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
   card.appendChild(info);
 
   card.onclick = () => {
+    closeGameContextMenu();
     const idx = currentCatalogueList.findIndex(g => g.id === game.id);
     if (idx !== -1) {
       gamepadGridIndex = idx;
@@ -591,15 +698,58 @@ function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = 
     playSfx('select');
     selectGame(game);
   };
-  card.ondblclick = () => {
-    playSfx('launch');
-    launchSelectedGame(game.id, 0);
+
+  card.oncontextmenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const idx = currentCatalogueList.findIndex(g => g.id === game.id);
+    if (idx !== -1) {
+      gamepadGridIndex = idx;
+      updateGamepadGridFocus();
+    }
+    openGameContextMenu(e, game);
   };
 
   return card;
 }
 
+function closeGameDetails() {
+  selectedGameId = null;
+  activeZone = (currentTab === 'ACHIEVEMENTS' || currentTab === 'SETTINGS') ? 'SIDEBAR' : 'GRID';
+  const panel = document.getElementById('details-panel');
+  if (panel) panel.classList.add('hidden');
+
+  const video = document.getElementById('details-video');
+  if (video) video.pause();
+  const galVideo = document.getElementById('gallery-active-video');
+  if (galVideo) galVideo.pause();
+
+  const vCat = document.getElementById('view-catalogue');
+  const vAch = document.getElementById('view-achievements');
+  const vSet = document.getElementById('view-settings');
+  const azBar = document.getElementById('az-bar');
+
+  if (currentTab === 'ACHIEVEMENTS') {
+    if (azBar) azBar.classList.add('hidden');
+    if (vAch) vAch.classList.remove('hidden');
+  } else if (currentTab === 'SETTINGS') {
+    if (azBar) azBar.classList.add('hidden');
+    if (vSet) vSet.classList.remove('hidden');
+  } else {
+    if (azBar) azBar.classList.remove('hidden');
+    if (vCat) vCat.classList.remove('hidden');
+    requestAnimationFrame(() => updateVirtualGrid(true));
+  }
+
+  const hudA = document.getElementById('hud-label-a');
+  if (hudA) hudA.textContent = 'Ver Detalhes';
+  updateGamepadGridFocus();
+  playSfx('back');
+}
+window.closeGameDetails = closeGameDetails;
+
 function selectGame(game) {
+  closeGameContextMenu();
   selectedGameId = game.id;
   activeZone = 'DETAILS';
   const hudA = document.getElementById('hud-label-a');
@@ -608,8 +758,15 @@ function selectGame(game) {
     el.classList.toggle('selected', el.dataset.id === game.id);
   });
 
+  // Hide catalog/other views and show Full-Page Game Details View
+  document.getElementById('view-catalogue')?.classList.add('hidden');
+  document.getElementById('view-achievements')?.classList.add('hidden');
+  document.getElementById('view-settings')?.classList.add('hidden');
+  document.getElementById('az-bar')?.classList.add('hidden');
+
   const panel = document.getElementById('details-panel');
   panel.classList.remove('hidden');
+  panel.scrollTop = 0;
 
   const backdrop = document.getElementById('hero-backdrop');
   const hero = document.getElementById('details-hero');
@@ -706,15 +863,13 @@ function selectGame(game) {
   // Auto-enrich metadata online if generic
   autoEnrichGameMetadata(game);
 
-  // SteamGridDB Button Handler
+  // Load Hydra Full Details (Screenshots, Videos, Languages, Requirements, Controller Support, Similar Games)
+  loadFullGameDetails(game);
+
+  // Hydra Official + SteamGridDB HD Button Handler
   const sgBtn = document.getElementById('btn-steamgrid-game');
   sgBtn.onclick = async () => {
-    const key = appState.config?.steamGridDbApiKey;
-    if (!key) {
-      showToast('Insira sua chave gratuita do SteamGridDB nas Configurações!');
-      switchTab('SETTINGS');
-      return;
-    }
+    const key = appState.config?.steamGridDbApiKey || '';
     showToast(`Buscando artes em alta definição para ${game.title}...`);
     sgBtn.disabled = true;
     try {
@@ -725,15 +880,15 @@ function selectGame(game) {
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Erro ao consultar SteamGridDB');
+        showToast(data.error || 'Erro ao consultar artes HD');
       } else {
-        showToast('Artes HD aplicadas com sucesso do SteamGridDB!');
+        showToast('Artes HD aplicadas com sucesso!');
         await fetchState();
         const updated = appState.games.find(g => g.id === game.id);
         if (updated) selectGame(updated);
       }
     } catch {
-      showToast('Falha na comunicação com SteamGridDB');
+      showToast('Falha na comunicação ao buscar artes HD');
     } finally {
       sgBtn.disabled = false;
     }
@@ -742,6 +897,16 @@ function selectGame(game) {
   const coverBtn = document.getElementById('btn-open-cover-selector');
   if (coverBtn) {
     coverBtn.onclick = () => openCoverSelector(game.id);
+  }
+
+  const openLocBtn = document.getElementById('btn-open-file-loc');
+  if (openLocBtn) {
+    openLocBtn.onclick = () => openGameFileLocation(game.id);
+  }
+
+  const removeBtn = document.getElementById('btn-remove-game-details');
+  if (removeBtn) {
+    removeBtn.onclick = () => openRemoveGameModal(game);
   }
 
   const discBox = document.getElementById('disc-selector-box');
@@ -756,17 +921,661 @@ function selectGame(game) {
 
   updateDetailsLiveStats(game);
 
-  document.getElementById('btn-play-main').onclick = () => {
-    const discIdx = parseInt(discSelect.value || '0', 10);
-    playSfx('launch');
-    launchSelectedGame(game.id, discIdx);
-  };
+  const syncAchBtn = document.getElementById('btn-sync-game-ach');
+  if (syncAchBtn) {
+    syncAchBtn.onclick = async () => {
+      syncAchBtn.disabled = true;
+      syncAchBtn.textContent = '⏳...';
+      try {
+        const res = await fetch('/api/achievements/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: game.id })
+        });
+        const data = await res.json();
+        if (res.ok && data.achievements) {
+          game.achievements = data.achievements;
+          game.raAchievements = data.achievements;
+          updateDetailsLiveStats(game);
+          showToast(`🏆 ${data.officialCount || data.achievements.length} conquistas sincronizadas!`);
+        }
+      } catch {
+        showToast('Erro ao sincronizar conquistas');
+      } finally {
+        syncAchBtn.disabled = false;
+        syncAchBtn.textContent = '🔄 Sincronizar';
+      }
+    };
+  }
+
+  // Auto-sync official Hydra / RetroAchievements / PC local achievements when opening game details
+  if (!game.raAchievements || game.raAchievements.length === 0) {
+    fetch('/api/achievements/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: game.id })
+    }).then(r => r.json()).then(data => {
+      if (data && data.ok && Array.isArray(data.achievements) && data.officialCount > 0) {
+        game.achievements = data.achievements;
+        game.raAchievements = data.achievements;
+        if (selectedGameId === game.id) {
+          updateDetailsLiveStats(game);
+        }
+      }
+    }).catch(() => {});
+  }
+
+  const btnPlayMain = document.getElementById('btn-play-main');
+  const btnPlayIcon = document.getElementById('btn-play-main-icon');
+  const btnPlayText = document.getElementById('btn-play-main-text');
+  const btnDlOptions = document.getElementById('btn-download-options');
+  if (btnDlOptions) btnDlOptions.classList.add('hidden');
+
+  if (game.isInstalled === false) {
+    if (btnPlayMain) {
+      btnPlayMain.classList.remove('hidden');
+      btnPlayMain.classList.add('dl-btn-accent');
+      if (btnPlayIcon) btnPlayIcon.textContent = '📥';
+      if (btnPlayText) btnPlayText.textContent = 'BAIXAR JOGO';
+      btnPlayMain.onclick = () => {
+        playSfx('select');
+        openRepacksModal(game.title);
+      };
+    }
+  } else {
+    if (btnPlayMain) {
+      btnPlayMain.classList.remove('hidden');
+      btnPlayMain.classList.remove('dl-btn-accent');
+      if (btnPlayIcon) btnPlayIcon.textContent = '▶';
+      if (btnPlayText) btnPlayText.textContent = 'JOGAR AGORA';
+      btnPlayMain.onclick = () => {
+        const discIdx = parseInt(discSelect.value || '0', 10);
+        playSfx('launch');
+        launchSelectedGame(game.id, discIdx);
+      };
+    }
+  }
 
   document.getElementById('btn-fav-toggle').onclick = () => {
     playSfx('fav');
     toggleFavorite(game.id);
   };
 }
+
+let currentFullDetailsGameId = null;
+
+async function loadFullGameDetails(game) {
+  currentFullDetailsGameId = game.id;
+
+  const activeImg = document.getElementById('gallery-active-img');
+  const activeVid = document.getElementById('gallery-active-video');
+  const thumbsStrip = document.getElementById('gallery-thumbs-strip');
+  const ctrlContent = document.getElementById('details-controller-content');
+  const langContent = document.getElementById('details-languages-content');
+  const reqContent = document.getElementById('details-req-content');
+  const reqTabMin = document.getElementById('req-tab-min');
+  const reqTabRec = document.getElementById('req-tab-rec');
+  const similarGrid = document.getElementById('details-similar-grid');
+
+  // Initial immediate preview while loading
+  const defaultPreview = game.heroUrl || game.coverUrl || game.fallbackCoverUrl || '';
+  if (activeVid) {
+    activeVid.pause();
+    activeVid.classList.add('hidden');
+  }
+  if (activeImg) {
+    activeImg.src = defaultPreview;
+    activeImg.classList.remove('hidden');
+  }
+  if (thumbsStrip) {
+    thumbsStrip.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">Carregando capturas de tela e vídeos...</div>`;
+  }
+  if (ctrlContent) {
+    ctrlContent.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Verificando suporte a controle...</div>`;
+  }
+  if (langContent) {
+    langContent.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Consultando idiomas...</div>`;
+  }
+  if (reqContent) {
+    reqContent.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Carregando especificações...</div>`;
+  }
+  if (similarGrid) {
+    similarGrid.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Buscando jogos similares no catálogo Hydra...</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/game/full-details', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: game.id })
+    });
+    const data = await res.json();
+    if (currentFullDetailsGameId !== game.id || !data.ok) return;
+    const details = data.details || data;
+
+    // 1. Render Screenshots & Videos Gallery
+    const mediaItems = [];
+    if (Array.isArray(details.movies)) {
+      for (const m of details.movies) {
+        const vUrl = typeof m === 'string' ? m : (m.url || m.webm || m.mp4);
+        if (vUrl) {
+          mediaItems.push({ type: 'video', url: vUrl, thumb: m.thumbnail || defaultPreview, name: m.name || 'Trailer' });
+        }
+      }
+    }
+    if (Array.isArray(details.screenshots)) {
+      for (const s of details.screenshots) {
+        if (typeof s === 'string' && s) {
+          mediaItems.push({ type: 'image', url: s, thumb: s, label: 'Screenshot' });
+        } else if (s && (s.full || s.url)) {
+          const u = s.full || s.url;
+          mediaItems.push({ type: 'image', url: u, thumb: s.thumb || u, label: s.label || 'Screenshot' });
+        }
+      }
+    }
+    if (mediaItems.length === 0 && defaultPreview) {
+      mediaItems.push({ type: 'image', url: defaultPreview, thumb: defaultPreview, label: 'Arte Principal' });
+    }
+
+    const selectGalleryItem = (idx) => {
+      const item = mediaItems[idx];
+      if (!item) return;
+      document.querySelectorAll('.gallery-thumb-item').forEach((el, i) => {
+        el.classList.toggle('active', i === idx);
+      });
+      if (item.type === 'video') {
+        activeImg.classList.add('hidden');
+        activeVid.src = item.url;
+        activeVid.classList.remove('hidden');
+        activeVid.play().catch(() => {});
+      } else {
+        activeVid.pause();
+        activeVid.classList.add('hidden');
+        activeImg.src = item.url;
+        activeImg.classList.remove('hidden');
+      }
+    };
+
+    if (thumbsStrip) {
+      thumbsStrip.innerHTML = '';
+      mediaItems.forEach((item, idx) => {
+        const thumbEl = document.createElement('div');
+        thumbEl.className = `gallery-thumb-item ${idx === 0 ? 'active' : ''}`;
+        thumbEl.innerHTML = `
+          <img src="${item.thumb}" loading="lazy" alt="${item.label || 'Media'}">
+          ${item.type === 'video' ? '<div class="gallery-video-badge">▶</div>' : ''}
+        `;
+        const imgTag = thumbEl.querySelector('img');
+        if (imgTag) {
+          imgTag.onerror = () => {
+            thumbEl.remove();
+          };
+        }
+        thumbEl.onclick = () => {
+          playSfx('nav');
+          selectGalleryItem(idx);
+        };
+        thumbsStrip.appendChild(thumbEl);
+      });
+      // Show first image by default (or video if user clicks)
+      const firstImgIdx = mediaItems.findIndex(m => m.type === 'image');
+      selectGalleryItem(firstImgIdx !== -1 ? firstImgIdx : 0);
+    }
+
+    // 2. Render Controller Support (Xbox + PlayStation badges like Hydra/Steam)
+    if (ctrlContent) {
+      const support = details.controllerSupport || 'full';
+      const label = support === 'full'
+        ? 'Compatibilidade Total com Controle'
+        : (support === 'partial' ? 'Compatibilidade Parcial com Controle' : 'Teclado / Controle via Mapeamento');
+      ctrlContent.innerHTML = `
+        <div class="controller-pill-row">
+          <span style="font-size:22px;">🎮</span>
+          <div>
+            <strong style="color:#10b981;font-size:13px;display:block;">${label}</strong>
+            <span style="font-size:11px;color:var(--text-muted);">Atalho de saída: Segure SELECT + START</span>
+          </div>
+        </div>
+        <div class="controller-devices-row">
+          <span class="ctrl-device-tag">🟢 Controles de Xbox (XInput)</span>
+          <span class="ctrl-device-tag">🔵 Controles de PlayStation (DualShock / DualSense)</span>
+        </div>
+      `;
+    }
+
+    // 3. Render Supported Languages Table
+    if (langContent) {
+      const langs = Array.isArray(details.supportedLanguages) ? details.supportedLanguages : [];
+      if (langs.length === 0) {
+        langContent.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Idioma original da mídia.</div>`;
+      } else {
+        langContent.innerHTML = `
+          <table class="hydra-lang-table">
+            <thead>
+              <tr>
+                <th>Idioma</th>
+                <th class="check-col">Interface</th>
+                <th class="check-col">Áudio</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${langs.map(l => `
+                <tr>
+                  <td><strong>${l.language}</strong></td>
+                  <td class="check-col" style="color:#10b981;">${l.caption ? '✔' : '—'}</td>
+                  <td class="check-col" style="color:${l.audio ? '#10b981' : '#6b7280'};">${l.audio ? '✔' : '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    // 4. Render System Requirements (Mínimos / Recomendados toggle)
+    if (reqContent && reqTabMin && reqTabRec) {
+      const reqs = details.pcRequirements || {};
+      const minHtml = reqs.minimum || 'Especificações padrão do sistema.';
+      const recHtml = reqs.recommended || minHtml;
+
+      reqTabMin.classList.add('active');
+      reqTabRec.classList.remove('active');
+      reqContent.innerHTML = minHtml;
+
+      reqTabMin.onclick = () => {
+        playSfx('nav');
+        reqTabMin.classList.add('active');
+        reqTabRec.classList.remove('active');
+        reqContent.innerHTML = minHtml;
+      };
+      reqTabRec.onclick = () => {
+        playSfx('nav');
+        reqTabRec.classList.add('active');
+        reqTabMin.classList.remove('active');
+        reqContent.innerHTML = recHtml;
+      };
+    }
+
+    // 5. Render "More Like This" (Similar Games)
+    if (similarGrid) {
+      const simList = Array.isArray(details.similarGames) ? details.similarGames : [];
+      if (simList.length === 0) {
+        // Fallback to local games of the same console
+        const localSameConsole = (appState.games || [])
+          .filter(g => g.consoleId === game.consoleId && g.id !== game.id)
+          .slice(0, 6);
+        if (localSameConsole.length === 0) {
+          similarGrid.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Nenhum jogo similar encontrado para este título.</div>`;
+        } else {
+          similarGrid.innerHTML = '';
+          for (const lg of localSameConsole) {
+            const sCard = document.createElement('div');
+            sCard.className = 'similar-game-card';
+            sCard.innerHTML = `
+              <img src="${lg.thumbUrl || lg.coverUrl || lg.fallbackCoverUrl}" class="similar-game-art" loading="lazy" alt="${lg.title}">
+              <div class="similar-game-info">
+                <div class="similar-game-title" title="${lg.title}">${lg.title}</div>
+                <div class="similar-game-badge">★ Na sua Biblioteca</div>
+              </div>
+            `;
+            sCard.onclick = () => {
+              playSfx('select');
+              selectGame(lg);
+            };
+            similarGrid.appendChild(sCard);
+          }
+        }
+      } else {
+        similarGrid.innerHTML = '';
+        for (const sg of simList) {
+          const inLib = Boolean(sg.inLibrary || sg.localGameId);
+          const sCard = document.createElement('div');
+          sCard.className = 'similar-game-card';
+          sCard.innerHTML = `
+            <img src="${sg.coverUrl}" class="similar-game-art" loading="lazy" alt="${sg.title}">
+            <div class="similar-game-info">
+              <div class="similar-game-title" title="${sg.title}">${sg.title}</div>
+              <div class="similar-game-badge ${inLib ? '' : 'external'}">
+                ${inLib ? '★ Na sua Biblioteca' : '🔍 Similar no Hydra'}
+              </div>
+            </div>
+          `;
+          const artImg = sCard.querySelector('img');
+          if (artImg) {
+            artImg.onerror = () => { sCard.remove(); };
+          }
+          sCard.onclick = () => {
+            playSfx('select');
+            if (sg.localGameId) {
+              const found = (appState.games || []).find(g => g.id === sg.localGameId);
+              if (found) {
+                selectGame(found);
+                return;
+              }
+            }
+            showToast(`Jogo similar sugerido pelo Hydra: ${sg.title}`);
+          };
+          similarGrid.appendChild(sCard);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar detalhes completos:', err);
+  }
+}
+
+// --- RIGHT-CLICK CONTEXT MENU & REMOVE GAME MODAL ---
+let contextMenuGame = null;
+
+function openGameContextMenu(e, game) {
+  contextMenuGame = game;
+  playSfx('nav');
+  const menu = document.getElementById('game-context-menu');
+  if (!menu) return;
+
+  document.getElementById('ctx-game-title').textContent = game.title;
+  document.getElementById('ctx-fav-icon').textContent = game.favorite ? '★' : '☆';
+  document.getElementById('ctx-fav-label').textContent = game.favorite
+    ? 'Remover dos Favoritos'
+    : 'Adicionar aos Favoritos';
+
+  menu.classList.remove('hidden');
+
+  const menuWidth = 260;
+  const menuHeight = 310;
+  let posX = e.clientX;
+  let posY = e.clientY;
+  if (posX + menuWidth > window.innerWidth - 12) posX = window.innerWidth - menuWidth - 12;
+  if (posY + menuHeight > window.innerHeight - 12) posY = window.innerHeight - menuHeight - 12;
+
+  menu.style.left = `${Math.max(8, posX)}px`;
+  menu.style.top = `${Math.max(8, posY)}px`;
+
+  document.getElementById('ctx-play').onclick = () => {
+    closeGameContextMenu();
+    playSfx('launch');
+    launchSelectedGame(game.id, 0);
+  };
+
+  document.getElementById('ctx-details').onclick = () => {
+    closeGameContextMenu();
+    playSfx('select');
+    selectGame(game);
+  };
+
+  document.getElementById('ctx-favorite').onclick = async () => {
+    closeGameContextMenu();
+    playSfx('fav');
+    await toggleFavorite(game.id);
+    showToast(game.favorite ? `Removido dos favoritos: ${game.title}` : `⭐ Adicionado aos favoritos: ${game.title}`);
+  };
+
+  document.getElementById('ctx-cover').onclick = () => {
+    closeGameContextMenu();
+    selectedGameId = game.id;
+    openCoverSelector(game.id);
+  };
+
+  document.getElementById('ctx-hd-art').onclick = async () => {
+    closeGameContextMenu();
+    showToast(`🎨 Buscando artes HD para ${game.title}...`);
+    try {
+      const res = await fetch('/api/steamgrid/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id, apiKey: appState.config?.steamGridDbApiKey || '' })
+      });
+      if (res.ok) {
+        showToast('Artes HD aplicadas com sucesso!');
+        await fetchState();
+      }
+    } catch {}
+  };
+
+  document.getElementById('ctx-sync-ach').onclick = async () => {
+    closeGameContextMenu();
+    showToast(`🏆 Sincronizando conquistas e metadados de ${game.title}...`);
+    try {
+      await fetch('/api/metadata/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id })
+      });
+      const res = await fetch('/api/achievements/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id })
+      });
+      const data = await res.json();
+      await fetchState();
+      showToast(`✅ ${data.officialCount || data.achievements?.length || 0} conquistas sincronizadas!`);
+    } catch {}
+  };
+
+  document.getElementById('ctx-open-folder').onclick = () => {
+    closeGameContextMenu();
+    openGameFileLocation(game.id);
+  };
+
+  document.getElementById('ctx-remove').onclick = () => {
+    closeGameContextMenu();
+    openRemoveGameModal(game);
+  };
+}
+
+function closeGameContextMenu() {
+  const menu = document.getElementById('game-context-menu');
+  if (menu && !menu.classList.contains('hidden')) {
+    menu.classList.add('hidden');
+  }
+}
+
+function closeSidebarContextMenu() {
+  const menu = document.getElementById('sidebar-context-menu');
+  if (menu && !menu.classList.contains('hidden')) {
+    menu.classList.add('hidden');
+  }
+}
+
+async function scanSingleConsole(consoleId) {
+  closeSidebarContextMenu();
+  const cCfg = appState.config?.consoles?.[consoleId];
+  const cName = cCfg?.name || consoleId;
+  showToast(`🔄 Escaneando ROMs de ${cName}...`);
+  playSfx('select');
+  try {
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consoleId })
+    });
+    const data = await res.json();
+    playSfx('fav');
+    showToast(`✅ ${cName}: ${data.totalGames || 0} ROMs encontradas (${data.newGamesCount || 0} novas)!`);
+    await fetchState();
+    switchTab(consoleId);
+  } catch {
+    showToast(`Erro ao escanear ${cName}`);
+  }
+}
+
+async function scanAllLibraryUnified() {
+  showToast('🔄 Escaneamento Geral: buscando todas as ROMs, Jogos de PC, Steam, Epic, GOG e Xbox Game Pass...');
+  playSfx('launch');
+  try {
+    const res = await fetch('/api/scan/all', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      playSfx('fav');
+      showToast(`🎉 Biblioteca completa sincronizada! ${data.totalGames} jogos no acervo (${data.newGamesCount || 0} novos detectados)!`);
+      await fetchState();
+      renderCatalogue();
+    } else {
+      showToast('Erro ao realizar escaneamento geral');
+    }
+  } catch {
+    showToast('Falha de conexão com o servidor');
+  }
+}
+window.scanSingleConsole = scanSingleConsole;
+window.scanAllLibraryUnified = scanAllLibraryUnified;
+
+function openSidebarContextMenu(e, tab) {
+  e.preventDefault();
+  e.stopPropagation();
+  closeGameContextMenu();
+  closeSidebarContextMenu();
+  playSfx('nav');
+
+  const menu = document.getElementById('sidebar-context-menu');
+  const titleEl = document.getElementById('sidebar-ctx-title');
+  const itemsEl = document.getElementById('sidebar-ctx-items');
+  if (!menu || !titleEl || !itemsEl) return;
+
+  const consoles = appState.config?.consoles || {};
+  const cCfg = consoles[tab];
+  const cName = cCfg?.name || (tab === 'ALL' ? 'Todos os Jogos' : (tab === 'FAVORITES' ? 'Meus Favoritos' : (tab === 'RECENT' ? 'Últimos Jogados' : tab)));
+
+  titleEl.textContent = cName.toUpperCase();
+  itemsEl.innerHTML = '';
+
+  const addItem = (icon, label, onClick, isDanger = false) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `ctx-item ${isDanger ? 'danger' : ''}`;
+    btn.innerHTML = `<span class="ctx-icon">${icon}</span><span>${label}</span>`;
+    btn.onclick = () => {
+      closeSidebarContextMenu();
+      onClick();
+    };
+    itemsEl.appendChild(btn);
+  };
+
+  const addDivider = () => {
+    const div = document.createElement('div');
+    div.className = 'ctx-divider';
+    itemsEl.appendChild(div);
+  };
+
+  if (tab === 'PC') {
+    addItem('➕', 'Adicionar Executável (.EXE)', () => window.addPcExeGame());
+    addItem('📁', 'Adicionar Pasta de Jogos PC', () => window.addPcFolder());
+    addItem('🔄', 'Escanear Pastas de Jogos de PC', () => window.scanPcGamesNow());
+    addDivider();
+    addItem('📂', 'Abrir Pasta ROMS\\PC', () => window.openExplorer('ROMS\\PC'));
+  } else if (tab === 'STEAM') {
+    addItem('🔄', 'Escanear Jogos Instalados da Steam', () => window.syncSteamAccount());
+    addItem('🌐', 'Configurar Conta Steam (SteamID64)', () => {
+      currentSettingsSubTab = 'integrations';
+      switchTab('SETTINGS');
+    });
+  } else if (tab === 'EPIC') {
+    addItem('🔄', 'Escanear Jogos Instalados da Epic Games', () => window.scanOfficialStores());
+    addItem('⚡', 'Sincronizar Acervo Legendary (Epic)', () => window.syncEpicAccount());
+  } else if (tab === 'GOG') {
+    addItem('🔄', 'Escanear Jogos do GOG Galaxy', () => window.scanOfficialStores());
+  } else if (tab === 'XBOX') {
+    addItem('🟢', 'Escanear Xbox Game Pass (Todos os Discos)', () => window.scanXboxGamePass());
+    addItem('📁', 'Adicionar Pasta Xbox Personalizada', () => window.addXboxFolder());
+  } else if (cCfg) {
+    addItem('🔄', `Escanear ROMs de ${cCfg.shortName || tab}`, () => scanSingleConsole(tab));
+    addItem('📂', `Abrir Pasta ROMS\\${tab}`, () => window.openExplorer(cCfg.romFolder || `ROMS\\${tab}`));
+    addDivider();
+    addItem('⚙️', `Configurar Emulador / Cores`, () => {
+      currentSettingsSubTab = 'emulators';
+      switchTab('SETTINGS');
+    });
+  } else if (tab === 'ALL') {
+    addItem('🔄', 'Escaneamento Geral Unificado (Tudo)', () => scanAllLibraryUnified());
+    addItem('📂', 'Abrir Pasta Raiz ROMS\\', () => window.openExplorer('ROMS'));
+  } else if (tab === 'HOME') {
+    addItem('🔥', 'Recarregar Destaques da Home', () => renderHomeView());
+    addItem('✨', 'Surpreenda-me!', () => surpriseMe());
+  } else if (tab === 'DOWNLOADS') {
+    addItem('➕', 'Adicionar Torrent / Magnet', () => openAddDownloadModal());
+    addItem('📂', 'Abrir Pasta de Downloads', () => fetch('/api/downloads/open-folder', { method: 'POST' }));
+    addItem('🔄', 'Sincronizar Fontes de Repacks', () => syncAllSourcesNow());
+  } else {
+    addItem('📖', `Abrir Aba ${tab}`, () => switchTab(tab));
+  }
+
+  menu.classList.remove('hidden');
+
+  const menuWidth = 260;
+  const menuHeight = itemsEl.children.length * 36 + 45;
+  let posX = e.clientX;
+  let posY = e.clientY;
+  if (posX + menuWidth > window.innerWidth - 12) posX = window.innerWidth - menuWidth - 12;
+  if (posY + menuHeight > window.innerHeight - 12) posY = window.innerHeight - menuHeight - 12;
+
+  menu.style.left = `${Math.max(8, posX)}px`;
+  menu.style.top = `${Math.max(8, posY)}px`;
+}
+
+async function openGameFileLocation(gameId) {
+  playSfx('select');
+  try {
+    const res = await fetch('/api/game/open-location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId })
+    });
+    if (!res.ok) {
+      showToast('Não foi possível abrir o local do arquivo');
+    }
+  } catch {
+    showToast('Erro ao abrir o Windows Explorer');
+  }
+}
+
+function openRemoveGameModal(game) {
+  if (!game) return;
+  playSfx('select');
+  const modal = document.getElementById('remove-game-modal');
+  if (!modal) return;
+
+  document.getElementById('remove-game-name').textContent = game.title;
+  document.getElementById('remove-file-path').textContent = game.romPath || game.fileName || '';
+  const chk = document.getElementById('remove-delete-files-chk');
+  if (chk) chk.checked = false;
+
+  modal.classList.remove('hidden');
+
+  const closeModal = () => {
+    modal.classList.add('hidden');
+  };
+
+  document.getElementById('close-remove-modal').onclick = closeModal;
+  document.getElementById('btn-cancel-remove').onclick = closeModal;
+
+  document.getElementById('btn-confirm-remove').onclick = async () => {
+    const deleteFiles = Boolean(chk && chk.checked);
+    closeModal();
+    showToast(`Removendo ${game.title} da biblioteca...`);
+    try {
+      const res = await fetch('/api/game/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id, deleteFiles })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        playSfx('back');
+        showToast(data.deletedFile ? `🗑️ ${game.title} excluído da biblioteca e do disco!` : `✅ ${game.title} removido da biblioteca!`);
+        if (selectedGameId === game.id) {
+          closeGameDetails();
+        }
+        lastGamesDataKey = '';
+        await fetchState();
+      } else {
+        showToast(data.error || 'Erro ao remover jogo');
+      }
+    } catch {
+      showToast('Falha ao comunicar com o servidor');
+    }
+  };
+}
+
 
 let currentHltbGameId = null;
 
@@ -789,12 +1598,12 @@ async function loadGameHltb(game) {
   matchedEl.textContent = '';
 
   const applyHltbData = (data) => {
-    mainEl.textContent = data.mainTime || '--';
-    extraEl.textContent = data.mainExtraTime || '--';
-    compEl.textContent = data.completionistTime || '--';
+    mainEl.innerHTML = `${data.mainTime || '--'}${data.mainAccuracy ? `<small style="display:block;font-size:10px;color:#9ca3af;font-weight:500;margin-top:2px;">Precisão: ${data.mainAccuracy}</small>` : ''}`;
+    extraEl.innerHTML = `${data.mainExtraTime || '--'}${data.mainExtraAccuracy ? `<small style="display:block;font-size:10px;color:#9ca3af;font-weight:500;margin-top:2px;">Precisão: ${data.mainExtraAccuracy}</small>` : ''}`;
+    compEl.innerHTML = `${data.completionistTime || '--'}${data.completionistAccuracy ? `<small style="display:block;font-size:10px;color:#9ca3af;font-weight:500;margin-top:2px;">Precisão: ${data.completionistAccuracy}</small>` : ''}`;
     if (data.url) linkEl.href = data.url;
     if (data.reviewScore) scoreEl.textContent = `⭐ Avaliação da Comunidade: ${data.reviewScore}%`;
-    if (data.name) matchedEl.textContent = `Correspondência: ${data.name}`;
+    if (data.name) matchedEl.textContent = `Correspondência: ${data.name}${data.source && data.source.includes('hydra_api') ? ' • Hydra HLTB API' : ''}`;
   };
 
   if (game.hltbData) {
@@ -881,41 +1690,116 @@ function updateDetailsLiveStats(game) {
     achList.innerHTML = `
       <div style="padding:14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.1);color:#9ca3af;font-size:12px;text-align:center;line-height:1.6;">
         <span style="font-size:18px;display:block;margin-bottom:4px;">🏆</span>
-        Sem conquistas pré-fabricadas.<br>
-        Conecte seu usuário e Web API Key do <strong>RetroAchievements.org</strong> nas <em>Configurações</em> para sincronizar troféus oficiais.
+        Sem conquistas cadastradas.<br>
+        Clique em <strong>🔄 Sincronizar</strong> ou conecte sua conta <strong>RetroAchievements.org</strong> nas <em>Configurações</em>.
       </div>
     `;
   } else {
     const unlockedCount = achs.filter(a => a.unlocked).length;
-    achSummary.textContent = `${unlockedCount} / ${achs.length} desbloqueadas`;
-    achList.innerHTML = achs.map(a => `
-      <div class="ach-item ${a.unlocked ? 'unlocked' : ''}">
-        <span class="ach-icon">${a.icon ? `<img src="${a.icon}" width="28" height="28" style="border-radius:4px;">` : '🏆'}</span>
-        <div class="ach-info">
-          <div class="ach-title">${a.title}</div>
-          <div class="ach-desc">${a.description}</div>
+    const totalPts = achs.reduce((acc, a) => acc + (a.points || 0), 0);
+    const earnedPts = achs.filter(a => a.unlocked).reduce((acc, a) => acc + (a.points || 0), 0);
+    achSummary.textContent = `${unlockedCount} / ${achs.length} (${earnedPts}/${totalPts} PTS)`;
+    achList.innerHTML = achs.map(a => {
+      const isImgIcon = a.icon && (a.icon.startsWith('http://') || a.icon.startsWith('https://') || a.icon.startsWith('/'));
+      const iconHtml = isImgIcon
+        ? `<img src="${a.icon}" width="36" height="36" style="border-radius:6px;object-fit:cover;filter:${a.unlocked ? 'none' : 'grayscale(1) opacity(0.65)'};" loading="lazy">`
+        : `<span style="font-size:20px;">${a.icon || '🏆'}</span>`;
+
+      const metaBadges = [];
+      if (a.unlocked && a.unlockTime) {
+        metaBadges.push(`<span style="color:#10b981;font-size:10px;">✓ ${new Date(a.unlockTime).toLocaleDateString('pt-BR')}</span>`);
+      }
+      if (a.hardcore) {
+        metaBadges.push(`<span style="color:#f59e0b;font-size:10px;font-weight:700;">🔥 HARDCORE</span>`);
+      }
+      if (typeof a.globalUnlockPercentage === 'number') {
+        metaBadges.push(`<span style="color:#9ca3af;font-size:10px;">🌍 ${a.globalUnlockPercentage.toFixed(1)}%</span>`);
+      }
+
+      return `
+        <div class="ach-item ${a.unlocked ? 'unlocked' : ''}">
+          <span class="ach-icon">${iconHtml}</span>
+          <div class="ach-info">
+            <div class="ach-title">${a.title}</div>
+            <div class="ach-desc">${a.description || ''}</div>
+            ${metaBadges.length > 0 ? `<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;">${metaBadges.join('')}</div>` : ''}
+          </div>
+          <span class="ach-pts">+${a.points || 0} PTS</span>
         </div>
-        <span class="ach-pts">+${a.points || 0} PTS</span>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 }
 async function launchSelectedGame(gameId, discIndex = 0) {
-  try {
+  if (isLaunching) {
+    showToast('Aguarde, jogo já está iniciando...');
+    return;
+  }
+  isLaunching = true;
+
+  const game = (appState.games || []).find(g => g.id === gameId);
+  const overlay = document.getElementById('game-launcher-overlay');
+  const splashTitle = document.getElementById('splash-game-title');
+  const splashSub = document.getElementById('splash-game-sub');
+  const splashCover = document.getElementById('splash-cover-img');
+  const splashBg = document.getElementById('splash-bg');
+  const splashConsole = document.getElementById('splash-console-badge');
+  const splashPlaytime = document.getElementById('splash-playtime-badge');
+  const step1 = document.getElementById('splash-step-1');
+  const step2 = document.getElementById('splash-step-2');
+  const step3 = document.getElementById('splash-step-3');
+
+  if (overlay && game) {
+    if (splashTitle) splashTitle.textContent = game.title || 'Iniciando Jogo...';
+    if (splashSub) splashSub.textContent = `Preparando ${game.consoleId === 'PC' ? 'Jogo de PC' : 'Emulador ' + (game.consoleId || '')}...`;
+    if (splashConsole) splashConsole.textContent = (game.consoleId || 'PC').toUpperCase();
+    if (splashPlaytime) splashPlaytime.textContent = `⏱️ ${formatPlaytime(game.playTimeSeconds || 0)}`;
+
+    const coverSrc = game.heroUrl || game.coverUrl || game.fallbackCoverUrl || '';
+    if (splashCover) splashCover.src = game.coverUrl || game.heroUrl || '';
+    if (splashBg && coverSrc) splashBg.style.backgroundImage = `url("${coverSrc}")`;
+
+    if (step1) step1.className = 'splash-step active';
+    if (step2) step2.className = 'splash-step';
+    if (step3) step3.className = 'splash-step';
+
+    overlay.classList.remove('hidden');
+    playSfx('launch');
+  } else {
     showToast('Iniciando jogo em tela cheia...');
+  }
+
+  try {
+    // Step 2: Sincronizando
+    setTimeout(() => {
+      if (step1) step1.className = 'splash-step';
+      if (step2) step2.className = 'splash-step active';
+      if (splashSub) splashSub.textContent = 'Verificando integridade e preparando tela cheia...';
+    }, 450);
+
     const res = await fetch('/api/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gameId, discIndex })
     });
     const data = await res.json();
+
+    if (step2) step2.className = 'splash-step';
+    if (step3) step3.className = 'splash-step active';
+    if (splashSub) splashSub.textContent = 'Jogo em execução!';
+
     if (!res.ok) {
       showToast(`Erro: ${data.error}`);
-      return;
+    } else {
+      await fetchState();
     }
-    await fetchState();
   } catch (e) {
     showToast('Falha ao iniciar o jogo');
+  } finally {
+    setTimeout(() => {
+      if (overlay) overlay.classList.add('hidden');
+      isLaunching = false;
+    }, 1200);
   }
 }
 
@@ -964,6 +1848,43 @@ function renderAchievementsView() {
     </div>
   `;
 
+  const achGamesEl = document.getElementById('achievements-games-list');
+  if (achGamesEl) {
+    const gamesWithProgress = games
+      .map(g => {
+        const list = g.achievements || [];
+        const uCount = list.filter(a => a.unlocked).length;
+        const pts = list.filter(a => a.unlocked).reduce((s, a) => s + (a.points || 0), 0);
+        const isOfficial = Array.isArray(g.raAchievements) && g.raAchievements.length > 0;
+        return { game: g, total: list.length, unlocked: uCount, points: pts, isOfficial };
+      })
+      .filter(item => item.unlocked > 0 || item.isOfficial)
+      .sort((a, b) => (b.unlocked - a.unlocked) || (b.total - a.total));
+
+    if (gamesWithProgress.length === 0) {
+      achGamesEl.innerHTML = `<div class="session-row"><span>Nenhum jogo com conquistas sincronizadas ou desbloqueadas ainda. Clique em "🔄 Sincronizar Conquistas (Hydra API)" acima ou abra os detalhes de um jogo!</span></div>`;
+    } else {
+      achGamesEl.innerHTML = gamesWithProgress.slice(0, 40).map(item => {
+        const pct = item.total > 0 ? Math.round((item.unlocked / item.total) * 100) : 0;
+        return `
+          <div class="session-row" style="cursor:pointer;" onclick="window.openGameFromAchievements('${item.game.id.replace(/'/g, "\\'")}')">
+            <div style="flex:1;">
+              <strong>${item.game.title}</strong>
+              <span style="margin-left:8px;font-size:11px;color:#9ca3af;">[${item.game.consoleId}] ${item.isOfficial ? '• Oficial Hydra / RA' : '• Marcos Clássicos'}</span>
+              <div style="margin-top:6px;height:6px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;max-width:340px;">
+                <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#10b981,#34d399);"></div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <strong style="color:#10b981;">${item.unlocked} / ${item.total} (${pct}%)</strong>
+              <div style="font-size:11px;color:#f59e0b;margin-top:2px;">+${item.points} PTS</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   const sList = document.getElementById('sessions-list');
   const sessions = appState.sessions || [];
   if (sessions.length === 0) {
@@ -983,171 +1904,775 @@ function renderAchievementsView() {
 
 function renderSettingsView() {
   const container = document.getElementById('settings-container');
-  const consoles = appState.config?.consoles || {};
+  if (!container) return;
+
+  // Setup subtab click listeners
+  document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.subtab === currentSettingsSubTab);
+    btn.onclick = () => {
+      currentSettingsSubTab = btn.dataset.subtab;
+      playSfx('nav');
+      renderSettingsView();
+    };
+  });
+
+  const cfg = appState.config || {};
+  const dlCfg = cfg.downloadSettings || {
+    downloadPath: 'D:\\HydraDownloads',
+    maxDownloadSpeedKb: 0,
+    maxUploadSpeedKb: 0,
+    continueSeeding: true,
+    autoExtract: true,
+    deleteAfterExtract: false,
+    createDesktopShortcut: true
+  };
 
   let html = '';
-  for (const [cid, c] of Object.entries(consoles)) {
-    html += `
+
+  if (currentSettingsSubTab === 'general') {
+    html = `
       <div class="settings-card">
-        <h3>🎮 ${c.name} (${cid})</h3>
-        <div class="field-row">
-          <label>Pasta de ROMs (Monitoramento Automático):</label>
+        <h3>🖥️ Geral & Comportamento de Inicialização</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+          Configurações do aplicativo, integração com inicialização do Windows e bandeja do sistema.
+        </p>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Iniciar HydraRetro com o Windows:</label>
           <div class="field-input-group">
-            <input type="text" id="cfg-rom-${cid}" value="${c.romFolder || ''}">
-            <button class="btn-secondary" onclick="openExplorer('${(c.romFolder || '').replace(/\\/g, '\\\\')}')">📂 Abrir Pasta de ROMs</button>
+            <input type="checkbox" id="cfg-launch-startup" ${cfg.launchOnStartup ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Inicia automaticamente ao ligar o computador (HKCU Run)</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Iniciar Minimizado:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-launch-minimized" ${cfg.launchMinimized ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Abre em segundo plano sem tomar foco</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Minimizar para a Bandeja do Sistema (Tray):</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-minimize-tray" ${cfg.minimizeToTray !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Mantém em execução na bandeja para downloads e foco ágil</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Idioma da Interface:</label>
+          <div class="field-input-group">
+            <select id="cfg-app-language" style="max-width:260px;">
+              <option value="pt-BR" selected>Português do Brasil (pt-BR)</option>
+              <option value="en-US">English (en-US)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Pasta Padrão de Downloads:</label>
+          <div class="field-input-group">
+            <input type="text" id="cfg-dl-path-general" value="${dlCfg.downloadPath || 'D:\\HydraDownloads'}">
+            <button type="button" class="btn-secondary" onclick="window.openExplorer('${(dlCfg.downloadPath || 'D:\\HydraDownloads').replace(/\\/g, '\\\\')}')">📂 Abrir Pasta</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button type="button" class="play-btn-large" style="max-width:240px;" onclick="window.saveGeneralSettings()">💾 Salvar Preferências</button>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>🔊 Áudio & Efeitos Sonoros de Interface (UI SFX)</h3>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+          Sons suaves e táteis de console gerados nativamente via Web Audio API para navegação por controle ou teclado.
+        </p>
+        <div style="display:flex;gap:12px;align-items:center;">
+          <button class="btn-secondary" id="btn-toggle-sfx" onclick="window.toggleSfx()">
+            ${sfxEnabled ? '🔊 Efeitos Sonoros: ATIVADOS' : '🔇 Efeitos Sonoros: DESATIVADOS'}
+          </button>
+          <button class="btn-secondary" onclick="playSfx('launch')">▶ Testar Som de Boot</button>
+        </div>
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'downloads') {
+    html = `
+      <div class="settings-card">
+        <h3>⚡ Motor de Torrent, Downloads & Extração Automática</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+          O HydraRetro possui cliente BitTorrent nativo embutido via <strong>Libtorrent 2.x</strong> com suporte completo a Magnet links, arquivos .torrent e downloads diretos HTTP.
+        </p>
+
+        <div class="field-row">
+          <label>Pasta Destino dos Downloads:</label>
+          <div class="field-input-group">
+            <input type="text" id="cfg-dl-path" value="${dlCfg.downloadPath || 'D:\\HydraDownloads'}">
+            <button type="button" class="btn-secondary" onclick="window.openExplorer('${(dlCfg.downloadPath || 'D:\\HydraDownloads').replace(/\\/g, '\\\\')}')">📂 Abrir</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Limite de Download (KB/s):</label>
+          <div class="field-input-group">
+            <input type="number" id="cfg-dl-max-speed" value="${dlCfg.maxDownloadSpeedKb || 0}" style="max-width:180px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">0 = Velocidade ilimitada máxima da sua conexão</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Limite de Upload / Seed (KB/s):</label>
+          <div class="field-input-group">
+            <input type="number" id="cfg-dl-upload-speed" value="${dlCfg.maxUploadSpeedKb || 0}" style="max-width:180px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">0 = Velocidade ilimitada</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Continuar Semeando (Seed):</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-dl-seeding" ${dlCfg.continueSeeding !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Manter semeando torrents concluídos para ajudar a comunidade</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Extração Automática de Compactados (.zip/.7z/.rar):</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-dl-extract" ${dlCfg.autoExtract !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Extrai instaladores automaticamente após o término via 7-Zip portátil embutido</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Excluir Arquivo Compactado Pós-Extração:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-dl-delete-archive" ${dlCfg.deleteAfterExtract ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Economiza espaço em disco excluindo o arquivo .zip/.rar após extrair</span>
+          </div>
+        </div>
+
+        <div class="field-row" style="align-items:center;">
+          <label>Criar Atalho na Área de Trabalho:</label>
+          <div class="field-input-group">
+            <input type="checkbox" id="cfg-dl-shortcut" ${dlCfg.createDesktopShortcut !== false ? 'checked' : ''} style="width:18px;height:18px;">
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Cria atalho direto do jogo na Área de Trabalho do Windows</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button type="button" class="play-btn-large" style="max-width:240px;" onclick="window.saveDownloadConfig()">💾 Salvar Configurações de Download</button>
+        </div>
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'sources') {
+    const sources = cfg.downloadSources || [];
+    html = `
+      <div class="settings-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div>
+            <h3>📦 Fontes de Repacks & Downloads (URLs JSON)</h3>
+            <p style="font-size:12px;color:var(--text-muted);">
+              Sincronize URLs de fontes de repacks (FitGirl, DODI, SteamRip, GOG, etc.) para buscar torrents e links diretos com 1 clique direto no catálogo.
+            </p>
+          </div>
+          <button type="button" class="btn-secondary" style="color:#10b981;border-color:#10b981;" onclick="window.syncAllSourcesNow()">
+            🔄 Sincronizar Todas as Fontes Agora
+          </button>
+        </div>
+
+        <div class="field-row" style="margin-bottom:16px;">
+          <label>Adicionar Nova URL de Fonte (JSON):</label>
+          <div class="field-input-group">
+            <input type="text" id="new-source-url" placeholder="https://raw.githubusercontent.com/.../repacks.json" class="cover-search-input">
+            <button type="button" class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.addNewDownloadSource()">
+              ➕ Adicionar Fonte
+            </button>
+          </div>
+        </div>
+
+        <div class="repacks-list" id="sources-list-container">
+          ${sources.length === 0 ? '<div style="color:var(--text-muted);font-size:12px;padding:12px 0;">Nenhuma fonte cadastrada ainda.</div>' : ''}
+          ${sources.map(s => `
+            <div class="repack-card">
+              <div class="repack-info">
+                <span class="repack-title">${s.name || 'Fonte de Repacks'}</span>
+                <span class="repack-meta" style="font-family:monospace;font-size:11px;">${s.url}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="window.toggleSourceEnabled('${encodeURIComponent(s.url)}', this.checked)">
+                  <span>Ativa</span>
+                </label>
+                <button type="button" class="btn-secondary danger" style="padding:4px 10px;font-size:12px;" onclick="window.removeSourceByUrl('${encodeURIComponent(s.url)}')">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'folders') {
+    html = `
+      <div class="settings-card">
+        <h3>🖥️ Pastas Monitoradas de Jogos de PC (.EXE)</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+          Adicione pastas onde você costuma instalar ou salvar jogos de PC. O HydraRetro monitora novos arquivos executáveis e sincroniza capas e metadados automaticamente.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <button type="button" class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.addPcExeGame()">
+            ➕ Adicionar Executável (.EXE)
+          </button>
+          <button type="button" class="btn-secondary" style="color:#6ee7b7;border-color:rgba(16,185,129,0.4);" onclick="window.addPcFolder()">
+            📁 Adicionar Pasta de Jogos de PC
+          </button>
+          <button type="button" class="btn-secondary" onclick="window.openExplorer('ROMS\\\\PC')">
+            📂 Abrir Pasta ROMS\\PC
+          </button>
+        </div>
+        <div id="pc-folders-container">
+          <div style="font-size:12px;color:var(--text-dim);">Carregando pastas de PC...</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>📁 Pastas de ROMs dos Consoles (Hot-Plug Automático)</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+          Coloque qualquer ROM na pasta correspondente que o sistema indexa e busca capas em tempo real:
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;">
+          ${Object.entries(cfg.consoles || {}).map(([cid, c]) => `
+            <button type="button" class="btn-secondary" style="text-align:left;display:flex;align-items:center;justify-content:space-between;" onclick="window.openExplorer('${(c.romFolder || `ROMS\\\\${cid}`).replace(/\\/g, '\\\\')}')">
+              <span>🎮 ${c.name} (${cid})</span>
+              <span style="font-size:11px;color:var(--accent);">📂 Abrir</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'integrations') {
+    html = `
+      <div class="settings-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div>
+            <h3>🎮 Lojas Oficiais Integradas (Steam, Epic, GOG, Xbox / Game Pass)</h3>
+            <p style="font-size:12px;color:var(--text-muted);">
+              O HydraRetro detecta jogos instalados em todas as lojas oficiais do Windows com suporte a conquistas e execução nativa.
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn-secondary" style="color:#10b981;border-color:rgba(16,185,129,0.4);" onclick="window.scanXboxGamePass()">
+              🟢 Escanear Xbox Game Pass
+            </button>
+            <button type="button" class="btn-secondary" style="color:#6ee7b7;border-color:rgba(16,185,129,0.4);" onclick="window.addXboxFolder()">
+              📁 Pasta Xbox
+            </button>
+            <button type="button" class="btn-secondary" style="color:#38bdf8;border-color:#38bdf8;" onclick="window.scanOfficialStores()">
+              🔍 Re-escanear Todas as Lojas
+            </button>
+          </div>
+        </div>
+
+        <div id="steam-detected-accounts" style="margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--text-dim);">Detectando contas Steam no Windows...</div>
+        </div>
+
+        <div class="field-row">
+          <label>SteamID64 da sua Conta:</label>
+          <div class="field-input-group">
+            <input type="text" id="cfg-steam-id" placeholder="Ex: 76561198000000000" value="${cfg.steamId64 || ''}">
+            <button type="button" class="btn-secondary" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);" onclick="window.syncSteamAccount()">
+              🔄 Sincronizar Steam
+            </button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Steam Web API Key (Opcional):</label>
+          <div class="field-input-group">
+            <input type="password" id="cfg-steam-key" placeholder="Cole sua Steam Web API Key aqui (opcional)" value="${cfg.steamApiKey || ''}">
+            <a href="https://steamcommunity.com/dev/apikey" target="_blank" class="btn-secondary" style="display:inline-flex;align-items:center;text-decoration:none;">🔑 Obter Chave Steam</a>
+          </div>
+        </div>
+
+        <div id="epic-account-status" style="margin-top:12px;">
+          <div style="font-size:12px;color:var(--text-dim);">Carregando status da Epic Games...</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>🏆 Conquistas Oficiais (Hydra API, RetroAchievements.org & PC Local)</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+          Conquistas integradas via Hydra API, RetroAchievements.org e emuladores locais de PC.
+        </p>
+        <div class="field-row">
+          <label>Usuário RetroAchievements:</label>
+          <div class="field-input-group">
+            <input type="text" id="cfg-ra-user" placeholder="Seu usuário no RetroAchievements" value="${cfg.raUsername || ''}">
           </div>
         </div>
         <div class="field-row">
-          <label>Executável do Emulador Pré-configurado:</label>
+          <label>Senha RetroAchievements (para Token):</label>
           <div class="field-input-group">
-            <input type="text" id="cfg-emu-${cid}" value="${c.emulatorPath || ''}">
+            <input type="password" id="cfg-ra-pass" placeholder="${cfg.raToken ? 'Token já conectado (digite para renovar)' : 'Sua senha'}" value="">
           </div>
         </div>
-        ${c.corePath ? `
         <div class="field-row">
-          <label>Núcleo (Core Libretro):</label>
+          <label>Web API Key RetroAchievements:</label>
           <div class="field-input-group">
-            <input type="text" id="cfg-core-${cid}" value="${c.corePath || ''}">
+            <input type="password" id="cfg-ra-key" placeholder="Sua Web API Key (em Settings do site RetroAchievements.org)" value="${cfg.raWebApiKey || ''}">
           </div>
-        </div>` : ''}
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+          <button type="button" class="btn-secondary" style="color:#10b981;border-color:rgba(16,185,129,0.45);" onclick="window.connectRetroAchievementsEmulators()">
+            🔗 Conectar & Injetar nos Emuladores
+          </button>
+          <button type="button" class="btn-secondary" style="color:#38bdf8;border-color:rgba(56,189,248,0.45);" onclick="window.scanPcLocalAchievements()">
+            🔍 Escanear Conquistas Locais de PC
+          </button>
+        </div>
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'emulators') {
+    html = `
+      <div class="settings-card">
+        <h3>💾 Gerenciador de Backup de Saves e Memory Cards (1 Clique)</h3>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
+          Exporte todos os saves, memory cards e savestates dos seus emuladores (RetroArch, DuckStation, PCSX2, Dolphin, PPSSPP, RPCS3) em um único arquivo .ZIP consolidado.
+        </p>
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.exportSavesBackup()">📦 Criar Novo Backup Agora (.ZIP)</button>
+          <button class="btn-secondary" onclick="window.openSavesFolder()">📂 Abrir Pasta de Backups</button>
+          <button class="btn-secondary" onclick="window.loadBackupsList()">🔄 Atualizar Lista</button>
+        </div>
+        <div id="backups-list-container" class="backups-list-box">
+          <div style="color:var(--text-muted);font-size:12px;">Carregando backups...</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>🕹️ Mapeamento de Emuladores & Cores</h3>
+        ${Object.entries(cfg.consoles || {}).map(([cid, c]) => `
+          <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <strong style="color:#fff;display:block;margin-bottom:4px;">${c.name} (${cid})</strong>
+            <div style="font-size:11.5px;color:var(--text-muted);word-break:break-all;">
+              <span>Executável: <code>${c.emulatorPath || 'Embutido'}</code></span>
+              ${c.corePath ? `<br><span>Core: <code>${c.corePath}</code></span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (currentSettingsSubTab === 'account') {
+    const prof = currentUserProfile || {};
+    html = `
+      <div class="settings-card">
+        <h3>👤 Perfil do Jogador & Conta Hydra</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+          Configure suas informações visuais locais ou sincronize com sua conta oficial da Hydra Launcher Network.
+        </p>
+        <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+          <img src="${prof.profileImageUrl || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100'}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #38bdf8;">
+          <div>
+            <h4 style="margin:0 0 4px 0;color:#fff;font-size:16px;">${prof.displayName || 'Gamer'} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">(@${prof.username || 'gamer'})</span></h4>
+            <span style="font-size:12px;color:#10b981;font-weight:600;">${prof.subscription ? `Hydra ${prof.subscription}` : 'Modo Local / Conectado'}</span>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:10px;">
+            <button class="chip-btn primary" onclick="window.openEditProfileModal()">✏️ Editar Perfil</button>
+            <button class="chip-btn" onclick="window.switchTab('PROFILE')">Ver Página de Perfil</button>
+          </div>
+        </div>
+
+        <div style="padding:16px;background:rgba(2,132,199,0.08);border:1px solid rgba(2,132,199,0.3);border-radius:10px;">
+          <strong style="color:#38bdf8;font-size:13px;display:block;margin-bottom:6px;">🔑 Conexão com API Oficial Hydra (Bearer Token)</strong>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+            Ao conectar seu token da API do Hydra (<code>https://api.hydralauncher.gg</code>), seu karma, perfil em nuvem e histórico são sincronizados automaticamente.
+          </p>
+          <div style="display:flex;gap:10px;">
+            <button class="chip-btn" style="background:#0284c7;color:#fff;border-color:#0284c7;" onclick="window.openEditProfileModal()">Gerenciar Token Hydra</button>
+            <button class="chip-btn danger" onclick="window.logoutProfile()">Restaurar Perfil Padrão</button>
+          </div>
+        </div>
       </div>
     `;
   }
 
-  html += `
-    <div class="settings-card">
-      <h3>🎨 SteamGridDB — Capas, Banners & Logos em Alta Definição</h3>
-      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">
-        Conecte com a API do SteamGridDB para obter pôsteres em alta resolução (600x900), banners panorâmicos e logos transparentes.
-      </p>
-      <div class="field-row">
-        <label>Chave da API SteamGridDB (API Key):</label>
-        <div class="field-input-group">
-          <input type="password" id="cfg-steamgrid-key" placeholder="Cole sua API Key aqui (ex: 8a7f9b...)" value="${appState.config?.steamGridDbApiKey || ''}">
-          <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" class="btn-secondary" style="display:inline-flex;align-items:center;text-decoration:none;">🔑 Gerar Chave Gratuita</a>
-        </div>
-      </div>
-      <div style="margin-top:10px;display:flex;gap:10px;">
-        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="syncAllSteamGrid()">⚡ Baixar Artes em HD para Todos os Jogos</button>
-      </div>
-    </div>
-  `;
-
-  html += `
-    <div class="settings-card">
-      <h3>🌐 Metadados e Sinopses Automáticas (Wikipedia & Web)</h3>
-      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
-        O HydraRetro pesquisa e preenche automaticamente o enredo original, ano de lançamento, desenvolvedora e publicadora dos seus jogos sem precisar de nenhuma chave ou configuração adicional.
-      </p>
-      <div style="display:flex;gap:10px;">
-        <button class="btn-secondary" style="color:#38bdf8;border-color:#38bdf8;" onclick="syncAllMetadata()">⚡ Sincronizar Sinopses e Metadados Online Agora</button>
-      </div>
-    </div>
-  `;
-
-  html += `
-    <div class="settings-card">
-      <h3>🔊 Áudio & Efeitos Sonoros de Interface (UI SFX)</h3>
-      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
-        Sons suaves e táteis de console gerados nativamente via Web Audio API para navegação por controle ou teclado.
-      </p>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <button class="btn-secondary" id="btn-toggle-sfx" onclick="window.toggleSfx()">
-          ${sfxEnabled ? '🔊 Efeitos Sonoros: ATIVADOS' : '🔇 Efeitos Sonoros: DESATIVADOS'}
-        </button>
-        <button class="btn-secondary" onclick="playSfx('launch')">▶ Testar Som de Boot</button>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <h3>💾 Gerenciador de Backup de Saves e Memory Cards (1 Clique)</h3>
-      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;">
-        Exporte todos os saves, memory cards e savestates dos seus emuladores (RetroArch, DuckStation, PCSX2, Dolphin, PPSSPP, RPCS3) em um único arquivo .ZIP consolidado para nunca perder seu progresso.
-      </p>
-      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.exportSavesBackup()">📦 Criar Novo Backup Agora (.ZIP)</button>
-        <button class="btn-secondary" onclick="window.openSavesFolder()">📂 Abrir Pasta de Backups</button>
-        <button class="btn-secondary" onclick="window.loadBackupsList()">🔄 Atualizar Lista</button>
-      </div>
-      <div id="backups-list-container" class="backups-list-box">
-        <div style="color:var(--text-muted);font-size:12px;">Carregando backups...</div>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <h3>🌐 ScreenScraper.fr (Fonte Primária) — Metadados & Box Arts por Hash (2D / 3D)</h3>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">
-        Padrão de excelência em scraping retrô (Batocera, RetroPie), configurado como <strong>FONTE PRIMÁRIA</strong> no HydraRetro. A sua conta de usuário (ssid/sspassword) define seu limite de requisições por dia (20.000 grátis / até 100.000 apoiadores), enquanto o Dev ID autoriza a conexão da aplicação.
-      </p>
-      <div class="field-row">
-        <label>Usuário ScreenScraper (ssid):</label>
-        <div class="field-input-group">
-          <input type="text" id="cfg-ss-user" placeholder="Seu usuário no screenscraper.fr" value="${appState.config?.ssUsername || ''}">
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Senha ScreenScraper (sspassword):</label>
-        <div class="field-input-group">
-          <input type="password" id="cfg-ss-pass" placeholder="Sua senha no screenscraper.fr" value="${appState.config?.ssPassword || ''}">
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Dev ID (devid):</label>
-        <div class="field-input-group">
-          <input type="text" id="cfg-ss-devid" placeholder="Seu Dev ID (registrado em screenscraper.fr)" value="${appState.config?.ssDevId || ''}">
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Dev Password (devpassword):</label>
-        <div class="field-input-group">
-          <input type="password" id="cfg-ss-devpass" placeholder="Sua senha de desenvolvedor ScreenScraper" value="${appState.config?.ssDevPassword || ''}">
-        </div>
-      </div>
-      <div style="display:flex;gap:12px;margin-top:10px;align-items:center;flex-wrap:wrap;">
-        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.testScreenScraper()">🔍 Testar Conexão com ScreenScraper</button>
-        <span id="ss-test-status" style="font-size:12px;color:var(--text-muted);"></span>
-      </div>
-      <p style="font-size:11px;color:#6b7280;margin-top:8px;">
-        💡 Crie uma conta gratuita em <a href="https://www.screenscraper.fr" target="_blank" style="color:var(--accent);text-decoration:underline;">screenscraper.fr</a>. As credenciais Dev ID e Dev Password podem ser solicitadas na aba de desenvolvedores do fórum do ScreenScraper.
-      </p>
-    </div>
-
-    <div class="settings-card">
-      <h3>🎮 TheGamesDB (Opcional) — Boxarts Oficiais da Comunidade</h3>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">
-        Banco de dados aberto TheGamesDB. Obtenha uma API Key gratuita criando uma conta em <a href="https://thegamesdb.net" target="_blank" style="color:var(--accent);text-decoration:underline;">thegamesdb.net</a>.
-      </p>
-      <div class="field-row">
-        <label>API Key TheGamesDB:</label>
-        <div class="field-input-group">
-          <input type="password" id="cfg-tgdb-key" placeholder="Sua API Key do TheGamesDB" value="${appState.config?.theGamesDbApiKey || ''}">
-        </div>
-      </div>
-    </div>
-
-<div class="settings-card">
-      <h3>🏆 Integração Opcional RetroAchievements.org</h3>
-      <div class="field-row">
-        <label>Usuário RetroAchievements:</label>
-        <div class="field-input-group">
-          <input type="text" id="cfg-ra-user" placeholder="Seu usuário no RetroAchievements" value="${appState.config?.raUsername || ''}">
-        </div>
-      </div>
-      <div class="field-row">
-        <label>Web API Key RetroAchievements:</label>
-        <div class="field-input-group">
-          <input type="password" id="cfg-ra-key" placeholder="Sua Web API Key" value="${appState.config?.raWebApiKey || ''}">
-        </div>
-      </div>
-      <div style="margin-top:8px;">
-        <button class="play-btn-large" style="max-width:260px;" onclick="saveSettings()">💾 Salvar & Re-escanear Biblioteca</button>
-      </div>
-    </div>
-  `;
-
   container.innerHTML = html;
-  window.loadBackupsList();
+  if (currentSettingsSubTab === 'emulators') window.loadBackupsList();
+  if (currentSettingsSubTab === 'integrations') window.loadStoresStatus();
+  if (currentSettingsSubTab === 'folders') window.loadPcFoldersList();
 }
+
+window.connectRetroAchievementsEmulators = async () => {
+  const username = document.getElementById('cfg-ra-user')?.value?.trim() || '';
+  const password = document.getElementById('cfg-ra-pass')?.value || '';
+  const webApiKey = document.getElementById('cfg-ra-key')?.value?.trim() || '';
+  const hardcore = Boolean(document.getElementById('cfg-ra-hardcore')?.checked);
+
+  if (!username) {
+    showToast('Informe seu usuário do RetroAchievements.org!');
+    return;
+  }
+
+  showToast('Conectando e injetando credenciais nos emuladores...');
+  try {
+    const res = await fetch('/api/achievements/ra-connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, webApiKey, hardcore })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      showToast(`Erro: ${data.error || 'Falha ao conectar'}`);
+      return;
+    }
+    playSfx('fav');
+    const emus = (data.injectedEmulators || []).join(', ') || 'Emuladores';
+    showToast(`✅ Conta ${data.username} injetada em: ${emus}!`);
+    await fetchState();
+  } catch {
+    showToast('Erro de comunicação com o servidor');
+  }
+};
+
+window.scanPcLocalAchievements = async () => {
+  showToast('🔍 Escaneando conquistas locais de PC (Steam, Goldberg, RUNE, CODEX, OnlineFix)...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/achievements/pc-scan', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      playSfx('fav');
+      showToast(`🏆 ${data.totalUnlocked} conquistas locais encontradas em ${data.gamesWithUnlocks} jogos de PC!`);
+      await fetchState();
+      if (currentTab === 'ACHIEVEMENTS') renderAchievementsView();
+    } else {
+      showToast('Falha ao escanear conquistas locais');
+    }
+  } catch {
+    showToast('Erro ao escanear conquistas locais');
+  }
+};
+
+window.syncAllGamesAchievements = async () => {
+  showToast('🔄 Sincronizando catálogo oficial de conquistas via Hydra API...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/achievements/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      playSfx('fav');
+      showToast(`🏆 ${data.totalAchievements} conquistas oficiais sincronizadas em ${data.syncedGames} jogos!`);
+      await fetchState();
+      if (currentTab === 'ACHIEVEMENTS') renderAchievementsView();
+    }
+  } catch {
+    showToast('Erro ao sincronizar conquistas');
+  }
+};
+
+window.openGameFromAchievements = (gameId) => {
+  const g = (appState.games || []).find(x => x.id === gameId);
+  if (g) {
+    playSfx('select');
+    selectGame(g);
+  }
+};
+
+window.addPcExeGame = async () => {
+  showToast('Abrindo seletor de executável (.EXE)...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/pc/pick-exe', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok && data.game) {
+      playSfx('fav');
+      showToast(`Jogo adicionado: ${data.game.title}!`);
+      await fetchState();
+      const added = appState.games?.find(g => g.id === data.game.id) || data.game;
+      if (added) selectGame(added);
+    } else if (data && data.error) {
+      showToast(data.error);
+    }
+  } catch (err) {
+    showToast('Erro ao abrir seletor de executável');
+  }
+};
+
+window.addPcFolder = async () => {
+  showToast('Abrindo seletor de pasta de jogos de PC...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/pc/pick-folder', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      playSfx('fav');
+      showToast('Pasta adicionada e escaneada com sucesso!');
+      await fetchState();
+      if (currentTab === 'SETTINGS') {
+        renderSettingsView();
+      }
+    } else if (data && data.error) {
+      showToast(data.error);
+    }
+  } catch (err) {
+    showToast('Erro ao adicionar pasta de jogos');
+  }
+};
+
+window.removePcFolder = async (folderPath) => {
+  if (!folderPath) return;
+  playSfx('select');
+  try {
+    const res = await fetch('/api/pc/remove-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderPath })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Pasta removida com sucesso!');
+      await fetchState();
+      if (currentTab === 'SETTINGS') {
+        renderSettingsView();
+      }
+    } else {
+      showToast(data.error || 'Erro ao remover pasta');
+    }
+  } catch (err) {
+    showToast('Erro de comunicação ao remover pasta');
+  }
+};
+
+window.syncSteamAccount = async (explicitSteamId) => {
+  const steamIdInput = document.getElementById('cfg-steam-id');
+  const steamKeyInput = document.getElementById('cfg-steam-key');
+  const steamId64 = (explicitSteamId || steamIdInput?.value || '').trim();
+  const apiKey = (steamKeyInput?.value || '').trim();
+
+  showToast('Sincronizando biblioteca Steam...');
+  playSfx('select');
+
+  try {
+    const res = await fetch('/api/steam/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ steamId64, apiKey })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      const count = data.totalSynced ?? data.synced ?? data.gamesCount ?? 0;
+      showToast(`Steam sincronizada! ${count} jogos encontrados.`);
+      playSfx('fav');
+      await fetchState();
+      window.loadStoresStatus();
+    } else {
+      showToast(data.error || 'Erro ao sincronizar Steam');
+    }
+  } catch (err) {
+    showToast('Erro de comunicação ao sincronizar Steam');
+  }
+};
+
+window.openEpicAuthPage = () => {
+  window.open('https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code', '_blank');
+};
+
+window.connectEpicWithCode = async () => {
+  const codeInput = document.getElementById('cfg-epic-code');
+  let raw = (codeInput?.value || '').trim();
+  if (!raw) {
+    showToast('Por favor, cole o código ou JSON da Epic Games no campo.');
+    return;
+  }
+  if (raw.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.authorizationCode) raw = parsed.authorizationCode;
+    } catch (_) {}
+  }
+
+  showToast('Autenticando conta Epic Games...');
+  playSfx('select');
+
+  try {
+    const res = await fetch('/api/epic/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: raw })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      const count = data.totalSynced ?? data.synced ?? data.gamesCount ?? 0;
+      showToast(`Epic Games conectada com sucesso! ${count} jogos importados.`);
+      playSfx('fav');
+      await fetchState();
+      window.loadStoresStatus();
+    } else {
+      showToast(data.error || 'Falha na autenticação da Epic Games');
+    }
+  } catch (err) {
+    showToast('Erro de comunicação ao autenticar Epic Games');
+  }
+};
+
+window.syncEpicAccount = async () => {
+  showToast('Sincronizando biblioteca Epic Games...');
+  playSfx('select');
+
+  try {
+    const res = await fetch('/api/epic/sync', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      const count = data.totalSynced ?? data.synced ?? data.gamesCount ?? 0;
+      showToast(`Epic Games sincronizada! ${count} jogos atualizados.`);
+      playSfx('fav');
+      await fetchState();
+      window.loadStoresStatus();
+    } else {
+      showToast(data.error || 'Erro ao sincronizar Epic Games');
+    }
+  } catch (err) {
+    showToast('Erro de comunicação ao sincronizar Epic Games');
+  }
+};
+
+window.logoutEpicAccount = async () => {
+  showToast('Desconectando conta Epic Games...');
+  playSfx('select');
+
+  try {
+    const res = await fetch('/api/epic/logout', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Conta Epic Games desconectada.');
+      await fetchState();
+      window.loadStoresStatus();
+    } else {
+      showToast(data.error || 'Erro ao desconectar da Epic Games');
+    }
+  } catch (err) {
+    showToast('Erro de comunicação ao desconectar da Epic Games');
+  }
+};
+
+window.loadStoresStatus = async () => {
+  try {
+    const res = await fetch('/api/stores/status');
+    const data = await res.json();
+    if (!res.ok || !data.ok) return;
+
+    // 1. Contas Steam detectadas automaticamente no Windows
+    const steamAccountsEl = document.getElementById('steam-detected-accounts');
+    if (steamAccountsEl) {
+      const users = data.steamUsers || data.detectedUsers || [];
+      if (users.length > 0) {
+        steamAccountsEl.innerHTML = `
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Contas Steam detectadas neste PC (Clique para preencher e sincronizar):</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${users.map(u => `
+              <button type="button" class="action-chip" style="font-size:12px;padding:6px 10px;" onclick="document.getElementById('cfg-steam-id').value='${u.steamId64}'; window.syncSteamAccount('${u.steamId64}');" title="SteamID64: ${u.steamId64}">
+                <span class="chip-icon">👤</span>
+                <span>${u.personaName || u.accountName || u.steamId64}</span>
+                <span style="font-size:10px;opacity:0.7;">(${u.steamId64.slice(-4)})</span>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        steamAccountsEl.innerHTML = `<div style="font-size:12px;color:var(--text-dim);">Nenhuma conta Steam detectada automaticamente no Registro do Windows. Digite seu SteamID64 abaixo.</div>`;
+      }
+    }
+
+    const steamIdInput = document.getElementById('cfg-steam-id');
+    if (steamIdInput && !steamIdInput.value && data.steamId64) {
+      steamIdInput.value = data.steamId64;
+    }
+    const steamKeyInput = document.getElementById('cfg-steam-key');
+    if (steamKeyInput && !steamKeyInput.value && data.steamApiKey) {
+      steamKeyInput.value = data.steamApiKey;
+    }
+
+    // 2. Status de login da Epic Games
+    const epicStatusEl = document.getElementById('epic-account-status');
+    if (epicStatusEl) {
+      const epic = data.epic || {};
+      if (epic.loggedIn) {
+        epicStatusEl.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:8px;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:20px;">✅</span>
+              <div>
+                <strong style="color:#6ee7b7;font-size:13px;">Conta Conectada: ${epic.displayName || epic.email || 'Usuário Epic'}</strong>
+                <div style="font-size:11px;color:var(--text-muted);">Sincronização com Legendary e manifestos locais ativa</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-secondary" style="font-size:12px;padding:6px 12px;color:var(--accent);border-color:var(--accent);" onclick="window.syncEpicAccount()">🔄 Sincronizar Epic Games</button>
+              <button type="button" class="btn-secondary" style="font-size:12px;padding:6px 12px;color:#f87171;border-color:rgba(239,68,68,0.4);" onclick="window.logoutEpicAccount()">🚪 Desconectar</button>
+            </div>
+          </div>
+        `;
+      } else {
+        epicStatusEl.innerHTML = `
+          <div style="padding:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border-subtle);border-radius:8px;">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">
+              Para importar toda a sua biblioteca Epic Games com 1 clique (sem necessidade de senha):
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+              <button type="button" class="btn-secondary" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);" onclick="window.openEpicAuthPage()">
+                🔑 1. Obter Código de Login Epic ↗
+              </button>
+              <span style="font-size:12px;color:var(--text-dim);">(abre a página oficial de autenticação da Epic Games)</span>
+            </div>
+            <div class="field-row">
+              <label>Cole aqui o authorizationCode (ou o JSON copiado da página):</label>
+              <div class="field-input-group">
+                <input type="text" id="cfg-epic-code" placeholder="Ex: 3a7f8e... ou {'authorizationCode': '...'}">
+                <button type="button" class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.connectEpicWithCode()">
+                  ⚡ 2. Conectar & Importar Jogos da Epic
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 3. Lista de pastas extras de PC
+    const pcFoldersEl = document.getElementById('pc-folders-container');
+    if (pcFoldersEl) {
+      const folders = data.pcGameFolders || appState.config?.pcGameFolders || [];
+      if (folders.length > 0) {
+        pcFoldersEl.innerHTML = `
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Pastas monitoradas de jogos de PC:</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${folders.map(f => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:6px;font-size:13px;border:1px solid var(--border-subtle);">
+                <span style="font-family:monospace;color:var(--text-main);">${f}</span>
+                <button type="button" class="btn-secondary" style="font-size:11px;padding:4px 8px;color:#f87171;border-color:rgba(239,68,68,0.4);" onclick="window.removePcFolder('${f.replace(/\\/g, '\\\\')}')">✕ Remover</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        pcFoldersEl.innerHTML = `
+          <div style="font-size:12px;color:var(--text-dim);">
+            Nenhuma pasta externa monitorada. Use os botões acima para adicionar executáveis ou pastas de jogos de PC.
+          </div>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Falha ao carregar status das lojas:', err);
+  }
+};
 
 window.testScreenScraper = async () => {
   const statusEl = document.getElementById('ss-test-status');
@@ -1200,7 +2725,7 @@ window.testScreenScraper = async () => {
 // --- COVER SELECTOR MODAL ---
 let currentCoverSource = 'all';
 let currentSourcesConfigured = {};
-const COVER_SOURCES = ['all', 'screenscraper', 'steamgriddb', 'thegamesdb', 'libretro', 'local'];
+const COVER_SOURCES = ['all', 'hydra', 'local', 'screenscraper', 'steamgriddb', 'thegamesdb', 'libretro'];
 
 function switchCoverSourceFilter(delta) {
   let idx = COVER_SOURCES.indexOf(currentCoverSource);
@@ -1423,9 +2948,15 @@ function renderCoverModalCards(game) {
     if (isActive) {
       sourceTagClass = 'active';
       sourceTagText = 'ATIVA';
+    } else if (c.type === 'hydra') {
+      sourceTagClass = 'hydra';
+      sourceTagText = 'HYDRA OFICIAL';
+    } else if (c.type === 'steam_store') {
+      sourceTagClass = 'steamgriddb';
+      sourceTagText = 'STEAM STORE';
     } else if (c.type === 'screenscraper') {
       sourceTagClass = 'screenscraper';
-      sourceTagText = 'SCREENSCRAPER (PRIMÁRIA)';
+      sourceTagText = 'SCREENSCRAPER';
     } else if (c.type === 'steamgriddb') {
       sourceTagClass = 'steamgriddb';
       sourceTagText = 'STEAMGRID';
@@ -1438,7 +2969,7 @@ function renderCoverModalCards(game) {
     }
 
     card.innerHTML = `
-      <img src="${c.thumbUrl || c.url}" class="cover-card-art" loading="lazy" alt="Cover">
+      <img src="${c.thumbUrl || c.url}" class="cover-card-art" loading="lazy" decoding="async" alt="Cover">
       <div class="cover-card-body">
         <div class="cover-badge-row">
           <span class="cover-source-tag ${sourceTagClass}">${sourceTagText}</span>
@@ -1447,6 +2978,14 @@ function renderCoverModalCards(game) {
         <div class="cover-card-title" title="${c.label}">${c.label}</div>
       </div>
     `;
+
+    // Guard against any broken image URL in the cover selector modal
+    const imgEl = card.querySelector('.cover-card-art');
+    if (imgEl) {
+      imgEl.onerror = () => {
+        card.remove();
+      };
+    }
 
     card.onclick = () => selectCoverFromModal(game, c);
     grid.appendChild(card);
@@ -1572,17 +3111,953 @@ window.syncAllSteamGrid = async () => {
   }
 };
 
-window.syncAllMetadata = async () => {
-  showToast('Iniciando busca automática de sinopses e metadados na web...');
+// --- SETTINGS ACTIONS & CONFIG SYNC ---
+window.saveGeneralSettings = async () => {
+  const launchStartup = Boolean(document.getElementById('cfg-launch-startup')?.checked);
+  const launchMin = Boolean(document.getElementById('cfg-launch-minimized')?.checked);
+  const minTray = Boolean(document.getElementById('cfg-minimize-tray')?.checked);
+  const dlPath = document.getElementById('cfg-dl-path-general')?.value?.trim();
+
   try {
-    const res = await fetch('/api/metadata/sync-all', { method: 'POST' });
-    const data = await res.json();
-    showToast(data.message || 'Sincronização iniciada em segundo plano!');
-    setTimeout(fetchState, 3000);
-  } catch (e) {
-    showToast('Erro ao iniciar sincronização.');
+    await fetch('/api/config/startup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ launchOnStartup: launchStartup, launchMinimized: launchMin })
+    });
+
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        launchOnStartup: launchStartup,
+        launchMinimized: launchMin,
+        minimizeToTray: minTray,
+        downloadSettings: {
+          ...(appState.config?.downloadSettings || {}),
+          ...(dlPath ? { downloadPath: dlPath } : {})
+        }
+      })
+    });
+    if (res.ok) {
+      showToast('Preferências gerais salvas com sucesso!');
+      playSfx('fav');
+      await fetchState();
+    }
+  } catch {
+    showToast('Erro ao salvar preferências gerais');
   }
 };
+
+window.saveDownloadConfig = async () => {
+  const path = document.getElementById('cfg-dl-path')?.value?.trim() || 'D:\\HydraDownloads';
+  const maxDl = parseInt(document.getElementById('cfg-dl-max-speed')?.value || '0', 10);
+  const maxUp = parseInt(document.getElementById('cfg-dl-upload-speed')?.value || '0', 10);
+  const seed = Boolean(document.getElementById('cfg-dl-seeding')?.checked);
+  const extract = Boolean(document.getElementById('cfg-dl-extract')?.checked);
+  const delArchive = Boolean(document.getElementById('cfg-dl-delete-archive')?.checked);
+  const shortcut = Boolean(document.getElementById('cfg-dl-shortcut')?.checked);
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        downloadSettings: {
+          downloadPath: path,
+          maxDownloadSpeedKb: maxDl,
+          maxUploadSpeedKb: maxUp,
+          continueSeeding: seed,
+          autoExtract: extract,
+          deleteAfterExtract: delArchive,
+          createDesktopShortcut: shortcut
+        }
+      })
+    });
+    if (res.ok) {
+      showToast('⚡ Configurações de download e torrent salvas!');
+      playSfx('fav');
+      await fetchState();
+    }
+  } catch {
+    showToast('Erro ao salvar opções de download');
+  }
+};
+
+window.addNewDownloadSource = async () => {
+  const input = document.getElementById('new-source-url');
+  const url = input?.value?.trim();
+  if (!url) {
+    showToast('Informe a URL da fonte de repacks (formato JSON)');
+    return;
+  }
+  showToast('Adicionando e sincronizando fonte...');
+  try {
+    const res = await fetch('/api/downloads/sources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Fonte adicionada com sucesso!');
+      playSfx('fav');
+      if (input) input.value = '';
+      await fetchState();
+      renderSettingsView();
+    } else {
+      showToast(data.error || 'Erro ao adicionar fonte');
+    }
+  } catch {
+    showToast('Falha na comunicação');
+  }
+};
+
+window.toggleSourceEnabled = async (encodedUrl, enabled) => {
+  const url = decodeURIComponent(encodedUrl);
+  await fetch('/api/downloads/sources/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, enabled })
+  });
+  await fetchState();
+};
+
+window.removeSourceByUrl = async (encodedUrl) => {
+  const url = decodeURIComponent(encodedUrl);
+  if (!confirm('Deseja realmente remover esta fonte de download?')) return;
+  await fetch('/api/downloads/sources/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url })
+  });
+  showToast('Fonte removida');
+  await fetchState();
+  renderSettingsView();
+};
+
+window.syncAllSourcesNow = async () => {
+  showToast('🔄 Sincronizando todas as fontes de repacks...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/downloads/sources/sync', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`Sucesso! ${data.totalRepacks || 0} repacks indexados no acervo!`);
+      playSfx('fav');
+      await fetchState();
+      renderSettingsView();
+    } else {
+      showToast(data.error || 'Erro na sincronização');
+    }
+  } catch {
+    showToast('Falha ao sincronizar fontes');
+  }
+};
+
+window.scanOfficialStores = async () => {
+  showToast('🔍 Escaneando lojas oficiais (Steam, Epic, GOG, Xbox / Game Pass)...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/integrations/scan-stores', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`Varredura concluída! ${data.totalDiscovered || 0} jogos instalados localizados.`);
+      playSfx('fav');
+      await fetchState();
+      renderCatalogue();
+    } else {
+      showToast('Erro ao escanear lojas');
+    }
+  } catch {
+    showToast('Falha de conexão com o scanner');
+  }
+};
+
+window.scanXboxGamePass = async () => {
+  showToast('🟢 Escaneando jogos do Xbox Game Pass em todos os discos...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/xbox/scan', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`🎮 ${data.totalXboxGames} jogos do Xbox Game Pass encontrados (${data.newlyAdded} novos)!`);
+      playSfx('fav');
+      await fetchState();
+      switchTab('XBOX');
+    } else {
+      showToast('Erro ao escanear Xbox Game Pass');
+    }
+  } catch {
+    showToast('Falha na comunicação ao escanear Xbox');
+  }
+};
+
+window.addXboxFolder = async () => {
+  showToast('Selecione a pasta onde seus jogos do Xbox estão instalados...');
+  playSfx('select');
+  try {
+    const res = await fetch('/api/xbox/add-folder', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`Pasta adicionada! ${data.totalDiscovered} jogos encontrados.`);
+      playSfx('fav');
+      await fetchState();
+      switchTab('XBOX');
+    } else if (data.message) {
+      showToast(data.message);
+    }
+  } catch {
+    showToast('Falha ao adicionar pasta do Xbox');
+  }
+};
+
+// --- HOME / STORE VIEW ENGINE (HYDRA ORIGINAL STYLE) ---
+let homeSearchDebounceTimer = null;
+let currentHomeGenre = '';
+let currentHomeSort = 'popularity:desc';
+
+async function renderHomeView() {
+  setupHomeControls();
+  await triggerHomeCatalogueLoad();
+}
+
+function setupHomeControls() {
+  document.querySelectorAll('.home-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.category === currentHomeCategory);
+    btn.onclick = () => {
+      currentHomeCategory = btn.dataset.category;
+      playSfx('nav');
+      document.querySelectorAll('.home-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const searchInput = document.getElementById('home-search-input');
+      if (searchInput) searchInput.value = '';
+      document.getElementById('home-clear-search')?.classList.add('hidden');
+      loadHomeCategory(currentHomeCategory);
+    };
+  });
+
+  const searchInput = document.getElementById('home-search-input');
+  const clearBtn = document.getElementById('home-clear-search');
+  if (searchInput && !searchInput._hasHomeHandler) {
+    searchInput._hasHomeHandler = true;
+    searchInput.oninput = (e) => {
+      const q = e.target.value.trim();
+      if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+      clearTimeout(homeSearchDebounceTimer);
+      homeSearchDebounceTimer = setTimeout(() => {
+        triggerHomeCatalogueLoad();
+      }, 350);
+    };
+  }
+
+  if (clearBtn && !clearBtn._hasClearHandler) {
+    clearBtn._hasClearHandler = true;
+    clearBtn.onclick = () => {
+      if (searchInput) searchInput.value = '';
+      clearBtn.classList.add('hidden');
+      triggerHomeCatalogueLoad();
+    };
+  }
+
+  const genreSelect = document.getElementById('home-genre-select');
+  if (genreSelect && !genreSelect._hasGenreHandler) {
+    genreSelect._hasGenreHandler = true;
+    genreSelect.onchange = (e) => {
+      currentHomeGenre = e.target.value;
+      playSfx('nav');
+      triggerHomeCatalogueLoad();
+    };
+  }
+
+  const sortSelect = document.getElementById('home-sort-select');
+  if (sortSelect && !sortSelect._hasSortHandler) {
+    sortSelect._hasSortHandler = true;
+    sortSelect.onchange = (e) => {
+      currentHomeSort = e.target.value;
+      playSfx('nav');
+      triggerHomeCatalogueLoad();
+    };
+  }
+
+  const btnSurprise = document.getElementById('btn-surprise-me');
+  if (btnSurprise) {
+    btnSurprise.onclick = () => surpriseMe();
+  }
+}
+
+async function triggerHomeCatalogueLoad() {
+  const searchInput = document.getElementById('home-search-input');
+  const query = searchInput ? searchInput.value.trim() : '';
+
+  if (query || currentHomeGenre || currentHomeSort !== 'popularity:desc') {
+    // Advanced Store Catalogue Search
+    const loading = document.getElementById('home-grid-loading');
+    if (loading) loading.classList.remove('hidden');
+    try {
+      const res = await fetch(`/api/home/search?q=${encodeURIComponent(query)}&genre=${encodeURIComponent(currentHomeGenre)}&order=${encodeURIComponent(currentHomeSort)}`);
+      const data = await res.json();
+      homeGamesCache = data.games || [];
+      if (homeGamesCache.length > 0) updateHomeHero(homeGamesCache[0]);
+      renderHomeGrid(homeGamesCache);
+    } catch {
+      showToast('Erro na consulta do catálogo Hydra');
+    } finally {
+      loading?.classList.add('hidden');
+    }
+  } else {
+    // Default categories: hot, weekly, achievements
+    await loadHomeCategory(currentHomeCategory);
+  }
+}
+
+async function loadHomeCategory(category) {
+  const loading = document.getElementById('home-grid-loading');
+  if (loading) loading.classList.remove('hidden');
+  try {
+    const res = await fetch(`/api/home/catalogue?category=${category}`);
+    const data = await res.json();
+    homeGamesCache = data.games || [];
+    if (homeGamesCache.length > 0) updateHomeHero(homeGamesCache[0]);
+    renderHomeGrid(homeGamesCache);
+  } catch (e) {
+    console.error('Error loading home category:', e);
+  } finally {
+    if (loading) loading.classList.add('hidden');
+  }
+}
+
+function updateHomeHero(game) {
+  if (!game) return;
+  const bg = document.getElementById('home-hero-backdrop');
+  const title = document.getElementById('home-hero-title');
+  const desc = document.getElementById('home-hero-desc');
+  const btnPlay = document.getElementById('btn-hero-play');
+
+  if (title) title.textContent = game.title || 'Destaque Hydra';
+  if (desc) desc.textContent = game.description || 'Explore e jogue instantaneamente com metadados e conquistas automáticas.';
+  const heroImg = game.heroUrl || game.coverUrl || '';
+  if (bg && heroImg) {
+    bg.style.backgroundImage = `url("${heroImg}")`;
+  }
+
+  if (btnPlay) {
+    btnPlay.onclick = () => {
+      playSfx('select');
+      const local = (appState.games || []).find(g => g.title?.toLowerCase() === game.title?.toLowerCase());
+      if (local) {
+        selectGame(local);
+      } else {
+        const virtualGame = {
+          id: `hydra_cat_${encodeURIComponent(game.title)}`,
+          title: game.title,
+          fileName: `${game.title}.exe`,
+          consoleId: 'PC',
+          isInstalled: false,
+          coverUrl: game.coverUrl,
+          heroUrl: game.heroUrl || game.coverUrl,
+          description: game.description,
+          developer: game.developer || 'Hydra Catalogue',
+          publisher: game.publisher || 'Acervo Oficial',
+          releaseYear: game.releaseYear || '2024',
+          rating: game.rating || 4.8,
+          genres: game.genres || ['Ação', 'Aventura']
+        };
+        selectGame(virtualGame);
+      }
+    };
+  }
+}
+
+function surpriseMe() {
+  playSfx('fav');
+  const pool = homeGamesCache.length > 0 ? homeGamesCache : (appState.games || []);
+  if (pool.length === 0) return;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  updateHomeHero(pick);
+  showToast(`✨ Surpresa: ${pick.title}!`);
+  const local = (appState.games || []).find(g => g.title?.toLowerCase() === pick.title?.toLowerCase());
+  if (local) {
+    selectGame(local);
+  } else {
+    const virtualGame = {
+      id: `hydra_cat_${encodeURIComponent(pick.title)}`,
+      title: pick.title,
+      fileName: `${pick.title}.exe`,
+      consoleId: 'PC',
+      isInstalled: false,
+      coverUrl: pick.coverUrl,
+      heroUrl: pick.heroUrl || pick.coverUrl,
+      description: pick.description,
+      developer: pick.developer || 'Hydra Catalogue',
+      publisher: pick.publisher || 'Acervo Oficial',
+      releaseYear: pick.releaseYear || '2024',
+      rating: pick.rating || 4.8,
+      genres: pick.genres || ['Ação', 'Aventura']
+    };
+    selectGame(virtualGame);
+  }
+}
+
+function renderHomeGrid(games) {
+  const grid = document.getElementById('home-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (games.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Nenhum título encontrado com os filtros aplicados.</div>`;
+    return;
+  }
+
+  games.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    const isLocal = (appState.games || []).some(lg => lg.title?.toLowerCase() === g.title?.toLowerCase() && lg.isInstalled !== false);
+
+    card.innerHTML = `
+      <div class="card-art-wrap">
+        <img src="${g.coverUrl || ''}" class="card-art loaded" loading="lazy" alt="${g.title}">
+        <div class="card-top-badges">
+          <div class="card-badges-left">
+            <span class="card-console-tag ${isLocal ? 'PC' : 'SWITCH'}">${isLocal ? 'INSTALADO' : 'CATÁLOGO'}</span>
+            ${g.rating ? `<span class="card-rating-tag">★ ${(g.rating).toFixed(1)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-title" title="${g.title}">${g.title}</div>
+        <div class="card-meta">
+          <span>${g.releaseYear || (isLocal ? 'Pronto para Jogar' : 'Disponível')}</span>
+          <span style="color:#10b981;font-weight:700;">${isLocal ? '▶ Jogar' : '📥 Baixar'}</span>
+        </div>
+      </div>
+    `;
+
+    card.onclick = () => {
+      playSfx('select');
+      const local = (appState.games || []).find(lg => lg.title?.toLowerCase() === g.title?.toLowerCase());
+      if (local) {
+        selectGame(local);
+      } else {
+        const virtualGame = {
+          id: `hydra_cat_${encodeURIComponent(g.title)}`,
+          title: g.title,
+          fileName: `${g.title}.exe`,
+          consoleId: 'PC',
+          isInstalled: false,
+          coverUrl: g.coverUrl,
+          heroUrl: g.heroUrl || g.coverUrl,
+          description: g.description,
+          developer: g.developer || 'Hydra Catalogue',
+          publisher: g.publisher || 'Acervo Oficial',
+          releaseYear: g.releaseYear || '2024',
+          rating: g.rating || 4.8,
+          genres: g.genres || ['Ação', 'Aventura']
+        };
+        selectGame(virtualGame);
+      }
+    };
+
+    grid.appendChild(card);
+  });
+}
+
+// --- DOWNLOADS MANAGER ENGINE ---
+function startDownloadsPolling() {
+  stopDownloadsPolling();
+  pollDownloads();
+  downloadsPollingInterval = setInterval(pollDownloads, 1200);
+}
+
+function stopDownloadsPolling() {
+  if (downloadsPollingInterval) {
+    clearInterval(downloadsPollingInterval);
+    downloadsPollingInterval = null;
+  }
+}
+
+async function pollDownloads() {
+  try {
+    const res = await fetch('/api/downloads/list');
+    const data = await res.json();
+    updateDownloadsUI(data);
+  } catch (e) {
+    console.error('Downloads poll error:', e);
+  }
+}
+
+function updateDownloadsUI(data) {
+  const downloads = data.downloads || [];
+  const activeDl = data.activeCount || 0;
+
+  const spdEl = document.getElementById('dl-global-speed');
+  if (spdEl) spdEl.textContent = formatBytesPerSec(data.globalDownloadSpeedBytes || 0);
+
+  const upEl = document.getElementById('dl-upload-speed');
+  if (upEl) upEl.textContent = formatBytesPerSec(data.globalUploadSpeedBytes || 0);
+
+  const countEl = document.getElementById('dl-active-count');
+  if (countEl) countEl.textContent = activeDl;
+
+  const badge = document.getElementById('badge-downloads');
+  if (badge) badge.textContent = activeDl;
+
+  const emptyState = document.getElementById('downloads-empty-state');
+  const listEl = document.getElementById('downloads-list');
+
+  if (downloads.length === 0) {
+    emptyState?.classList.remove('hidden');
+    if (listEl) listEl.innerHTML = '';
+    return;
+  }
+
+  emptyState?.classList.add('hidden');
+  if (!listEl) return;
+
+  listEl.innerHTML = downloads.map(d => {
+    const progress = Math.min(100, Math.max(0, d.progress || 0));
+    const speedStr = formatBytesPerSec(d.downloadSpeedBytes || 0);
+    const downloadedStr = formatSize(d.downloadedBytes || 0);
+    const totalStr = formatSize(d.totalBytes || 0);
+    const statusClass = d.status || 'downloading';
+
+    let statusText = 'Baixando';
+    if (d.status === 'seeding') statusText = 'Semeando (Seed)';
+    else if (d.status === 'extracting') statusText = 'Extraindo (7-Zip)...';
+    else if (d.status === 'completed') statusText = 'Concluído';
+    else if (d.status === 'paused') statusText = 'Pausado';
+
+    return `
+      <div class="download-card">
+        <div class="dl-card-icon">
+          ${d.status === 'completed' ? '✅' : (d.status === 'extracting' ? '📦' : '📥')}
+        </div>
+        <div class="dl-card-info">
+          <div class="dl-card-title-row">
+            <span class="dl-card-title" title="${d.title}">${d.title}</span>
+            <span class="dl-card-status-pill ${statusClass}">${statusText}</span>
+          </div>
+          <div class="dl-card-progress-bar">
+            <div class="dl-card-progress-fill" style="width:${progress.toFixed(1)}%;"></div>
+          </div>
+          <div class="dl-card-meta-row">
+            <span><strong>${progress.toFixed(1)}%</strong> (${downloadedStr} de ${totalStr})</span>
+            ${d.status === 'downloading' ? `<span>⚡ ${speedStr}</span>` : ''}
+            ${d.peersCount ? `<span>👥 ${d.peersCount} peers</span>` : ''}
+          </div>
+        </div>
+        <div class="dl-card-actions">
+          ${d.status === 'paused' ? `
+            <button type="button" class="dl-btn" onclick="window.resumeDownload('${d.id}')">▶ Retomar</button>
+          ` : (d.status === 'downloading' ? `
+            <button type="button" class="dl-btn" onclick="window.pauseDownload('${d.id}')">⏸ Pausar</button>
+          ` : '')}
+          <button type="button" class="dl-btn" onclick="window.openDownloadTargetFolder('${d.id}')">📂 Pasta</button>
+          <button type="button" class="dl-btn danger" onclick="window.cancelDownload('${d.id}')">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatBytesPerSec(bytes) {
+  if (!bytes || bytes <= 0) return '0.0 MB/s';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB/s`;
+}
+
+function renderDownloadsView() {
+  setupDownloadsControls();
+  pollDownloads();
+}
+
+let currentTorrentFile = null;
+let currentTorrentBase64 = null;
+let addDownloadHandlersInitialized = false;
+
+function setupDownloadsControls() {
+  const btnAdd = document.getElementById('btn-open-add-dl-modal');
+  if (btnAdd) btnAdd.onclick = () => openAddDownloadModal();
+
+  const btnOpenFolder = document.getElementById('btn-open-downloads-folder');
+  if (btnOpenFolder) {
+    btnOpenFolder.onclick = () => fetch('/api/downloads/open-folder', { method: 'POST' });
+  }
+
+  const btnGotoSettings = document.getElementById('btn-goto-dl-settings');
+  if (btnGotoSettings) {
+    btnGotoSettings.onclick = () => {
+      currentSettingsSubTab = 'downloads';
+      switchTab('SETTINGS');
+    };
+  }
+
+  const closeAddModal = document.getElementById('close-add-dl-modal');
+  if (closeAddModal) closeAddModal.onclick = () => closeAddDownloadModal();
+
+  const cancelAdd = document.getElementById('btn-cancel-add-dl');
+  if (cancelAdd) cancelAdd.onclick = () => closeAddDownloadModal();
+
+  const confirmAdd = document.getElementById('btn-confirm-add-dl');
+  if (confirmAdd) confirmAdd.onclick = () => confirmAddDownload();
+
+  setupAddDownloadModalHandlers();
+}
+
+function setupAddDownloadModalHandlers() {
+  if (addDownloadHandlersInitialized) return;
+  addDownloadHandlersInitialized = true;
+
+  const dropzone = document.getElementById('torrent-dropzone');
+  const fileInput = document.getElementById('torrent-file-browser');
+  const btnBrowse = document.getElementById('btn-browse-torrent-file');
+  const btnRemove = document.getElementById('btn-remove-selected-torrent');
+  const uriTextarea = document.getElementById('add-dl-uri');
+  const changePathBtn = document.getElementById('btn-change-dl-path');
+
+  if (btnBrowse && fileInput) {
+    btnBrowse.onclick = (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    };
+  }
+
+  if (dropzone && fileInput) {
+    dropzone.onclick = (e) => {
+      if (e.target.closest('#btn-remove-selected-torrent')) return;
+      if (!currentTorrentFile) fileInput.click();
+    };
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('drag-over');
+    });
+
+    dropzone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.name.toLowerCase().endsWith('.torrent')) {
+          handleTorrentFileSelect(file);
+        } else {
+          showToast('Por favor, arraste um arquivo com extensão .torrent');
+        }
+      } else if (e.dataTransfer) {
+        const text = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
+        if (text) {
+          handleMagnetOrUriInput(text);
+        }
+      }
+    });
+  }
+
+  if (fileInput) {
+    fileInput.onchange = (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleTorrentFileSelect(e.target.files[0]);
+      }
+    };
+  }
+
+  if (btnRemove) {
+    btnRemove.onclick = (e) => {
+      e.stopPropagation();
+      clearSelectedTorrent();
+    };
+  }
+
+  if (uriTextarea) {
+    uriTextarea.oninput = (e) => {
+      const val = e.target.value.trim();
+      extractTitleFromMagnet(val);
+    };
+
+    uriTextarea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uriTextarea.classList.add('drag-over');
+    });
+
+    uriTextarea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      uriTextarea.classList.remove('drag-over');
+    });
+
+    uriTextarea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uriTextarea.classList.remove('drag-over');
+      const text = e.dataTransfer?.getData('text/plain') || e.dataTransfer?.getData('text/uri-list');
+      if (text) {
+        handleMagnetOrUriInput(text);
+      }
+    });
+  }
+
+  if (changePathBtn) {
+    changePathBtn.onclick = () => {
+      closeAddDownloadModal();
+      currentSettingsSubTab = 'downloads';
+      switchTab('SETTINGS');
+    };
+  }
+}
+
+function handleTorrentFileSelect(file) {
+  playSfx('select');
+  currentTorrentFile = file;
+  const reader = new FileReader();
+  reader.onload = () => {
+    currentTorrentBase64 = reader.result;
+    document.getElementById('dropzone-idle-content')?.classList.add('hidden');
+    const selectedEl = document.getElementById('dropzone-selected-content');
+    if (selectedEl) selectedEl.classList.remove('hidden');
+    document.getElementById('selected-torrent-name').textContent = file.name;
+    document.getElementById('selected-torrent-size').textContent = `${(file.size / 1024).toFixed(1)} KB`;
+
+    const titleInput = document.getElementById('add-dl-title');
+    if (titleInput && (!titleInput.value || titleInput.value.trim() === '')) {
+      const cleanName = file.name.replace(/\.torrent$/i, '').replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+      titleInput.value = cleanName;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearSelectedTorrent() {
+  currentTorrentFile = null;
+  currentTorrentBase64 = null;
+  const fileInput = document.getElementById('torrent-file-browser');
+  if (fileInput) fileInput.value = '';
+  document.getElementById('dropzone-idle-content')?.classList.remove('hidden');
+  document.getElementById('dropzone-selected-content')?.classList.add('hidden');
+  playSfx('back');
+}
+
+function handleMagnetOrUriInput(text) {
+  const uriTextarea = document.getElementById('add-dl-uri');
+  if (uriTextarea) {
+    uriTextarea.value = text.trim();
+    extractTitleFromMagnet(text.trim());
+    playSfx('nav');
+  }
+}
+
+function extractTitleFromMagnet(uri) {
+  if (!uri || !uri.startsWith('magnet:')) return;
+  const match = uri.match(/[?&]dn=([^&]+)/i);
+  if (match && match[1]) {
+    try {
+      const decoded = decodeURIComponent(match[1].replace(/\+/g, ' '));
+      const titleInput = document.getElementById('add-dl-title');
+      if (titleInput && (!titleInput.value || titleInput.value.trim() === '')) {
+        titleInput.value = decoded.replace(/[._]/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+    } catch {}
+  }
+}
+
+function openAddDownloadModal() {
+  playSfx('select');
+  clearSelectedTorrent();
+  const modal = document.getElementById('add-download-modal');
+  if (modal) modal.classList.remove('hidden');
+
+  const dlPath = appState.config?.downloadSettings?.downloadPath || 'D:\\HydraDownloads';
+  const pathEl = document.getElementById('add-dl-save-path');
+  if (pathEl) pathEl.textContent = dlPath;
+
+  const uriEl = document.getElementById('add-dl-uri');
+  if (uriEl) uriEl.value = '';
+  const titleEl = document.getElementById('add-dl-title');
+  if (titleEl) {
+    titleEl.value = '';
+    titleEl.focus();
+  }
+}
+
+function closeAddDownloadModal() {
+  playSfx('back');
+  clearSelectedTorrent();
+  document.getElementById('add-download-modal')?.classList.add('hidden');
+}
+
+async function confirmAddDownload() {
+  const title = document.getElementById('add-dl-title')?.value?.trim();
+  const uri = document.getElementById('add-dl-uri')?.value?.trim();
+
+  if (!currentTorrentBase64 && !uri) {
+    showToast('Selecione um arquivo .torrent ou informe um link magnet');
+    return;
+  }
+
+  showToast('Iniciando download via Libtorrent...');
+  playSfx('launch');
+
+  const savePath = appState.config?.downloadSettings?.downloadPath || '';
+
+  try {
+    const payload = {
+      title: title || (currentTorrentFile ? currentTorrentFile.name.replace(/\.torrent$/i, '') : 'Download Torrent'),
+      savePath
+    };
+
+    if (currentTorrentBase64) {
+      payload.torrentBase64 = currentTorrentBase64;
+      payload.torrentFileName = currentTorrentFile?.name || 'game.torrent';
+    } else {
+      payload.uri = uri;
+      payload.uris = [uri];
+    }
+
+    const res = await fetch('/api/downloads/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Download adicionado com sucesso!');
+      closeAddDownloadModal();
+      switchTab('DOWNLOADS');
+      pollDownloads();
+    } else {
+      showToast(data.error || 'Erro ao iniciar download');
+    }
+  } catch {
+    showToast('Falha na comunicação');
+  }
+}
+
+window.pauseDownload = async (id) => {
+  playSfx('nav');
+  await fetch('/api/downloads/pause', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  pollDownloads();
+};
+
+window.resumeDownload = async (id) => {
+  playSfx('select');
+  await fetch('/api/downloads/resume', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  pollDownloads();
+};
+
+window.cancelDownload = async (id) => {
+  if (!confirm('Deseja realmente cancelar este download?')) return;
+  playSfx('back');
+  await fetch('/api/downloads/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, deleteFiles: false })
+  });
+  showToast('Download cancelado');
+  pollDownloads();
+};
+
+window.openDownloadTargetFolder = async (id) => {
+  playSfx('select');
+  await fetch('/api/downloads/open-folder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+};
+
+// --- REPACKS & DOWNLOAD SOURCES MODAL ---
+async function openRepacksModal(gameTitle) {
+  playSfx('select');
+  const modal = document.getElementById('repacks-modal');
+  const titleEl = document.getElementById('repacks-modal-title');
+  const listEl = document.getElementById('repacks-list');
+  const loading = document.getElementById('repacks-modal-loading');
+
+  if (titleEl) titleEl.textContent = `📦 Opções de Download: ${gameTitle}`;
+  if (listEl) listEl.innerHTML = '';
+  modal?.classList.remove('hidden');
+  loading?.classList.remove('hidden');
+
+  const closeBtn = document.getElementById('close-repacks-modal');
+  if (closeBtn) closeBtn.onclick = () => closeRepacksModal();
+  const closeBtn2 = document.getElementById('btn-close-repacks');
+  if (closeBtn2) closeBtn2.onclick = () => closeRepacksModal();
+
+  try {
+    const res = await fetch(`/api/downloads/repacks?title=${encodeURIComponent(gameTitle)}`);
+    const data = await res.json();
+    const repacks = data.repacks || [];
+
+    if (repacks.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align:center;padding:30px;color:var(--text-muted);">
+          <p>Nenhum repack encontrado diretamente para este título nas fontes cadastradas.</p>
+          <button type="button" class="btn-secondary" style="margin-top:12px;color:var(--accent);border-color:var(--accent);" onclick="closeRepacksModal(); openAddDownloadModal();">
+            ➕ Adicionar Magnet Manual
+          </button>
+        </div>
+      `;
+    } else {
+      listEl.innerHTML = repacks.map(r => `
+        <div class="repack-card">
+          <div class="repack-info">
+            <span class="repack-title">${r.title}</span>
+            <div class="repack-meta">
+              <span class="repack-source-pill">${r.source || 'Fonte'}</span>
+              <span>${r.fileSize || formatSize(r.fileSizeBytes)}</span>
+              <span>${r.uris?.length || 1} links</span>
+            </div>
+          </div>
+          <button type="button" class="chip-btn primary" style="background:#10b981;border-color:#10b981;" onclick="window.startDownloadFromRepack('${encodeURIComponent(r.title)}', '${encodeURIComponent(JSON.stringify(r.uris || []))}')">
+            🚀 Baixar Agora
+          </button>
+        </div>
+      `).join('');
+    }
+  } catch {
+    if (listEl) listEl.innerHTML = `<div style="color:#f87171;padding:20px;">Falha ao consultar fontes de repacks.</div>`;
+  } finally {
+    loading?.classList.add('hidden');
+  }
+}
+
+function closeRepacksModal() {
+  playSfx('back');
+  document.getElementById('repacks-modal')?.classList.add('hidden');
+}
+
+window.startDownloadFromRepack = async (encodedTitle, encodedUris) => {
+  const title = decodeURIComponent(encodedTitle);
+  const uris = JSON.parse(decodeURIComponent(encodedUris));
+  closeRepacksModal();
+  showToast(`Iniciando download de ${title}...`);
+  playSfx('launch');
+  try {
+    const res = await fetch('/api/downloads/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, uris })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Download adicionado à fila!');
+      switchTab('DOWNLOADS');
+    } else {
+      showToast(data.error || 'Erro ao iniciar download');
+    }
+  } catch {
+    showToast('Falha na comunicação ao iniciar download');
+  }
+};
+window.openRepacksModal = openRepacksModal;
 
 window.saveSettings = async () => {
   const consolesPatch = {};
@@ -1599,6 +4074,8 @@ window.saveSettings = async () => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      steamId64: document.getElementById('cfg-steam-id')?.value || '',
+      steamApiKey: document.getElementById('cfg-steam-key')?.value || '',
       raUsername: document.getElementById('cfg-ra-user')?.value || '',
       raWebApiKey: document.getElementById('cfg-ra-key')?.value || '',
       steamGridDbApiKey: document.getElementById('cfg-steamgrid-key')?.value || '',
@@ -1617,39 +4094,78 @@ window.saveSettings = async () => {
 };
 
 function switchTab(tab) {
+  closeGameContextMenu();
+  selectedGameId = null;
   currentTab = tab;
-  activeZone = (tab === 'ACHIEVEMENTS' || tab === 'SETTINGS') ? 'SIDEBAR' : 'GRID';
+  activeZone = (tab === 'ACHIEVEMENTS' || tab === 'SETTINGS' || tab === 'DOWNLOADS') ? 'SIDEBAR' : 'GRID';
   playSfx('nav');
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
 
+  const panel = document.getElementById('details-panel');
+  if (panel) panel.classList.add('hidden');
+  const video = document.getElementById('details-video');
+  if (video) video.pause();
+  const galVideo = document.getElementById('gallery-active-video');
+  if (galVideo) galVideo.pause();
+
   const vCat = document.getElementById('view-catalogue');
   const vAch = document.getElementById('view-achievements');
   const vSet = document.getElementById('view-settings');
+  const vHome = document.getElementById('view-home');
+  const vDl = document.getElementById('view-downloads');
+  const vProf = document.getElementById('view-profile');
   const azBar = document.getElementById('az-bar');
 
-  vCat.classList.add('hidden');
-  vAch.classList.add('hidden');
-  vSet.classList.add('hidden');
+  vCat?.classList.add('hidden');
+  vAch?.classList.add('hidden');
+  vSet?.classList.add('hidden');
+  vHome?.classList.add('hidden');
+  vDl?.classList.add('hidden');
+  vProf?.classList.add('hidden');
+  document.getElementById('sidebar-profile-card')?.classList.toggle('active', tab === 'PROFILE');
 
-  if (tab === 'ACHIEVEMENTS') {
-    azBar.classList.add('hidden');
-    vAch.classList.remove('hidden');
+  if (tab === 'DOWNLOADS') {
+    startDownloadsPolling();
+  } else {
+    stopDownloadsPolling();
+  }
+
+  if (tab === 'PROFILE') {
+    azBar?.classList.add('hidden');
+    vProf?.classList.remove('hidden');
+    renderProfileView();
+  } else if (tab === 'HOME') {
+    azBar?.classList.add('hidden');
+    vHome?.classList.remove('hidden');
+    renderHomeView();
+  } else if (tab === 'DOWNLOADS') {
+    azBar?.classList.add('hidden');
+    vDl?.classList.remove('hidden');
+    renderDownloadsView();
+  } else if (tab === 'ACHIEVEMENTS') {
+    azBar?.classList.add('hidden');
+    vAch?.classList.remove('hidden');
     renderAchievementsView();
   } else if (tab === 'SETTINGS') {
-    azBar.classList.add('hidden');
-    vSet.classList.remove('hidden');
+    azBar?.classList.add('hidden');
+    vSet?.classList.remove('hidden');
     renderSettingsView();
   } else {
-    azBar.classList.remove('hidden');
-    vCat.classList.remove('hidden');
+    azBar?.classList.remove('hidden');
+    vCat?.classList.remove('hidden');
     renderCatalogue(true);
   }
 }
 
-// --- GAMEPAD & KEYBOARD NAVIGATION ENGINE ---
-const TABS_ORDER = ['ALL', 'FAVORITES', 'RECENT', 'PS1', 'PS2', 'PS3', 'PSP', 'SNES', 'N64', 'GC', 'WII', 'GB', 'GBC', 'GBA', 'GENESIS', 'MAME', 'ACHIEVEMENTS', 'SETTINGS'];
+// --- GAMEPAD & KEYBOARD NAVIGATION ENGINE (HYDRA EXACT ORDER) ---
+const TABS_ORDER = [
+  'HOME', 'ALL', 'DOWNLOADS', 'ACHIEVEMENTS', 'SETTINGS',
+  'FAVORITES', 'RECENT', 'PC', 'STEAM', 'EPIC', 'GOG', 'XBOX',
+  'PS1', 'PS2', 'PS3', 'PSP', 'SNES', 'N64', 'GC', 'WII', 'SWITCH',
+  'GB', 'GBC', 'GBA', 'GENESIS', 'MAME'
+];
 
 let lastGamepadState = {};
 let lastStickTime = 0;
@@ -1736,17 +4252,26 @@ function handleGamepadButtonA() {
 }
 
 function handleGamepadButtonB() {
+  const sideMenu = document.getElementById('sidebar-context-menu');
+  if (sideMenu && !sideMenu.classList.contains('hidden')) {
+    closeSidebarContextMenu();
+    return;
+  }
+  const ctxMenu = document.getElementById('game-context-menu');
+  if (ctxMenu && !ctxMenu.classList.contains('hidden')) {
+    closeGameContextMenu();
+    return;
+  }
+  const removeModal = document.getElementById('remove-game-modal');
+  if (removeModal && !removeModal.classList.contains('hidden')) {
+    removeModal.classList.add('hidden');
+    playSfx('back');
+    return;
+  }
   if (activeZone === 'COVER_MODAL') {
     closeCoverModal();
   } else if (activeZone === 'DETAILS') {
-    selectedGameId = null;
-    activeZone = 'GRID';
-    document.getElementById('details-panel').classList.add('hidden');
-    document.getElementById('details-video').pause();
-    const hudA = document.getElementById('hud-label-a');
-    if (hudA) hudA.textContent = 'Jogar / Detalhes';
-    updateGamepadGridFocus();
-    playSfx('back');
+    closeGameDetails();
   } else if (activeZone === 'GRID') {
     playSfx('back');
   }
@@ -1884,10 +4409,325 @@ function gamepadLoop() {
   if (isButtonPressed(9)) handleGamepadStart();
 }
 
+// --- USER PROFILE & HYDRA ACCOUNT ENGINE (HYDRA LAUNCHER COMPATIBLE) ---
+let currentUserProfile = null;
+
+async function loadUserProfile() {
+  try {
+    const res = await fetch('/api/profile');
+    if (res.ok) {
+      currentUserProfile = await res.json();
+      updateProfileUI();
+    }
+  } catch (e) {
+    console.warn('Erro ao carregar perfil do usuário:', e);
+  }
+}
+window.loadUserProfile = loadUserProfile;
+
+function openHydraAuth() {
+  playSfx('select');
+  if (window.hydraAuth && typeof window.hydraAuth.openAuthWindow === 'function') {
+    window.hydraAuth.openAuthWindow();
+    showToast('Abrindo janela de login oficial do Hydra...');
+  } else {
+    // Fallback para navegador ou ambiente fora do Electron
+    window.open('https://auth.hydra.losbroxas.org/?lng=pt-BR', '_blank');
+    openEditProfileModal();
+    showToast('Faça login na aba aberta e cole a URL de redirecionamento ou token nas opções avançadas.');
+  }
+}
+window.openHydraAuth = openHydraAuth;
+
+function updateProfileUI() {
+  const isLoggedIn = Boolean(currentUserProfile && currentUserProfile.isLoggedInHydra);
+  const nameEl = document.getElementById('sidebar-profile-name');
+  const statusEl = document.getElementById('sidebar-profile-status');
+  const avatarEl = document.getElementById('sidebar-avatar');
+  const avatarPlaceholder = document.getElementById('sidebar-avatar-placeholder');
+  const statusIndicator = document.getElementById('sidebar-status-indicator');
+
+  if (isLoggedIn) {
+    if (nameEl) nameEl.textContent = currentUserProfile.displayName || currentUserProfile.username || 'Gamer';
+    if (statusEl) {
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = currentUserProfile.subscription
+        ? `Hydra ${currentUserProfile.subscription}`
+        : 'Conectado (Hydra)';
+    }
+    if (avatarEl && currentUserProfile.profileImageUrl) {
+      avatarEl.src = currentUserProfile.profileImageUrl;
+      avatarEl.classList.remove('hidden');
+      avatarPlaceholder?.classList.add('hidden');
+    } else {
+      avatarEl?.classList.add('hidden');
+      avatarPlaceholder?.classList.remove('hidden');
+    }
+    if (statusIndicator) {
+      statusIndicator.classList.remove('hidden');
+      statusIndicator.className = 'profile-status-indicator online';
+    }
+  } else {
+    // Modo Deslogado — Idêntico ao Hydra Launcher original (Sem perfil fake)
+    if (nameEl) nameEl.textContent = 'Entrar';
+    if (statusEl) {
+      statusEl.textContent = '';
+      statusEl.classList.add('hidden');
+    }
+    if (avatarEl) {
+      avatarEl.src = '';
+      avatarEl.classList.add('hidden');
+    }
+    if (avatarPlaceholder) {
+      avatarPlaceholder.classList.remove('hidden');
+    }
+    if (statusIndicator) {
+      statusIndicator.classList.add('hidden');
+    }
+  }
+
+  if (currentTab === 'PROFILE') {
+    renderProfileView();
+  }
+}
+
+function renderProfileView() {
+  const prof = currentUserProfile || {};
+  const isLoggedIn = Boolean(prof.isLoggedInHydra);
+  const loggedOutState = document.getElementById('profile-logged-out-state');
+  const loggedInContent = document.getElementById('profile-logged-in-content');
+
+  if (!isLoggedIn) {
+    if (loggedOutState) loggedOutState.classList.remove('hidden');
+    if (loggedInContent) loggedInContent.classList.add('hidden');
+    const btnPageSignIn = document.getElementById('btn-login-profile-page');
+    if (btnPageSignIn) btnPageSignIn.onclick = () => openHydraAuth();
+    return;
+  }
+
+  if (loggedOutState) loggedOutState.classList.add('hidden');
+  if (loggedInContent) loggedInContent.classList.remove('hidden');
+
+  const bannerBg = document.getElementById('profile-banner-bg');
+  const avatarLarge = document.getElementById('profile-avatar-large');
+  const nameDisplay = document.getElementById('profile-name-display');
+  const usernameTag = document.getElementById('profile-username-tag');
+  const bioText = document.getElementById('profile-bio-text');
+  const badgeSub = document.getElementById('profile-badge-sub');
+
+  if (bannerBg) {
+    bannerBg.style.backgroundImage = prof.backgroundImageUrl ? `url("${prof.backgroundImageUrl}")` : 'none';
+  }
+  if (avatarLarge) {
+    avatarLarge.src = prof.profileImageUrl || '';
+    avatarLarge.style.display = prof.profileImageUrl ? 'block' : 'none';
+  }
+  if (nameDisplay) {
+    nameDisplay.textContent = prof.displayName || prof.username || 'Gamer';
+  }
+  if (usernameTag) {
+    usernameTag.textContent = prof.username ? `@${prof.username}` : '';
+  }
+  if (bioText) {
+    bioText.textContent = prof.bio || '';
+  }
+  if (badgeSub) {
+    badgeSub.textContent = prof.subscription ? `Hydra ${prof.subscription}` : 'Hydra Oficial';
+  }
+
+  // Stats
+  const playtimeEl = document.getElementById('prof-stat-playtime');
+  const achEl = document.getElementById('prof-stat-achievements');
+  const gamesEl = document.getElementById('prof-stat-games');
+  const karmaEl = document.getElementById('prof-stat-karma');
+
+  const totalSec = prof.stats?.totalPlayTimeSeconds || appState.stats?.totalPlayTimeSeconds || 0;
+  if (playtimeEl) playtimeEl.textContent = formatPlaytime(totalSec);
+  if (achEl) achEl.textContent = prof.stats?.totalAchievements || 0;
+  if (gamesEl) gamesEl.textContent = appState.games?.length || 0;
+  if (karmaEl) karmaEl.textContent = prof.karma || 0;
+
+  // Render Top Played Games
+  const topList = prof.topPlayedGames || (appState.games || []).filter(g => (g.playTimeSeconds || 0) > 0).sort((a, b) => (b.playTimeSeconds || 0) - (a.playTimeSeconds || 0)).slice(0, 6);
+  const topGrid = document.getElementById('profile-top-games');
+  if (topGrid) {
+    topGrid.innerHTML = '';
+    if (topList.length === 0) {
+      topGrid.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:12px 0;">Nenhum jogo com tempo registrado ainda. Inicie uma partida para acumular estatísticas!</div>`;
+    } else {
+      topList.forEach(g => {
+        const item = document.createElement('div');
+        item.className = 'similar-game-card';
+        item.innerHTML = `
+          <img src="${g.coverUrl || ''}" class="similar-game-art" alt="${g.title}">
+          <div class="similar-game-info">
+            <span class="similar-game-title">${g.title}</span>
+            <span class="similar-game-meta">⏱️ ${formatPlaytime(g.playTimeSeconds || 0)}</span>
+          </div>
+        `;
+        item.onclick = () => selectGame(g);
+        topGrid.appendChild(item);
+      });
+    }
+  }
+
+  // Bind Buttons
+  const btnEdit = document.getElementById('btn-edit-profile');
+  if (btnEdit) btnEdit.onclick = () => openEditProfileModal();
+  const btnSignOut = document.getElementById('btn-signout-profile');
+  if (btnSignOut) btnSignOut.onclick = () => openSignOutModal();
+}
+
+function openEditProfileModal() {
+  playSfx('select');
+  const modal = document.getElementById('profile-edit-modal');
+  if (!modal) return;
+  const prof = currentUserProfile || {};
+  const isLoggedIn = Boolean(prof.isLoggedInHydra);
+
+  document.getElementById('edit-profile-name').value = prof.displayName || '';
+  document.getElementById('edit-profile-bio').value = prof.bio || '';
+  document.getElementById('edit-profile-avatar').value = prof.profileImageUrl || '';
+  document.getElementById('edit-profile-banner').value = prof.backgroundImageUrl || '';
+  const tokenInput = document.getElementById('edit-profile-token');
+  if (tokenInput) tokenInput.value = '';
+
+  const statusTitle = document.getElementById('modal-hydra-status-title');
+  const statusSub = document.getElementById('modal-hydra-status-sub');
+  const btnAuth = document.getElementById('btn-modal-hydra-auth');
+
+  if (statusTitle && statusSub && btnAuth) {
+    if (isLoggedIn) {
+      statusTitle.textContent = `Conectado como @${prof.username || 'gamer'}`;
+      statusSub.textContent = `Karma: ${prof.karma || 0} • Status: ${prof.subscription || 'Membro Oficial'}`;
+      btnAuth.className = 'chip-btn danger';
+      btnAuth.innerHTML = '<span>Desconectar</span>';
+      btnAuth.onclick = () => {
+        closeEditProfileModal();
+        openSignOutModal();
+      };
+    } else {
+      statusTitle.textContent = 'Conta Convidado (Offline)';
+      statusSub.textContent = 'Conecte sua conta oficial Hydra para sincronizar perfil, karma e conquistas.';
+      btnAuth.className = 'chip-btn primary';
+      btnAuth.innerHTML = '<span>Conectar</span>';
+      btnAuth.onclick = () => {
+        closeEditProfileModal();
+        openHydraAuth();
+      };
+    }
+  }
+
+  modal.classList.remove('hidden');
+
+  document.getElementById('close-profile-modal').onclick = () => closeEditProfileModal();
+  document.getElementById('btn-cancel-profile').onclick = () => closeEditProfileModal();
+  document.getElementById('btn-save-profile').onclick = () => saveProfile();
+  const btnLoginToken = document.getElementById('btn-login-hydra-token');
+  if (btnLoginToken) btnLoginToken.onclick = () => loginHydraAccount();
+}
+window.openEditProfileModal = openEditProfileModal;
+
+function closeEditProfileModal() {
+  document.getElementById('profile-edit-modal')?.classList.add('hidden');
+  playSfx('back');
+}
+
+function openSignOutModal() {
+  playSfx('select');
+  const modal = document.getElementById('signout-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  document.getElementById('close-signout-modal').onclick = () => closeSignOutModal();
+  document.getElementById('btn-cancel-signout').onclick = () => closeSignOutModal();
+  document.getElementById('btn-confirm-signout').onclick = () => confirmSignOut();
+}
+window.openSignOutModal = openSignOutModal;
+
+function closeSignOutModal() {
+  document.getElementById('signout-modal')?.classList.add('hidden');
+  playSfx('back');
+}
+
+async function confirmSignOut() {
+  playSfx('select');
+  try {
+    const res = await fetch('/api/profile/logout', { method: 'POST' });
+    if (res.ok) {
+      showToast('Você saiu da sua conta oficial Hydra.');
+      await loadUserProfile();
+      closeSignOutModal();
+    } else {
+      showToast('Erro ao encerrar sessão Hydra.');
+    }
+  } catch {
+    showToast('Falha na comunicação com o servidor.');
+  }
+}
+
+async function saveProfile() {
+  playSfx('select');
+  const displayName = document.getElementById('edit-profile-name').value.trim();
+  const bio = document.getElementById('edit-profile-bio').value.trim();
+  const profileImageUrl = document.getElementById('edit-profile-avatar').value.trim();
+  const backgroundImageUrl = document.getElementById('edit-profile-banner').value.trim();
+
+  try {
+    const res = await fetch('/api/profile/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayName, bio, profileImageUrl, backgroundImageUrl })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Perfil atualizado com sucesso!');
+      await loadUserProfile();
+      closeEditProfileModal();
+    } else {
+      showToast(data.error || 'Erro ao salvar perfil');
+    }
+  } catch {
+    showToast('Falha na comunicação com o servidor');
+  }
+}
+
+async function loginHydraAccount() {
+  playSfx('select');
+  const token = document.getElementById('edit-profile-token').value.trim();
+  if (!token) {
+    showToast('Por favor, insira a URL de autenticação ou Token');
+    return;
+  }
+  showToast('Autenticando com a API oficial do Hydra...');
+  try {
+    const res = await fetch('/api/profile/login-hydra', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload: token, token })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`Bem-vindo, ${data.profile?.displayName || data.profile?.username}! Conta Hydra conectada!`);
+      await loadUserProfile();
+      closeEditProfileModal();
+    } else {
+      showToast(data.error || 'Credenciais inválidas ou falha de autenticação');
+    }
+  } catch {
+    showToast('Falha ao conectar com a API do Hydra');
+  }
+}
+
 // Init Events
 document.addEventListener('DOMContentLoaded', () => {
   buildAzBar();
   fetchState();
+  loadUserProfile();
+  // Fallback safety timeout if scanning is complete or not triggered
+  setTimeout(() => {
+    if (!appState.isScanning) dismissBootSplash();
+  }, 6000);
   requestAnimationFrame(gamepadLoop);
 
   window.addEventListener('click', initAudio, { passive: true });
@@ -1903,7 +4743,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.onclick = () => switchTab(btn.dataset.tab);
+    btn.addEventListener('contextmenu', (e) => {
+      openSidebarContextMenu(e, btn.dataset.tab);
+    });
   });
+
+  const profileCard = document.getElementById('sidebar-profile-card');
+  if (profileCard) {
+    profileCard.onclick = () => {
+      if (!currentUserProfile?.isLoggedInHydra) {
+        openHydraAuth();
+      } else {
+        switchTab('PROFILE');
+      }
+    };
+  }
+
+  if (window.hydraAuth && typeof window.hydraAuth.onProfileUpdated === 'function') {
+    window.hydraAuth.onProfileUpdated(() => {
+      showToast('Conta Hydra conectada com sucesso!');
+      loadUserProfile();
+    });
+  }
 
   const searchInput = document.getElementById('search-input');
   const clearBtn = document.getElementById('clear-search');
@@ -1924,13 +4785,23 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCatalogue();
   };
 
-  document.getElementById('btn-quick-scan').onclick = async () => {
-    showToast('Escaneando pastas de ROMs...');
-    const res = await fetch('/api/scan', { method: 'POST' });
-    const data = await res.json();
-    await fetchState();
-    showToast(`Biblioteca sincronizada: ${data.totalGames} jogos (${data.newGamesCount} novos)!`);
-  };
+  const btnToggleInstalled = document.getElementById('btn-toggle-installed');
+  if (btnToggleInstalled) {
+    btnToggleInstalled.onclick = () => {
+      showInstalledOnly = !showInstalledOnly;
+      btnToggleInstalled.classList.toggle('active', showInstalledOnly);
+      const label = document.getElementById('label-toggle-installed');
+      if (label) label.textContent = showInstalledOnly ? '⚡ Apenas Instalados' : 'Instalados & Nuvem';
+      playSfx('select');
+      renderCatalogue(true);
+    };
+  }
+
+  // Unified All-in-One Scan Button
+  const btnScanAll = document.getElementById('btn-scan-all');
+  if (btnScanAll) {
+    btnScanAll.onclick = () => scanAllLibraryUnified();
+  }
 
   document.getElementById('btn-stop-game').onclick = async () => {
     await fetch('/api/stop', { method: 'POST' });
@@ -1939,15 +4810,19 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   document.getElementById('close-details').onclick = () => {
-    selectedGameId = null;
-    activeZone = 'GRID';
-    document.getElementById('details-panel').classList.add('hidden');
-    document.getElementById('details-video').pause();
-    const hudA = document.getElementById('hud-label-a');
-    if (hudA) hudA.textContent = 'Jogar / Detalhes';
-    updateGamepadGridFocus();
-    playSfx('back');
+    closeGameDetails();
   };
+
+  window.addEventListener('click', (e) => {
+    const menu = document.getElementById('game-context-menu');
+    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target)) {
+      closeGameContextMenu();
+    }
+    const sideMenu = document.getElementById('sidebar-context-menu');
+    if (sideMenu && !sideMenu.classList.contains('hidden') && !sideMenu.contains(e.target)) {
+      closeSidebarContextMenu();
+    }
+  });
 
   document.getElementById('btn-exit-app').onclick = async () => {
     await fetch('/api/quit', { method: 'POST' }).catch(() => {});

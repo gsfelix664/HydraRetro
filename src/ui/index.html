@@ -7,12 +7,28 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <!-- App Boot Splash Screen (Smooth Cinematic Startup) -->
+  <div id="app-boot-splash" class="app-boot-splash">
+    <div class="boot-splash-card">
+      <div class="boot-logo-wrap">
+        <div class="boot-logo-glow"></div>
+        <div class="boot-logo-icon">🎮</div>
+      </div>
+      <h1 class="boot-title">HYDRA<span>RETRO</span></h1>
+      <p id="boot-splash-status" class="boot-status">Iniciando catálogo e emuladores...</p>
+      <div class="boot-progress-track">
+        <div id="boot-progress-bar" class="boot-progress-fill"></div>
+      </div>
+      <span class="boot-version">v2.5.0 • Console Hub & Loja Hydra</span>
+    </div>
+  </div>
+
   <!-- Dynamic Backdrop -->
   <div id="hero-backdrop" class="hero-backdrop"></div>
   <div class="hero-vignette"></div>
 
   <div class="app-layout">
-    <!-- Left Navigation Sidebar -->
+    <!-- Left Navigation Sidebar (Hydra Original Exact Layout) -->
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-logo">
@@ -29,13 +45,52 @@
         </div>
       </div>
 
+      <!-- User Profile Card (Hydra Original Header) -->
+      <div id="sidebar-profile-card" class="sidebar-profile-card" title="Entrar com Conta Hydra">
+        <div class="profile-avatar-wrap">
+          <div id="sidebar-avatar-placeholder" class="sidebar-avatar-placeholder">
+            <svg class="avatar-person-icon" viewBox="0 0 16 16" width="18" height="18" fill="currentColor">
+              <path d="M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"></path>
+            </svg>
+          </div>
+          <img id="sidebar-avatar" class="sidebar-avatar-img hidden" src="" alt="Avatar">
+          <span id="sidebar-status-indicator" class="profile-status-indicator online hidden"></span>
+        </div>
+        <div class="sidebar-profile-info">
+          <span id="sidebar-profile-name" class="sidebar-profile-name">Entrar</span>
+          <span id="sidebar-profile-status" class="sidebar-profile-status hidden"></span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs in Hydra Original Order: 1. Home, 2. Library, 3. Downloads, 4. Achievements, 5. Settings -->
       <div class="nav-section">
-        <span class="nav-label">BIBLIOTECA</span>
+        <span class="nav-label">MENU PRINCIPAL</span>
+        <button class="nav-btn" data-tab="HOME">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-title">Início & Loja</span>
+        </button>
         <button class="nav-btn active" data-tab="ALL">
-          <span class="nav-icon">💠</span>
-          <span class="nav-title">Todos os Jogos</span>
+          <span class="nav-icon">📚</span>
+          <span class="nav-title">Biblioteca</span>
           <span class="nav-badge" id="badge-all">0</span>
         </button>
+        <button class="nav-btn" data-tab="DOWNLOADS">
+          <span class="nav-icon">📥</span>
+          <span class="nav-title">Downloads & Torrents</span>
+          <span class="nav-badge" id="badge-downloads" style="background:#3b82f6;color:#fff;">0</span>
+        </button>
+        <button class="nav-btn" data-tab="ACHIEVEMENTS">
+          <span class="nav-icon">🏆</span>
+          <span class="nav-title">Conquistas & Troféus</span>
+        </button>
+        <button class="nav-btn" data-tab="SETTINGS">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-title">Configurações</span>
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-label">FILTROS RÁPIDOS</span>
         <button class="nav-btn" data-tab="FAVORITES">
           <span class="nav-icon">⭐</span>
           <span class="nav-title">Favoritos</span>
@@ -45,6 +100,35 @@
           <span class="nav-icon">🕒</span>
           <span class="nav-title">Últimos Jogados</span>
           <span class="nav-badge" id="badge-recent">0</span>
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-label">PC & LOJAS DIGITAIS</span>
+        <button class="nav-btn" data-tab="PC">
+          <span class="nav-icon console-pill pc">PC</span>
+          <span class="nav-title">Jogos de PC (.EXE)</span>
+          <span class="nav-badge" id="badge-pc">0</span>
+        </button>
+        <button class="nav-btn" data-tab="STEAM">
+          <span class="nav-icon console-pill steam">STM</span>
+          <span class="nav-title">Steam</span>
+          <span class="nav-badge" id="badge-steam">0</span>
+        </button>
+        <button class="nav-btn" data-tab="EPIC">
+          <span class="nav-icon console-pill epic">EPC</span>
+          <span class="nav-title">Epic Games</span>
+          <span class="nav-badge" id="badge-epic">0</span>
+        </button>
+        <button class="nav-btn" data-tab="GOG">
+          <span class="nav-icon console-pill" style="background:#a855f7;color:#fff;">GOG</span>
+          <span class="nav-title">GOG Galaxy</span>
+          <span class="nav-badge" id="badge-gog">0</span>
+        </button>
+        <button class="nav-btn" data-tab="XBOX">
+          <span class="nav-icon console-pill" style="background:#107c10;color:#fff;">XBX</span>
+          <span class="nav-title">Xbox / Game Pass</span>
+          <span class="nav-badge" id="badge-xbox">0</span>
         </button>
       </div>
 
@@ -124,18 +208,6 @@
         </div>
       </div>
 
-      <div class="nav-section">
-        <span class="nav-label">SISTEMA</span>
-        <button class="nav-btn" data-tab="ACHIEVEMENTS">
-          <span class="nav-icon">🏆</span>
-          <span class="nav-title">Conquistas & Horas</span>
-        </button>
-        <button class="nav-btn" data-tab="SETTINGS">
-          <span class="nav-icon">⚙️</span>
-          <span class="nav-title">Configurações & ROMs</span>
-        </button>
-      </div>
-
       <!-- Total Playtime Card in Sidebar Footer -->
       <div class="sidebar-footer">
         <div class="global-stats-card">
@@ -167,18 +239,26 @@
           <div class="sort-group">
             <label>Ordenar:</label>
             <select id="sort-select">
-              <option value="ALPHA_ASC">Ordem Alfabética (A → Z)</option>
-              <option value="ALPHA_DESC">Ordem Alfabética (Z → A)</option>
+              <option value="ALPHA_ASC">Título (A → Z)</option>
+              <option value="RECENT">Jogado Recentemente</option>
+              <option value="PLAYTIME">Mais Jogado (Horas)</option>
               <option value="RATING_DESC">Melhor Avaliados (★ 5.0 → 1.0)</option>
-              <option value="RATING_ASC">Menor Nota (★ 1.0 → 5.0)</option>
-              <option value="PLAYTIME">Mais Jogados (Horas)</option>
-              <option value="RECENT">Jogados Recentemente</option>
+              <option value="ACHIEVEMENTS">Conquistas / Progresso</option>
+              <option value="INSTALLED_FIRST">Instalados Primeiro</option>
+              <option value="ALPHA_DESC">Título (Z → A)</option>
             </select>
           </div>
 
-          <button id="btn-quick-scan" class="action-chip" title="Escanear novas ROMs na pasta HydraRetro\ROMS">
+          <!-- Filter Installed Games Toggle -->
+          <button id="btn-toggle-installed" class="action-chip" title="Alternar entre mostrar apenas jogos instalados no disco ou toda a biblioteca">
+            <span class="chip-icon">⚡</span>
+            <span id="label-toggle-installed">Instalados & Nuvem</span>
+          </button>
+
+          <!-- Unified All-In-One Scan Button -->
+          <button id="btn-scan-all" class="action-chip primary" title="Escaneamento Geral Unificado: busca todas as ROMs, Jogos de PC (.EXE), Steam, Epic Games, GOG Galaxy e Xbox Game Pass de uma só vez">
             <span class="chip-icon">🔄</span>
-            <span>Escanear ROMs</span>
+            <span>Escanear Tudo</span>
           </button>
 
           <div class="clock-widget" id="clock-widget">00:00</div>
@@ -203,6 +283,138 @@
       <!-- A-Z Quick Filter Bar -->
       <div id="az-bar" class="az-bar"></div>
 
+      <!-- Home / Store View (Hydra Original Style) -->
+      <section id="view-home" class="view-section hidden">
+        <!-- Hero Featured Banner -->
+        <div class="home-hero-container" id="home-hero-container">
+          <div class="home-hero-backdrop" id="home-hero-backdrop"></div>
+          <div class="home-hero-gradient"></div>
+          <div class="home-hero-content">
+            <span class="home-hero-badge">🌟 JOGO EM DESTAQUE</span>
+            <h1 class="home-hero-title" id="home-hero-title">Carregando catálogo...</h1>
+            <p class="home-hero-desc" id="home-hero-desc">Explore os maiores lançamentos e clássicos mundiais com catálogo sincronizado.</p>
+            <div class="home-hero-actions">
+              <button type="button" id="btn-hero-play" class="play-btn-large hydra-play-btn">
+                <span>📖 Ver Detalhes</span>
+              </button>
+              <button type="button" id="btn-surprise-me" class="btn-secondary" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.25);">
+                <span>✨ Surpreenda-me</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Catalogue Categories & Search (Hydra Original Full Integration) -->
+        <div class="home-controls-bar">
+          <div class="home-tabs">
+            <button type="button" class="home-tab-btn active" data-category="hot">
+              <span>🔥 Em Alta (Hot Now)</span>
+            </button>
+            <button type="button" class="home-tab-btn" data-category="weekly">
+              <span>⭐ Top da Semana</span>
+            </button>
+            <button type="button" class="home-tab-btn" data-category="achievements">
+              <span>🏆 Games to Beat</span>
+            </button>
+          </div>
+
+          <div class="home-filters-row">
+            <div class="home-search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="home-search-icon">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" id="home-search-input" placeholder="Buscar no catálogo Hydra (ex: Cyberpunk, Resident Evil, Mario)...">
+              <button type="button" id="home-clear-search" class="clear-btn hidden">✕</button>
+            </div>
+
+            <div class="home-select-group">
+              <label>Gênero:</label>
+              <select id="home-genre-select" class="home-filter-select">
+                <option value="">Todos os Gêneros</option>
+                <option value="Action">Ação (Action)</option>
+                <option value="Adventure">Aventura (Adventure)</option>
+                <option value="RPG">RPG</option>
+                <option value="Strategy">Estratégia</option>
+                <option value="Shooter">Tiro (Shooter)</option>
+                <option value="Racing">Corrida</option>
+                <option value="Sports">Esportes</option>
+                <option value="Indie">Indie</option>
+                <option value="Simulation">Simulação</option>
+                <option value="Fighting">Luta</option>
+                <option value="Horror">Terror / Horror</option>
+                <option value="Platformer">Plataforma</option>
+              </select>
+            </div>
+
+            <div class="home-select-group">
+              <label>Ordenar Loja:</label>
+              <select id="home-sort-select" class="home-filter-select">
+                <option value="popularity:desc">Mais Populares</option>
+                <option value="alphabetical:asc">Alfabética (A-Z)</option>
+                <option value="hydraScore:desc">Melhor Avaliados (Hydra Score)</option>
+                <option value="releaseDate:desc">Lançamento Recente</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="home-grid-loading" class="cover-modal-loading hidden">
+          <span class="hltb-spinner"></span>
+          <span>Carregando títulos do catálogo Hydra...</span>
+        </div>
+
+        <!-- Games Grid for Home -->
+        <div id="home-grid" class="games-grid home-games-grid"></div>
+      </section>
+
+      <!-- Downloads Manager View -->
+      <section id="view-downloads" class="view-section hidden">
+        <div class="downloads-header">
+          <div class="dl-stats-summary">
+            <div class="dl-stat-box">
+              <span class="dl-stat-label">VELOCIDADE DE DOWNLOAD</span>
+              <strong class="dl-stat-val text-green" id="dl-global-speed">0.0 MB/s</strong>
+            </div>
+            <div class="dl-stat-box">
+              <span class="dl-stat-label">VELOCIDADE DE UPLOAD / SEED</span>
+              <strong class="dl-stat-val text-blue" id="dl-upload-speed">0.0 MB/s</strong>
+            </div>
+            <div class="dl-stat-box">
+              <span class="dl-stat-label">DOWNLOADS ATIVOS</span>
+              <strong class="dl-stat-val" id="dl-active-count">0</strong>
+            </div>
+            <div class="dl-stat-box">
+              <span class="dl-stat-label">MOTOR DE TORRENT</span>
+              <strong class="dl-stat-val" id="dl-engine-status" style="color:#10b981;">Pronto (Libtorrent)</strong>
+            </div>
+          </div>
+
+          <div class="dl-actions-bar">
+            <button type="button" id="btn-open-add-dl-modal" class="action-chip primary" style="background:#10b981;color:#fff;border-color:#10b981;">
+              <span class="chip-icon">➕</span>
+              <span>Adicionar Torrent / Magnet</span>
+            </button>
+            <button type="button" id="btn-open-downloads-folder" class="action-chip">
+              <span class="chip-icon">📂</span>
+              <span>Abrir Pasta de Downloads</span>
+            </button>
+            <button type="button" id="btn-goto-dl-settings" class="action-chip">
+              <span class="chip-icon">⚙️</span>
+              <span>Configurações</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Downloads Queue Container -->
+        <div id="downloads-empty-state" class="downloads-empty-state hidden">
+          <div class="empty-icon">📥</div>
+          <h3>Nenhum download na fila</h3>
+          <p>Adicione um link magnet, arquivo .torrent ou explore a aba <strong>Home</strong> e selecione opções de download para começar.</p>
+        </div>
+
+        <div id="downloads-list" class="downloads-list"></div>
+      </section>
+
       <!-- Catalogue View -->
       <section id="view-catalogue" class="view-section active">
         <div class="section-header">
@@ -217,180 +429,439 @@
 
       <!-- Achievements & Playtime View -->
       <section id="view-achievements" class="view-section hidden">
-        <div class="section-header">
+        <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
           <div>
             <h2>🏆 Central de Conquistas & Horas Jogadas</h2>
-            <p>Acompanhe seu histórico de sessões, tempo de jogo igual ao Hydra e marcos desbloqueados</p>
+            <p>Sincronização oficial via Hydra API (PT-BR), RetroAchievements.org e Conquistas Locais de PC (Steam / Goldberg / RUNE / CODEX / OnlineFix)</p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn-secondary" style="color:#10b981;border-color:rgba(16,185,129,0.4);" onclick="window.syncAllGamesAchievements()">
+              🔄 Sincronizar Conquistas (Hydra API)
+            </button>
+            <button type="button" class="btn-secondary" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);" onclick="window.scanPcLocalAchievements()">
+              🔍 Escanear Conquistas Locais de PC
+            </button>
           </div>
         </div>
         <div class="stats-overview-grid" id="stats-overview-grid"></div>
+        <h3 class="sub-heading">Progresso de Conquistas por Jogo</h3>
+        <div id="achievements-games-list" class="sessions-list" style="margin-bottom:24px;"></div>
         <h3 class="sub-heading">Histórico de Sessões Recentes</h3>
         <div id="sessions-list" class="sessions-list"></div>
       </section>
 
-      <!-- Settings & ROM Manager View -->
+      <!-- Settings & System Hub View -->
       <section id="view-settings" class="view-section hidden">
         <div class="section-header">
           <div>
-            <h2>⚙️ Configurações de Emuladores & Pastas de ROMs</h2>
-            <p>Basta colocar qualquer ROM nova na subpasta correspondente em <code>ROMS\</code> (ex: <code>PS1</code>, <code>PS2</code>, <code>PS3</code>, <code>PSP</code>, <code>SNES</code>, <code>N64</code>, <code>GC</code>, <code>WII</code>, <code>GB</code>, <code>GBC</code>, <code>GBA</code>, <code>GENESIS</code>, <code>MAME</code>) que o HydraRetro reconhece automaticamente ao abrir!</p>
+            <h2>⚙️ Central de Configurações & Integrações</h2>
+            <p>Gerencie opções gerais, motor de torrents, fontes de repacks, pastas monitoradas, lojas oficiais e emuladores.</p>
           </div>
+        </div>
+
+        <!-- Sub-Tabs Navigation -->
+        <div class="settings-subnav">
+          <button type="button" class="settings-tab-btn active" data-subtab="general">
+            <span>🖥️ Geral & Inicialização</span>
+          </button>
+          <button type="button" class="settings-tab-btn" data-subtab="downloads">
+            <span>⚡ Downloads & Torrent</span>
+          </button>
+          <button type="button" class="settings-tab-btn" data-subtab="sources">
+            <span>📦 Fontes de Repacks (JSON)</span>
+          </button>
+          <button type="button" class="settings-tab-btn" data-subtab="folders">
+            <span>📁 Pastas Monitoradas</span>
+          </button>
+          <button type="button" class="settings-tab-btn" data-subtab="integrations">
+            <span>🎮 Lojas & Integrações</span>
+          </button>
+          <button type="button" class="settings-tab-btn" data-subtab="emulators">
+            <span>🕹️ Emuladores & Saves</span>
+          </button>
+          <button type="button" class="settings-tab-btn" data-subtab="account">
+            <span>👤 Conta & Perfil</span>
+          </button>
         </div>
 
         <div class="settings-container" id="settings-container"></div>
       </section>
+
+      <!-- User Profile View (Hydra Original Style) -->
+      <section id="view-profile" class="view-section hidden">
+        <!-- Logged Out State (Hydra Original Style) -->
+        <div id="profile-logged-out-state" class="profile-logged-out-card">
+          <div class="logged-out-icon-wrap">
+            <svg viewBox="0 0 16 16" width="48" height="48" fill="currentColor">
+              <path d="M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"></path>
+            </svg>
+          </div>
+          <h2 style="font-size:22px;margin:12px 0 6px 0;font-weight:700;">Você não está conectado</h2>
+          <p style="color:var(--text-muted);font-size:13px;max-width:460px;margin-bottom:20px;line-height:1.5;">
+            Conecte sua conta oficial do Hydra Launcher para acessar seu perfil, conquistas, karma e reputação na comunidade.
+          </p>
+          <button type="button" id="btn-login-profile-page" class="chip-btn primary" style="font-size:14px;padding:10px 24px;">
+            <span>🔑 Entrar com Hydra</span>
+          </button>
+        </div>
+
+        <!-- Logged In Content (Loaded Dynamically) -->
+        <div id="profile-logged-in-content" class="hidden">
+          <div class="profile-hero-card" id="profile-hero-card">
+            <div class="profile-banner-bg" id="profile-banner-bg"></div>
+            <div class="profile-banner-overlay"></div>
+            <div class="profile-header-content">
+              <div class="profile-avatar-large-wrap">
+                <img id="profile-avatar-large" src="" alt="Avatar">
+                <span class="profile-status-ring online"></span>
+              </div>
+              <div class="profile-meta-text">
+                <div class="profile-name-row">
+                  <h2 id="profile-name-display"></h2>
+                  <span id="profile-badge-sub" class="profile-sub-badge">Hydra</span>
+                </div>
+                <p id="profile-username-tag" class="profile-username"></p>
+                <p id="profile-bio-text" class="profile-bio"></p>
+              </div>
+              <div class="profile-actions-top">
+                <button type="button" id="btn-edit-profile" class="chip-btn">
+                  <span>✏️ Editar Perfil</span>
+                </button>
+                <button type="button" id="btn-signout-profile" class="chip-btn danger">
+                  <span>🚪 Sair da Conta</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Stats Grid -->
+          <div class="stats-overview-grid" id="profile-stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-icon">⏱️</div>
+              <div class="stat-card-info">
+                <span class="stat-card-label">TEMPO TOTAL JOGADO</span>
+                <h3 class="stat-card-val text-accent" id="prof-stat-playtime">0h 00m</h3>
+                <span class="stat-card-sub">Em todas as plataformas</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon">🏆</div>
+              <div class="stat-card-info">
+                <span class="stat-card-label">CONQUISTAS DESBLOQUEADAS</span>
+                <h3 class="stat-card-val text-green" id="prof-stat-achievements">0</h3>
+                <span class="stat-card-sub">Hydra & RetroAchievements</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon">📦</div>
+              <div class="stat-card-info">
+                <span class="stat-card-label">JOGOS NA BIBLIOTECA</span>
+                <h3 class="stat-card-val" id="prof-stat-games">0</h3>
+                <span class="stat-card-sub">Instalados e disponíveis</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon">💎</div>
+              <div class="stat-card-info">
+                <span class="stat-card-label">KARMA HYDRA</span>
+                <h3 class="stat-card-val text-blue" id="prof-stat-karma">0</h3>
+                <span class="stat-card-sub">Pontos de reputação</span>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="sub-heading" style="margin-top:28px;">🎮 Jogos Mais Jogados</h3>
+          <div id="profile-top-games" class="similar-games-grid" style="margin-bottom:30px;"></div>
+        </div>
+      </section>
+
+      <!-- Full-Page Game Details View (Hydra Original Layout) -->
+      <section id="details-panel" class="view-section game-details-page hidden">
+        <!-- Top Navigation & Hero Banner -->
+        <div class="hydra-details-hero" id="details-hero">
+          <video id="details-video" class="details-video hidden" loop muted playsinline></video>
+          <div class="hydra-hero-gradient"></div>
+
+          <div class="hydra-hero-topbar">
+            <button id="close-details" class="hydra-back-btn" title="Voltar ao Catálogo (Esc / B)">
+              <span>← Voltar ao Catálogo</span>
+            </button>
+            <div class="details-badges">
+              <span id="details-console-badge" class="console-badge">PS1</span>
+              <span id="details-platform-badge" class="meta-badge platform-badge">SONY</span>
+              <span id="details-year-badge" class="meta-badge">1994</span>
+              <span id="details-rating-badge" class="meta-badge rating-badge">⭐ 5.0</span>
+              <span id="details-size-badge" class="meta-badge">0 MB</span>
+            </div>
+          </div>
+
+          <div class="hydra-hero-bottom">
+            <img id="details-logo" class="details-logo hidden" alt="Game Logo">
+            <div class="hydra-hero-title-wrap">
+              <h2 id="details-title" class="details-title">Título do Jogo</h2>
+              <p id="details-filename" class="details-filename">arquivo.chd</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hydra Original Action & Playtime Bar -->
+        <div class="hydra-action-bar">
+          <div class="hydra-action-left">
+            <button id="btn-play-main" class="play-btn-large hydra-play-btn">
+              <span class="play-icon" id="btn-play-main-icon">▶</span>
+              <span id="btn-play-main-text">JOGAR AGORA</span>
+            </button>
+
+            <!-- Hidden dummy for backwards compatibility with any background scripts -->
+            <button id="btn-download-options" class="play-btn-large hydra-play-btn dl-btn-accent hidden" style="display:none !important;">
+              <span class="play-icon">📥</span>
+              <span id="btn-download-options-label">DOWNLOAD</span>
+            </button>
+
+            <div id="disc-selector-box" class="disc-selector-box hidden" style="margin:0;">
+              <label style="font-size:11px;margin-right:6px;">Disco:</label>
+              <select id="disc-select"></select>
+            </div>
+
+            <div class="hydra-stat-inline">
+              <span class="pt-icon">⏱️</span>
+              <div>
+                <span class="pt-label">TEMPO JOGADO</span>
+                <strong id="details-playtime">0 min</strong>
+              </div>
+            </div>
+
+            <div class="hydra-stat-inline">
+              <span class="pt-icon">📅</span>
+              <div>
+                <span class="pt-label">ÚLTIMA SESSÃO</span>
+                <strong id="details-lastplayed">Nunca jogado</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="hydra-action-right">
+            <button id="btn-fav-toggle" class="fav-btn-large" title="Favoritar / Desfavoritar (F / Y)">
+              ☆
+            </button>
+            <button id="btn-open-cover-selector" class="hydra-tool-btn" title="Escolher Capa / Alternativas">
+              <span>🖼️ Capas</span>
+            </button>
+            <button id="btn-steamgrid-game" class="hydra-tool-btn" title="Baixar Artes HD (Hydra API / SteamGridDB)">
+              <span>🎨 Artes HD</span>
+            </button>
+            <button id="btn-open-file-loc" class="hydra-tool-btn" title="Abrir local do arquivo no Windows Explorer">
+              <span>📂 Local</span>
+            </button>
+            <button id="btn-remove-game-details" class="hydra-tool-btn danger" title="Excluir jogo da biblioteca">
+              <span>🗑️ Excluir</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Two-Column Hydra Content Grid -->
+        <div class="hydra-details-grid">
+          <!-- Left Main Column: Screenshots, About, Credits, Similar Games -->
+          <div class="hydra-details-main">
+            <!-- Screenshots & Videos Interactive Gallery -->
+            <div id="details-gallery-section" class="hydra-card-block">
+              <div class="details-section-label">CAPTURAS DE TELA & MÍDIA</div>
+              <div id="gallery-main-view" class="gallery-main-view">
+                <img id="gallery-active-img" src="" alt="Screenshot" class="gallery-active-media">
+                <video id="gallery-active-video" class="gallery-active-media hidden" controls playsinline></video>
+              </div>
+              <div id="gallery-thumbs-strip" class="gallery-thumbs-strip"></div>
+            </div>
+
+            <!-- About the Game / Synopsis & Credits -->
+            <div class="hydra-card-block">
+              <div class="details-section-label">SOBRE O JOGO</div>
+              <div class="platform-genre-row" style="margin-bottom:14px;">
+                <div id="details-platform-info" class="platform-info-pill">
+                  <span class="platform-icon">🕹️</span>
+                  <span id="details-platform-name">PlayStation 1</span>
+                </div>
+                <div id="details-genres" class="details-genres-box"></div>
+              </div>
+
+              <div class="details-desc-box" style="max-height:none;">
+                <p id="details-description" class="details-description"></p>
+                <div id="details-about-extra" class="details-about-extra hidden"></div>
+              </div>
+
+              <div class="details-specs-grid" style="margin-top:16px;">
+                <div class="spec-item">
+                  <span class="spec-label">DESENVOLVEDORA</span>
+                  <strong id="details-dev">---</strong>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">PUBLICADORA</span>
+                  <strong id="details-pub">---</strong>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">JOGADORES</span>
+                  <strong id="details-players">---</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- More Like This / Similar Games Section -->
+            <div id="details-similar-section" class="hydra-card-block">
+              <div class="details-section-label">MAIS COMO ESTE (JOGOS SIMILARES)</div>
+              <div id="details-similar-grid" class="similar-games-grid">
+                <div style="color:var(--text-muted);font-size:12px;padding:12px 0;">Buscando jogos similares no catálogo Hydra...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Sidebar: Achievements, HLTB, Controller Support, Languages, System Requirements -->
+          <div class="hydra-details-sidebar">
+            <!-- Achievements & Trophies -->
+            <div class="details-achievements hydra-sidebar-card">
+              <div class="ach-header">
+                <h3>🏆 Conquistas & Troféus</h3>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button id="btn-sync-game-ach" type="button" class="btn-secondary" style="padding:3px 8px;font-size:11px;" title="Sincronizar conquistas oficiais (Hydra API / RetroAchievements / PC)">🔄 Sincronizar</button>
+                  <span id="details-ach-Summary" class="ach-summary-pill">0/0</span>
+                </div>
+              </div>
+              <div id="details-ach-list" class="ach-list"></div>
+            </div>
+
+            <!-- HowLongToBeat (HLTB) API Section -->
+            <div class="details-hltb-card hydra-sidebar-card" id="details-hltb-card" style="margin:0;">
+              <div class="hltb-header">
+                <div class="hltb-title-group">
+                  <span class="hltb-logo-badge">HLTB</span>
+                  <strong>HowLongToBeat</strong>
+                </div>
+                <a id="hltb-external-link" href="#" target="_blank" class="hltb-link" title="Abrir página no HowLongToBeat.com">Visitar ↗</a>
+              </div>
+
+              <div id="hltb-loading" class="hltb-loading hidden">
+                <span class="hltb-spinner"></span>
+                <span>Consultando HowLongToBeat API...</span>
+              </div>
+
+              <div id="hltb-stats-grid" class="hltb-stats-grid">
+                <div class="hltb-stat-pill main">
+                  <span class="hltb-stat-label">História Principal</span>
+                  <strong class="hltb-stat-val" id="hltb-main">--</strong>
+                </div>
+                <div class="hltb-stat-pill extra">
+                  <span class="hltb-stat-label">Principal + Extras</span>
+                  <strong class="hltb-stat-val" id="hltb-extra">--</strong>
+                </div>
+                <div class="hltb-stat-pill comp">
+                  <span class="hltb-stat-label">100% / Completista</span>
+                  <strong class="hltb-stat-val" id="hltb-comp">--</strong>
+                </div>
+              </div>
+              <div class="hltb-footer-meta" id="hltb-footer-meta">
+                <span id="hltb-review-score"></span>
+                <span id="hltb-matched-name"></span>
+              </div>
+            </div>
+
+            <!-- Controller Support Card -->
+            <div class="hydra-sidebar-card" id="details-controller-box">
+              <div class="details-section-label">COMPATIBILIDADE COM CONTROLE</div>
+              <div id="details-controller-content" class="controller-support-content"></div>
+            </div>
+
+            <!-- Supported Languages Table -->
+            <div class="hydra-sidebar-card" id="details-languages-box">
+              <div class="details-section-label">IDIOMAS SUPORTADOS</div>
+              <div id="details-languages-content" class="languages-table-wrap"></div>
+            </div>
+
+            <!-- System Requirements / Platform Specifications -->
+            <div class="hydra-sidebar-card" id="details-requirements-box">
+              <div class="details-section-label">REQUISITOS DE SISTEMA</div>
+              <div class="req-tabs">
+                <button type="button" id="req-tab-min" class="req-tab-btn active">Mínimos</button>
+                <button type="button" id="req-tab-rec" class="req-tab-btn">Recomendados</button>
+              </div>
+              <div id="details-req-content" class="req-content-box"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
+  </div>
 
-    <!-- Right Game Details Drawer -->
-    <aside id="details-panel" class="details-panel hidden">
-      <button id="close-details" class="close-details-btn">✕</button>
-      <div class="details-hero" id="details-hero">
-        <video id="details-video" class="details-video hidden" loop muted playsinline></video>
-        <div class="details-hero-overlay"></div>
-        <img id="details-logo" class="details-logo hidden" alt="Game Logo">
+  <!-- Right-Click Game Context Menu (Hydra Original Style) -->
+  <div id="game-context-menu" class="hydra-context-menu hidden">
+    <div class="ctx-header" id="ctx-game-title">Jogo</div>
+    <button type="button" class="ctx-item" id="ctx-play">
+      <span class="ctx-icon">▶</span>
+      <span>Jogar Agora</span>
+    </button>
+    <button type="button" class="ctx-item" id="ctx-details">
+      <span class="ctx-icon">📖</span>
+      <span>Ver Página de Detalhes</span>
+    </button>
+    <div class="ctx-divider"></div>
+    <button type="button" class="ctx-item" id="ctx-favorite">
+      <span class="ctx-icon" id="ctx-fav-icon">☆</span>
+      <span id="ctx-fav-label">Adicionar aos Favoritos</span>
+    </button>
+    <button type="button" class="ctx-item" id="ctx-cover">
+      <span class="ctx-icon">🖼️</span>
+      <span>Escolher Capa / Alternativas</span>
+    </button>
+    <button type="button" class="ctx-item" id="ctx-hd-art">
+      <span class="ctx-icon">🎨</span>
+      <span>Baixar Artes HD (Hydra / SteamGrid)</span>
+    </button>
+    <button type="button" class="ctx-item" id="ctx-sync-ach">
+      <span class="ctx-icon">🏆</span>
+      <span>Sincronizar Conquistas e Metadados</span>
+    </button>
+    <div class="ctx-divider"></div>
+    <button type="button" class="ctx-item" id="ctx-open-folder">
+      <span class="ctx-icon">📂</span>
+      <span>Abrir Local do Arquivo</span>
+    </button>
+    <button type="button" class="ctx-item danger" id="ctx-remove">
+      <span class="ctx-icon">🗑️</span>
+      <span>Excluir da Biblioteca...</span>
+    </button>
+  </div>
+
+  <!-- Right-Click Sidebar Context Menu (Consoles, Stores & Tabs) -->
+  <div id="sidebar-context-menu" class="hydra-context-menu hidden">
+    <div class="ctx-header" id="sidebar-ctx-title">Plataforma</div>
+    <div id="sidebar-ctx-items"></div>
+  </div>
+
+  <!-- Remove Game Confirmation Modal -->
+  <div id="remove-game-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width:480px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="remove-modal-title">🗑️ Excluir da Biblioteca</h2>
+          <p id="remove-modal-subtitle">Gerenciar remoção do jogo</p>
+        </div>
+        <button id="close-remove-modal" class="modal-close-btn">✕</button>
       </div>
-
-      <div class="details-body">
-        <div class="details-badges">
-          <span id="details-console-badge" class="console-badge">PS1</span>
-          <span id="details-platform-badge" class="meta-badge platform-badge">SONY</span>
-          <span id="details-year-badge" class="meta-badge">1994</span>
-          <span id="details-rating-badge" class="meta-badge rating-badge">⭐ 5.0</span>
-          <span id="details-size-badge" class="meta-badge">0 MB</span>
-        </div>
-
-        <h2 id="details-title" class="details-title">Título do Jogo</h2>
-        <p id="details-filename" class="details-filename">arquivo.chd</p>
-
-        <!-- Primary Play & Favorite Actions -->
-        <div class="details-actions">
-          <button id="btn-play-main" class="play-btn-large">
-            <span class="play-icon">▶</span>
-            <span>JOGAR AGORA</span>
-          </button>
-          <button id="btn-fav-toggle" class="fav-btn-large" title="Favoritar (F)">
-            ☆
-          </button>
-        </div>
-
-        <!-- Multi-disc selector if game has multiple discs -->
-        <div id="disc-selector-box" class="disc-selector-box hidden">
-          <label>Selecionar Disco:</label>
-          <select id="disc-select"></select>
-        </div>
-
-        <!-- Platform & Genre Tags Section -->
-        <div class="details-section-group">
-          <div class="details-section-label">PLATAFORMA & GÊNEROS</div>
-          <div class="platform-genre-row">
-            <div id="details-platform-info" class="platform-info-pill">
-              <span class="platform-icon">🕹️</span>
-              <span id="details-platform-name">PlayStation 1</span>
-            </div>
-            <div id="details-genres" class="details-genres-box"></div>
+      <div style="padding:20px 24px;">
+        <p style="font-size:14px;color:var(--text-main);line-height:1.5;margin-bottom:14px;">
+          Tem certeza que deseja remover <strong id="remove-game-name" style="color:var(--accent);"></strong> da sua biblioteca do HydraRetro?
+        </p>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.28);border-radius:8px;cursor:pointer;">
+          <input type="checkbox" id="remove-delete-files-chk" style="margin-top:3px;width:16px;height:16px;">
+          <div>
+            <strong style="color:#f87171;font-size:13px;display:block;">Apagar também o arquivo de ROM/Jogo do disco</strong>
+            <span id="remove-file-path" style="font-size:11px;color:var(--text-muted);word-break:break-all;"></span>
           </div>
-        </div>
-
-        <!-- HowLongToBeat (HLTB) API Section -->
-        <div class="details-hltb-card" id="details-hltb-card">
-          <div class="hltb-header">
-            <div class="hltb-title-group">
-              <span class="hltb-logo-badge">HLTB</span>
-              <strong>Tempo Estimado de Jogo (HowLongToBeat)</strong>
-            </div>
-            <a id="hltb-external-link" href="#" target="_blank" class="hltb-link" title="Abrir página no HowLongToBeat.com">Visitar ↗</a>
-          </div>
-
-          <div id="hltb-loading" class="hltb-loading hidden">
-            <span class="hltb-spinner"></span>
-            <span>Consultando HowLongToBeat API...</span>
-          </div>
-
-          <div id="hltb-stats-grid" class="hltb-stats-grid">
-            <div class="hltb-stat-pill main">
-              <span class="hltb-stat-label">História Principal</span>
-              <strong class="hltb-stat-val" id="hltb-main">--</strong>
-            </div>
-            <div class="hltb-stat-pill extra">
-              <span class="hltb-stat-label">Principal + Extras</span>
-              <strong class="hltb-stat-val" id="hltb-extra">--</strong>
-            </div>
-            <div class="hltb-stat-pill comp">
-              <span class="hltb-stat-label">100% / Completista</span>
-              <strong class="hltb-stat-val" id="hltb-comp">--</strong>
-            </div>
-          </div>
-          <div class="hltb-footer-meta" id="hltb-footer-meta">
-            <span id="hltb-review-score"></span>
-            <span id="hltb-matched-name"></span>
-          </div>
-        </div>
-
-        <!-- Game Synopsis / Description -->
-        <div class="details-section-group">
-          <div class="details-section-label">SINOPSE DO JOGO</div>
-          <div class="details-desc-box">
-            <p id="details-description" class="details-description"></p>
-          </div>
-        </div>
-
-        <!-- Tech Specs & Credits Grid -->
-        <div class="details-section-group">
-          <div class="details-section-label">DETALHES TÉCNICOS & CRÉDITOS</div>
-          <div class="details-specs-grid">
-            <div class="spec-item">
-              <span class="spec-label">DESENVOLVEDORA</span>
-              <strong id="details-dev">---</strong>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">PUBLICADORA</span>
-              <strong id="details-pub">---</strong>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">JOGADORES</span>
-              <strong id="details-players">---</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Hydra-style Playtime & Stats Box -->
-        <div class="hydra-playtime-box">
-          <div class="playtime-item">
-            <span class="pt-icon">⏱️</span>
-            <div>
-              <span class="pt-label">TEMPO TOTAL JOGADO</span>
-              <strong id="details-playtime">0 min</strong>
-            </div>
-          </div>
-          <div class="playtime-item">
-            <span class="pt-icon">📅</span>
-            <div>
-              <span class="pt-label">ÚLTIMA SESSÃO</span>
-              <strong id="details-lastplayed">Nunca jogado</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Retro Achievements Section -->
-        <div class="details-achievements">
-          <div class="ach-header">
-            <h3>🏆 Conquistas & Marcos</h3>
-            <span id="details-ach-Summary" class="ach-summary-pill">0/6</span>
-          </div>
-          <div id="details-ach-list" class="ach-list"></div>
-        </div>
-
-        <!-- Cover Selector & SteamGridDB Actions -->
-        <div class="details-cover-actions">
-          <button id="btn-open-cover-selector" class="cover-selector-btn" title="Ver e escolher capas alternativas disponíveis ou locais">
-            <span>🖼️ Escolher Capa / Alternativas</span>
-          </button>
-          <button id="btn-steamgrid-game" class="steamgrid-mini-btn" title="Buscar e aplicar artes em alta definição do SteamGridDB">
-            <span>🎨 Baixar Artes HD (SteamGridDB)</span>
-          </button>
-        </div>
+        </label>
       </div>
-    </aside>
+      <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+        <button type="button" id="btn-cancel-remove" class="btn-secondary">Cancelar</button>
+        <button type="button" id="btn-confirm-remove" class="btn-secondary" style="background:rgba(239,68,68,0.18);color:#f87171;border-color:rgba(239,68,68,0.5);">🗑️ Confirmar Exclusão</button>
+      </div>
+    </div>
   </div>
 
   <!-- Cover Selector Modal -->
@@ -414,12 +885,15 @@
         <div class="cover-source-filter-row">
           <span class="cover-filter-label">Fonte:</span>
           <div class="cover-source-chips" id="cover-source-chips">
-            <button class="source-chip active" data-source="all" title="Buscar em todas as fontes (Capas locais em 1º lugar)">
+            <button class="source-chip active" data-source="all" title="Buscar em todas as fontes (Capas locais e Hydra API em 1º lugar)">
               <span>Todas as Fontes</span>
+            </button>
+            <button class="source-chip" data-source="hydra" title="Hydra Launcher API Oficial (LaunchBox WebP & Steam HD sem necessidade de API Key)">
+              <span>Hydra API</span>
+              <span class="source-badge-pill primary">Oficial</span>
             </button>
             <button class="source-chip" data-source="local" title="Capas locais offline no disco (covers/ e media/covers/)">
               <span>Local (Offline)</span>
-              <span class="source-badge-pill primary">Padrão</span>
             </button>
             <button class="source-chip" data-source="screenscraper" title="ScreenScraper.fr (Capas oficiais 2D/3D)">
               <span>ScreenScraper</span>
@@ -449,7 +923,7 @@
           <button id="btn-refresh-covers" class="chip-btn">
             <span>🔄 Recarregar</span>
           </button>
-          <span class="modal-hint">Local (Offline Padrão) • ScreenScraper • SteamGridDB • TheGamesDB • Libretro</span>
+          <span class="modal-hint">Hydra API Oficial • Local • ScreenScraper • SteamGridDB • TheGamesDB • Libretro</span>
         </div>
       </div>
 
@@ -467,6 +941,225 @@
           <span><kbd class="key-pill">B</kbd> ou <kbd class="key-pill">Esc</kbd> Fechar</span>
         </div>
         <button id="btn-cancel-cover" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Launcher Cinematic Splash / Loading Overlay -->
+  <div id="game-launcher-overlay" class="game-launcher-overlay hidden">
+    <div class="launcher-splash-bg" id="splash-bg"></div>
+    <div class="launcher-splash-backdrop"></div>
+    <div class="launcher-splash-card">
+      <div class="splash-cover-wrap">
+        <img id="splash-cover-img" src="" alt="Capa do Jogo">
+        <div class="splash-pulse-ring"></div>
+      </div>
+      <div class="splash-content">
+        <div class="splash-badge-row">
+          <span id="splash-console-badge" class="console-badge">PC</span>
+          <span id="splash-playtime-badge" class="meta-badge">⏱️ 0h 00m</span>
+        </div>
+        <h2 id="splash-game-title" class="splash-title">Carregando Jogo...</h2>
+        <p id="splash-game-sub" class="splash-sub">Preparando ambiente e emulador...</p>
+        <div class="splash-progress-track">
+          <div id="splash-progress-fill" class="splash-progress-fill"></div>
+        </div>
+        <div class="splash-steps">
+          <span id="splash-step-1" class="splash-step active">1. Verificando executável</span>
+          <span id="splash-step-2" class="splash-step">2. Sincronizando conquistas</span>
+          <span id="splash-step-3" class="splash-step">3. Iniciando jogo em tela cheia</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Download (Magnet / Torrent) Modal (Hydra Original Exact Layout) -->
+  <div id="add-download-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width:580px;">
+      <div class="modal-header">
+        <div>
+          <h2>📥 Adicionar Download / Torrent</h2>
+          <p>Arraste um arquivo .torrent, link magnet ou selecione do seu computador</p>
+        </div>
+        <button id="close-add-dl-modal" class="modal-close-btn">✕</button>
+      </div>
+
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;">
+        <!-- Torrent File Drag & Drop + Browser Area -->
+        <div id="torrent-dropzone" class="torrent-dropzone">
+          <input type="file" id="torrent-file-browser" accept=".torrent" style="display:none;">
+          <div id="dropzone-idle-content" class="dropzone-idle-content">
+            <div class="dropzone-icon">📁</div>
+            <div class="dropzone-text-group">
+              <strong class="dropzone-title">Arraste e solte o arquivo .torrent aqui</strong>
+              <span class="dropzone-subtitle">ou <button type="button" id="btn-browse-torrent-file" class="dropzone-browse-link">procurar no seu computador</button></span>
+            </div>
+          </div>
+          <!-- Selected Torrent Preview -->
+          <div id="dropzone-selected-content" class="dropzone-selected-content hidden">
+            <div class="selected-file-badge">⚡ .TORRENT</div>
+            <div class="selected-file-details">
+              <span id="selected-torrent-name" class="selected-file-name">arquivo.torrent</span>
+              <span id="selected-torrent-size" class="selected-file-size">0 KB</span>
+            </div>
+            <button type="button" id="btn-remove-selected-torrent" class="selected-file-remove-btn" title="Remover arquivo selecionado">✕</button>
+          </div>
+        </div>
+
+        <!-- Divider with OR badge -->
+        <div class="modal-or-divider">
+          <span>OU COLE O LINK MAGNET</span>
+        </div>
+
+        <!-- Magnet Link / URL Input Area with Drag & Drop support -->
+        <div class="magnet-input-wrap">
+          <label for="add-dl-uri" style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;">
+            Magnet Link ou URL (.torrent / HTTP):
+          </label>
+          <textarea id="add-dl-uri" placeholder="Cole aqui ou arraste um link magnet:?xt=urn:btih:... ou https://exemplo.com/jogo.torrent" class="cover-search-input magnet-textarea"></textarea>
+        </div>
+
+        <!-- Game Title / Folder Name -->
+        <div>
+          <label for="add-dl-title" style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;">
+            Título do Jogo / Nome da Pasta:
+          </label>
+          <input type="text" id="add-dl-title" placeholder="Nome do jogo (preenchido automaticamente)" class="cover-search-input" style="width:100%;">
+        </div>
+
+        <!-- Destination Folder Information -->
+        <div class="download-dest-row">
+          <div class="download-dest-info">
+            <span class="dest-label">LOCAL DE DOWNLOAD:</span>
+            <span id="add-dl-save-path" class="dest-path">D:\HydraDownloads</span>
+          </div>
+          <button type="button" id="btn-change-dl-path" class="chip-btn" style="padding:4px 10px;font-size:11px;" title="Alterar pasta nas configurações">
+            <span>⚙️ Alterar</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;gap:10px;">
+        <span class="modal-hint" style="font-size:11.5px;">Libtorrent C++ nativo integrado • Suporte a magnet e .torrent</span>
+        <div style="display:flex;gap:10px;">
+          <button type="button" id="btn-cancel-add-dl" class="btn-secondary">Cancelar</button>
+          <button type="button" id="btn-confirm-add-dl" class="chip-btn primary" style="background:#10b981;border-color:#10b981;">
+            <span>🚀 Iniciar Download</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Repacks & Download Sources Modal -->
+  <div id="repacks-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width:720px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="repacks-modal-title">📦 Opções de Download & Repacks</h2>
+          <p id="repacks-modal-subtitle">Fontes indexadas: FitGirl, DODI, SteamRip, GOG e comunidade</p>
+        </div>
+        <button id="close-repacks-modal" class="modal-close-btn">✕</button>
+      </div>
+      <div style="padding:16px 24px;">
+        <div id="repacks-modal-loading" class="cover-modal-loading hidden">
+          <span class="hltb-spinner"></span>
+          <span>Buscando repacks nas fontes cadastradas...</span>
+        </div>
+        <div id="repacks-list" class="repacks-list"></div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <span class="modal-hint">Downloads gerenciados diretamente pelo motor Libtorrent integrado</span>
+        <button type="button" id="btn-close-repacks" class="btn-secondary">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Edit & Hydra Login Modal -->
+  <div id="profile-edit-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width:540px;">
+      <div class="modal-header">
+        <div>
+          <h2>👤 Perfil & Conta Hydra</h2>
+          <p>Personalize seus dados locais ou gerencie sua conexão oficial com a Hydra API</p>
+        </div>
+        <button id="close-profile-modal" class="modal-close-btn">✕</button>
+      </div>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+        <div id="modal-hydra-status-box" style="padding:12px 14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;">⚡</span>
+            <div>
+              <div id="modal-hydra-status-title" style="font-size:13px;font-weight:700;color:var(--text-primary);">Conta Convidado (Offline)</div>
+              <div id="modal-hydra-status-sub" style="font-size:11px;color:var(--text-muted);">Conecte sua conta Hydra para sincronizar perfil e karma.</div>
+            </div>
+          </div>
+          <button type="button" id="btn-modal-hydra-auth" class="chip-btn primary" style="font-size:12px;">
+            <span>Conectar</span>
+          </button>
+        </div>
+
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Nome de Exibição:</label>
+          <input type="text" id="edit-profile-name" class="cover-search-input" style="width:100%;" placeholder="Seu apelido">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Biografia / Bio:</label>
+          <textarea id="edit-profile-bio" class="cover-search-input" style="width:100%;min-height:60px;font-size:12px;resize:vertical;" placeholder="Uma frase sobre você..."></textarea>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">URL do Avatar (Foto de Perfil):</label>
+          <input type="text" id="edit-profile-avatar" class="cover-search-input" style="width:100%;" placeholder="https://exemplo.com/avatar.jpg">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">URL da Imagem de Banner / Fundo:</label>
+          <input type="text" id="edit-profile-banner" class="cover-search-input" style="width:100%;" placeholder="https://exemplo.com/banner.jpg">
+        </div>
+        
+        <details style="border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;margin-top:4px;">
+          <summary style="font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none;outline:none;">
+            Opções avançadas de login manual (Link de Redirecionamento ou Token)
+          </summary>
+          <div style="padding-top:10px;">
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+              Caso esteja em navegador externo, cole aqui a URL gerada (ex: <code>hydralauncher://auth?payload=...</code>) ou o Token Bearer:
+            </p>
+            <input type="password" id="edit-profile-token" class="cover-search-input" style="width:100%;font-family:monospace;font-size:12px;" placeholder="hydralauncher://auth?payload=... ou Token">
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button type="button" id="btn-login-hydra-token" class="chip-btn" style="background:#0284c7;color:#fff;border-color:#0284c7;">
+                <span>Validar & Conectar</span>
+              </button>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+        <button type="button" id="btn-cancel-profile" class="btn-secondary">Cancelar</button>
+        <button type="button" id="btn-save-profile" class="chip-btn primary">
+          <span>💾 Salvar Perfil</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign Out Confirmation Modal (Hydra Launcher Style) -->
+  <div id="signout-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width:440px;">
+      <div class="modal-header">
+        <div>
+          <h2>🚪 Sair da Conta Hydra</h2>
+          <p>Confirmação de encerramento de sessão</p>
+        </div>
+        <button id="close-signout-modal" class="modal-close-btn">✕</button>
+      </div>
+      <div style="padding:20px 24px;color:var(--text-secondary);font-size:13px;line-height:1.6;">
+        Deseja realmente sair da sua conta oficial Hydra? Suas sessões na nuvem serão desconectadas e o perfil voltará para o modo local offline.
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+        <button type="button" id="btn-cancel-signout" class="btn-secondary">Cancelar</button>
+        <button type="button" id="btn-confirm-signout" class="chip-btn danger">
+          <span>Sair da Conta</span>
+        </button>
       </div>
     </div>
   </div>

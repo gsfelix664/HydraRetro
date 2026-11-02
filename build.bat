@@ -24,14 +24,26 @@ if not exist "%TARGET_DIR%\ROMS\GBA" mkdir "%TARGET_DIR%\ROMS\GBA"
 if not exist "%TARGET_DIR%\ROMS\GBC" mkdir "%TARGET_DIR%\ROMS\GBC"
 if not exist "%TARGET_DIR%\ROMS\GB" mkdir "%TARGET_DIR%\ROMS\GB"
 if not exist "%TARGET_DIR%\ROMS\SWITCH" mkdir "%TARGET_DIR%\ROMS\SWITCH"
+if not exist "%TARGET_DIR%\ROMS\PC" mkdir "%TARGET_DIR%\ROMS\PC"
 if not exist "%TARGET_DIR%\BIOS" mkdir "%TARGET_DIR%\BIOS"
 if not exist "%TARGET_DIR%\covers" mkdir "%TARGET_DIR%\covers"
 if not exist "%TARGET_DIR%\media\covers" mkdir "%TARGET_DIR%\media\covers"
+if not exist "%TARGET_DIR%\media\covers\pc" mkdir "%TARGET_DIR%\media\covers\pc"
+if not exist "%TARGET_DIR%\media\covers\steam" mkdir "%TARGET_DIR%\media\covers\steam"
+if not exist "%TARGET_DIR%\media\covers\epic" mkdir "%TARGET_DIR%\media\covers\epic"
 if not exist "%TARGET_DIR%\media\thumbs" mkdir "%TARGET_DIR%\media\thumbs"
+if not exist "%TARGET_DIR%\media\thumbs\pc" mkdir "%TARGET_DIR%\media\thumbs\pc"
+if not exist "%TARGET_DIR%\media\thumbs\steam" mkdir "%TARGET_DIR%\media\thumbs\steam"
+if not exist "%TARGET_DIR%\media\thumbs\epic" mkdir "%TARGET_DIR%\media\thumbs\epic"
 if not exist "%TARGET_DIR%\backups" mkdir "%TARGET_DIR%\backups"
 if not exist "%TARGET_DIR%\emulators" mkdir "%TARGET_DIR%\emulators"
 
 copy /Y "C:\PROJETOS\HydraRetro\src\server.js" "%TARGET_DIR%\server.js"
+if exist "C:\PROJETOS\HydraRetro\src\pc_stores_engine.js" copy /Y "C:\PROJETOS\HydraRetro\src\pc_stores_engine.js" "%TARGET_DIR%\pc_stores_engine.js"
+if exist "C:\PROJETOS\HydraRetro\src\achievements_engine.js" copy /Y "C:\PROJETOS\HydraRetro\src\achievements_engine.js" "%TARGET_DIR%\achievements_engine.js"
+if exist "C:\PROJETOS\HydraRetro\src\hydra_downloads_engine.js" copy /Y "C:\PROJETOS\HydraRetro\src\hydra_downloads_engine.js" "%TARGET_DIR%\hydra_downloads_engine.js"
+if exist "C:\PROJETOS\HydraRetro\src\electron-main.js" copy /Y "C:\PROJETOS\HydraRetro\src\electron-main.js" "%TARGET_DIR%\electron-main.js"
+if exist "C:\PROJETOS\HydraRetro\src\preload.js" copy /Y "C:\PROJETOS\HydraRetro\src\preload.js" "%TARGET_DIR%\preload.js"
 copy /Y "C:\PROJETOS\HydraRetro\src\ui\*" "%TARGET_DIR%\ui\"
 robocopy "C:\PROJETOS\HydraRetro\src" "%TARGET_DIR%\src" /E /NFL /NDL /NJH /NJS /nc /ns /np
 copy /Y "C:\PROJETOS\HydraRetro\data\ps1_hydra_metadata.json" "%TARGET_DIR%\data\ps1_hydra_metadata.json"
@@ -42,8 +54,10 @@ copy /Y "C:\PROJETOS\HydraRetro\package.json" "%TARGET_DIR%\package.json"
 copy /Y "C:\PROJETOS\HydraRetro\gemini.md" "%TARGET_DIR%\gemini.md"
 copy /Y "C:\PROJETOS\HydraRetro\build.bat" "%TARGET_DIR%\build.bat"
 
-
 robocopy "C:\PROJETOS\HydraRetro\emulators" "%TARGET_DIR%\emulators" /E /NFL /NDL /NJH /NJS /nc /ns /np
+
+taskkill /F /IM HydraRetro.exe /T >nul 2>&1
+taskkill /F /IM FocusHelper.exe /T >nul 2>&1
 
 "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /out:"%TARGET_DIR%\FocusHelper.exe" "C:\PROJETOS\HydraRetro\src\FocusHelper.cs"
 copy /Y "%TARGET_DIR%\FocusHelper.exe" "C:\PROJETOS\HydraRetro\FocusHelper.exe"

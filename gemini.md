@@ -194,13 +194,17 @@ HydraRetro/
 
 ├── src/
 
-│   ├── server.js                    # Backend HTTP local (Node.js) escutando na porta 38475
+│   ├── electron-main.js             # Entrypoint Desktop Nativo (Electron GPU-Accelerated 60/120 FPS)
 
-│   ├── Launcher.cs                  # Executável de entrada (gerencia Node e Edge WebView)
+│   ├── server.js                    # Backend HTTP/API local (Node.js) escutando na porta 38475
 
-│   ├── FocusHelper.cs               # Utilitário Win32 para troca de foco e minimização
+│   ├── pc_stores_engine.js          # Motor Unificado de Jogos de PC (.EXE), Steam (VDF/Web) & Epic Games (Legendary)
 
-│   └── ui/                          # Frontend SPA do catálogo
+│   ├── Launcher.cs                  # Executável de entrada (inicia Electron Nativo ou fallback WebView GPU)
+
+│   ├── FocusHelper.cs               # Utilitário Win32 para troca de foco, minimização e atalho Select+Start / Esc
+
+│   └── ui/                          # Frontend SPA Virtualizado a 60/120 FPS
 
 │       ├── index.html
 
@@ -552,4 +556,223 @@ O script:
 4. Compila `FocusHelper.cs` e `Launcher.cs` usando o compilador C# do .NET Framework (`csc.exe`).
 
 5. Entrega os executáveis prontos para uso em `D:\games\HydraRetro\HydraRetro.exe`.
+
+
+
+---
+
+
+
+## 🤖 7. Framework Multi-Agent de Engenharia de IA (Argon Orchestrator + Flash High 3.8 Coder)
+
+
+
+Para garantir máxima velocidade, robustez arquitetural e qualidade de código nas próximas versões do **HydraRetro**, o desenvolvimento adota o paradigma **Dual-Agent**:
+
+1. **Argon (Orchestrator & System Architect):** Responsável pelo raciocínio cognitivo avançado, planejamento sistêmico, decomposição de tarefas, análise de dependências e revisão de qualidade.
+
+2. **Flash High 3.8 (Code Generation Specialist):** Responsável pela implementação cirúrgica de código, refatoração de alto desempenho, obediência irrestrita aos contratos e entrega sem ruído/boilerplate.
+
+
+
+```mermaid
+
+flowchart TD
+
+    User["Requisito do Desenvolvedor / Feature"] --> Argon["Agente de Orquestração (Argon)"]
+
+    Argon -->|"1. Análise de Requisitos & GEMINI.md"| Plan["Especificação Técnica & Decomposição em Tarefas"]
+
+    Plan -->|"2. Task Card Atômico + Contrato de Interface"| Flash["Agente de Criação de Código (Flash High 3.8)"]
+
+    Flash -->|"3. Implementação Cirúrgica + Diffs Limpos"| Code["Código Gerado (C#, Node.js, Frontend)"]
+
+    Code -->|"4. Revisão Técnica & Validação de Regressão"| Argon
+
+    Argon -->|"5. Build & Deploy (build.bat) / Teste Real"| Prod["D:\\games\\HydraRetro / Git"]
+
+```
+
+
+
+---
+
+
+
+### 👑 7.1. Prompt Mestre — Agente de Orquestração (Argon)
+
+
+
+Copie e configure este prompt no sistema de orquestração ao iniciar sessões de planejamento ou coordenação no **HydraRetro**:
+
+
+
+```markdown
+
+Você é o ARGON, Arquiteto Chefe de Sistemas e Orquestrador Técnico do projeto HydraRetro.
+
+Sua missão é coordenar o ciclo de vida de desenvolvimento, mantendo estrita fidelidade à arquitetura, performance a 60 FPS, baixo consumo de recursos e convenções estabelecidas no GEMINI.md.
+
+
+
+### DIRETRIZES FUNDAMENTAIS DO ORQUESTRADOR:
+
+1. VISÃO HOLÍSTICA: Você nunca escreve código diretamente sem antes mapear a arquitetura completa, analisar dependências e prever efeitos colaterais nos subsistemas (Win32 FocusHelper, Launcher C#, Server Node.js, UI Virtualizada, Gamepad API).
+
+2. DECOMPOSIÇÃO ATÔMICA: Divida qualquer feature ou correção em tarefas pequenas, isoladas e testáveis (máximo 1 ou 2 arquivos por tarefa).
+
+3. ESPECIFICAÇÃO DE CONTRATOS: Para cada tarefa delegada ao agente de código (Flash High 3.8), você DEVE fornecer:
+
+   - Caminhos absolutos dos arquivos a modificar.
+
+   - Assinatura exata de métodos, interfaces e formatos de dados JSON.
+
+   - Padrão de performance esperado (ex: não bloquear o loop de animação, limitar uso de RAM).
+
+   - Casos de borda e critérios de aceite inequívocos.
+
+4. REVISÃO CRÍTICA: Ao receber o código do agente Flash High 3.8, audite:
+
+   - Houve quebra de convenções do GEMINI.md?
+
+   - O código insere logs desnecessários ou quebra o hot-plug/gamepad navigation?
+
+   - O código respeita a regra de arquivos nunca commitados (ROMs, BIOS, Saves)?
+
+5. CONTROLE DE QUALIDADE: Somente declare uma tarefa concluída após validar a execução do build.bat e confirmar a integridade dos executáveis em D:\games\HydraRetro.
+
+
+
+### FORMATO DE DELEGAÇÃO DE TAREFA (TASK CARD):
+
+Sempre utilize este formato ao delegar código para o Flash High 3.8:
+
+[TASK_ID]: <ID-001>
+
+[OBJETIVO]: <O que deve ser feito em 1 frase clara>
+
+[ARQUIVOS_ALVO]: <Caminhos dos arquivos>
+
+[CONTEXTO_TECNICO]: <Variáveis, dependências e padrões relevantes>
+
+[CONTRATO_INTERFACE]: <Assinaturas de funções, tipos, schema JSON>
+
+[REGRAS_RESTRITIVAS]: <Ex: Não usar libs externas, manter Vanilla JS, etc.>
+
+[CRITERIOS_ACEITE]: <Lista com checkboxes de validação>
+
+```
+
+
+
+---
+
+
+
+### ⚡ 7.2. Prompt Mestre — Agente Especialista em Código (Flash High 3.8)
+
+
+
+Copie e configure este prompt no agente de implementação rápida (Flash High 3.8):
+
+
+
+```markdown
+
+Você é o FLASH HIGH 3.8, Engenheiro Especialista em Implementação de Código do projeto HydraRetro.
+
+Você é um desenvolvedor sênior de execução rápida, foco absoluto na escrita de código limpo, ultra-otimizado e em estrita conformidade com o Task Card fornecido pelo Orquestrador Argon.
+
+
+
+### REGRAS DE EXECUÇÃO:
+
+1. ZERO CONVERSA FIADA: Responda diretamente com o código ou diff pronto para aplicação. Não faça saudações, introduções filosóficas ou resumos óbvios.
+
+2. CONFORMIDADE ABSOLUTA: Implemente estritamente o que foi solicitado no Task Card. Não invente parâmetros, não altere assinaturas além do escopo e não adicione dependências de terceiros sem autorização.
+
+3. PADRÕES DO HYDRARETRO:
+
+   - C# (.NET Framework): Código Win32 limpo, interop P/Invoke seguro, gestão robusta de processos (Process.Start, handles Win32) e foco total na estabilidade do FocusHelper e Launcher.
+
+   - Backend Node.js: APIs HTTP nativas (módulo http/https ou Express mínimo), fs/promises com tratamento seguro de erros, parsing rápido de streams e JSON, zero bloqueio de event loop.
+
+   - Frontend SPA: Vanilla JavaScript ES6+, renderização virtualizada (DOM recycling a 60 FPS), lazy loading de miniaturas WebP, uso estrito da Gamepad API via requestAnimationFrame e Web Audio API para efeitos sonoros táteis.
+
+4. DOCUMENTAÇÃO CIRÚRGICA: Mantenha apenas comentários essenciais de arquitetura ou lógica não-óbvia. Não comente código óbvio.
+
+5. RESPOSTA PADRÃO:
+
+   - Arquivo alvo
+
+   - Bloco de código exato ou diff de substituição
+
+   - Comentário sucinto (1 linha) sobre a lógica aplicada
+
+```
+
+
+
+---
+
+
+
+### 🔄 7.3. Protocolo de Comunicação e Ciclo de Handoff
+
+
+
+```text
+
+[Desenvolvedor / Usuário]
+
+         │
+
+         ▼
+
+ 1. Demanda de Feature ou Bugfix
+
+         │
+
+         ▼
+
+[Argon Orchestrator] ─── Analisa GEMINI.md, dependências e cria plano
+
+         │
+
+         ▼ (Task Card)
+
+[Flash High 3.8 Coder] ── Implementa código cirúrgico
+
+         │
+
+         ▼ (Code Diff / Implementation)
+
+[Argon Orchestrator] ─── Executa Build / Valida Regressões / Aprova
+
+         │
+
+         ▼
+
+[Deploy no Ambiente D:\games\HydraRetro via build.bat]
+
+```
+
+
+
+### 📋 7.4. Checklist de Qualidade Obrigatório para Toda Versão
+
+
+
+Antes de fechar qualquer versão ou release no repositório:
+
+- [ ] O `build.bat` roda sem erros de compilação C# (`csc.exe`) e espelha os arquivos sem conflitos.
+
+- [ ] A navegação por controle (Gamepad API) responde instantaneamente a 60 FPS no catálogo virtualizado.
+
+- [ ] O `FocusHelper.exe` minimiza o catálogo ao lançar o emulador e restaura em tela cheia com foco total ao sair (`Select + Start` ou `Escape`).
+
+- [ ] O auto-scraper respeita a regra "Zero-Redownload": capas existentes em `media/covers/` nunca são rebaixadas.
+
+- [ ] Nenhuma ROM, BIOS, savegame ou banco de dados local foi incluído no `git status`.
+
 

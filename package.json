@@ -2,9 +2,10 @@
   "name": "hydraretro",
   "version": "1.0.0",
   "description": "Catálogo Fullscreen Leve de Jogos Retrô integrado ao Hydra Launcher (PS1 & Mega Drive)",
-  "main": "src/server.js",
+  "main": "src/electron-main.js",
   "scripts": {
     "start": "node src/server.js",
+    "app": "C:\\PROJETOS\\HydraLaucher\\node_modules\\electron\\dist\\electron.exe src/electron-main.js",
     "build": "build.bat"
   },
   "author": "HydraRetro",

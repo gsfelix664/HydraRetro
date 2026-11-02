@@ -151,7 +151,7 @@ namespace HydraRetro
                 {
                     var p = Process.GetProcessById((int)pid);
                     string pName = p.ProcessName.ToLower();
-                    if ((pName == "msedge" || pName == "chrome") && cls == "Chrome_WidgetWin_1" && !string.IsNullOrWhiteSpace(title))
+                    if ((pName == "msedge" || pName == "chrome" || pName == "electron") && cls == "Chrome_WidgetWin_1" && !string.IsNullOrWhiteSpace(title))
                     {
                         found = hWnd;
                         return false;

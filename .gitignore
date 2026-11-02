@@ -1,5 +1,8 @@
 scratch/
 node_modules/
+covers/
+data/user_profile.json
+data/retro_ratings.json
 data/webview_profile/
 data/database.json
 *.log

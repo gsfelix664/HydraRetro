@@ -56,6 +56,49 @@ namespace HydraRetro
 
             try
             {
+                // 1. Check for Native Electron Desktop Shell
+                string electronExe = Path.Combine(appRoot, "emulators", "runtime", "electron.exe");
+                if (!File.Exists(electronExe))
+                {
+                    electronExe = @"C:\PROJETOS\HydraLaucher\node_modules\electron\dist\electron.exe";
+                }
+                if (!File.Exists(electronExe))
+                {
+                    electronExe = @"C:\PROJETOS\HydraLauncher\node_modules\electron\dist\electron.exe";
+                }
+
+                string electronMain = Path.Combine(appRoot, "electron-main.js");
+                if (!File.Exists(electronMain))
+                {
+                    electronMain = Path.Combine(appRoot, "src", "electron-main.js");
+                }
+
+                if (File.Exists(electronExe) && File.Exists(electronMain))
+                {
+                    Log("Native Electron runtime found: " + electronExe);
+                    Log("Starting Native Desktop Shell with: " + electronMain);
+
+                    ProcessStartInfo electronPsi = new ProcessStartInfo
+                    {
+                        FileName = electronExe,
+                        Arguments = "\"" + electronMain + "\"",
+                        WorkingDirectory = appRoot,
+                        UseShellExecute = false
+                    };
+
+                    Process electronProc = Process.Start(electronPsi);
+                    Log("Started native Electron PID: " + (electronProc != null ? electronProc.Id.ToString() : "null"));
+
+                    if (electronProc != null)
+                    {
+                        electronProc.WaitForExit();
+                        Log("Native Electron exited with code: " + electronProc.ExitCode);
+                    }
+                    return;
+                }
+
+                Log("Native Electron not found or electron-main.js missing. Running universal fallback (Node + Browser).");
+
                 string serverJs = Path.Combine(appRoot, "server.js");
                 if (!File.Exists(serverJs))
                 {
@@ -132,15 +175,15 @@ namespace HydraRetro
                 ProcessStartInfo uiPsi = new ProcessStartInfo
                 {
                     FileName = edgePath,
-                    Arguments = "--app=http://127.0.0.1:38475 --start-fullscreen --user-data-dir=\"" + profileDir + "\" --no-first-run --no-default-browser-check --disable-features=Translate",
+                    Arguments = "--app=http://127.0.0.1:38475 --start-fullscreen --enable-gpu-rasterization --enable-zero-copy --ignore-gpu-blocklist --enable-oop-rasterization --user-data-dir=\"" + profileDir + "\" --no-first-run --no-default-browser-check --disable-features=Translate",
                     UseShellExecute = false
                 };
 
                 Process uiProc = Process.Start(uiPsi);
                 Log("Started UI browser PID: " + (uiProc != null ? uiProc.Id.ToString() : "null"));
 
-                // Wait for the UI process to initialize
-                Thread.Sleep(2000);
+                // Wait briefly for the UI process to initialize
+                Thread.Sleep(250);
 
                 // Monitor backend server: HydraRetro stays running as long as the server is active
                 int failCount = 0;
