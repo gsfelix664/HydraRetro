@@ -120,3 +120,9 @@ emulators/ryujinx/portable/system/*
 emulators/ryujinx/portable/sdcard/
 emulators/ryujinx/portable/logs/
 emulators/ryujinx/*.log
+
+
+# Downloads & Torrents temporários
+Downloads/
+data/downloads_queue.json
+data/torrents/

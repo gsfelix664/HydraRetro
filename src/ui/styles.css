@@ -3229,6 +3229,18 @@ html, body {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+.dl-card-status-pill.checking {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.dl-card-status-pill.queued {
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
 .dl-card-status-pill.seeding {
   background: rgba(56, 189, 248, 0.18);
   color: #38bdf8;
@@ -3250,6 +3262,12 @@ html, body {
   background: rgba(239, 68, 68, 0.18);
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.dl-card-status-pill.error {
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
 .dl-card-progress-bar {

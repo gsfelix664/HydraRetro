@@ -296,7 +296,9 @@ function updateSidebarStats() {
   setBadge('badge-epic', games.filter(g => g.consoleId === 'EPIC').length);
   setBadge('badge-gog', games.filter(g => g.consoleId === 'GOG').length);
   setBadge('badge-xbox', games.filter(g => g.consoleId === 'XBOX').length);
-  const activeDl = appState.activeDownloadsCount || (appState.downloads || []).filter(d => d.status === 'downloading' || d.status === 'seeding' || d.status === 'extracting').length;
+  const activeDl = appState.activeDownloadsCount !== undefined
+    ? appState.activeDownloadsCount
+    : (appState.downloads || []).filter(d => ['downloading', 'checking', 'extracting', 'queued'].includes(d.status)).length;
   setBadge('badge-downloads', activeDl > 0 ? activeDl : 0);
   setBadge('badge-ps1', games.filter(g => g.consoleId === 'PS1').length);
   setBadge('badge-genesis', games.filter(g => g.consoleId === 'GENESIS').length);
@@ -3964,7 +3966,9 @@ async function pollDownloads() {
 
 function updateDownloadsUI(data) {
   const downloads = data.downloads || [];
-  const activeDl = data.activeCount || 0;
+  const activeDl = data.activeCount !== undefined
+    ? data.activeCount
+    : downloads.filter(d => ['downloading', 'checking', 'extracting', 'queued'].includes(d.status)).length;
 
   const spdEl = document.getElementById('dl-global-speed');
   if (spdEl) spdEl.textContent = formatBytesPerSec(data.globalDownloadSpeedBytes || 0);
@@ -3991,26 +3995,37 @@ function updateDownloadsUI(data) {
   if (!listEl) return;
 
   listEl.innerHTML = downloads.map(d => {
-    const progress = Math.min(100, Math.max(0, d.progress || 0));
-    const speedStr = formatBytesPerSec(d.downloadSpeedBytes || 0);
-    const downloadedStr = formatSize(d.downloadedBytes || 0);
-    const totalStr = formatSize(d.totalBytes || 0);
+    const rawProgress = typeof d.progress === 'number'
+      ? (d.progress <= 1 && d.progress > 0 ? d.progress * 100 : d.progress)
+      : 0;
+    const progress = Math.min(100, Math.max(0, rawProgress));
+    const speed = d.downloadSpeedBytes || d.downloadSpeed || 0;
+    const speedStr = formatBytesPerSec(speed);
+    const downloaded = d.downloadedBytes || d.bytesDownloaded || 0;
+    const downloadedStr = formatSize(downloaded);
+    const total = d.totalBytes || d.fileSize || 0;
+    const totalStr = total > 0 ? formatSize(total) : (d.status === 'checking' ? 'calculando...' : '0 MB');
     const statusClass = d.status || 'downloading';
+    const peers = d.peersCount !== undefined ? d.peersCount : (d.numPeers || 0);
+    const seeds = d.seedsCount !== undefined ? d.seedsCount : (d.numSeeds || 0);
 
     let statusText = 'Baixando';
-    if (d.status === 'seeding') statusText = 'Semeando (Seed)';
+    if (d.status === 'checking') statusText = d.statusDetail || 'Obtendo metadados do torrent...';
+    else if (d.status === 'queued') statusText = 'Na fila...';
+    else if (d.status === 'seeding') statusText = 'Semeando (Seed)';
     else if (d.status === 'extracting') statusText = 'Extraindo (7-Zip)...';
     else if (d.status === 'completed') statusText = 'Concluído';
     else if (d.status === 'paused') statusText = 'Pausado';
+    else if (d.status === 'error') statusText = `Erro: ${d.error || 'Falha no download'}`;
 
     return `
       <div class="download-card">
         <div class="dl-card-icon">
-          ${d.status === 'completed' ? '✅' : (d.status === 'extracting' ? '📦' : '📥')}
+          ${d.status === 'completed' ? '✅' : (d.status === 'extracting' ? '📦' : (d.status === 'error' ? '⚠️' : '📥'))}
         </div>
         <div class="dl-card-info">
           <div class="dl-card-title-row">
-            <span class="dl-card-title" title="${d.title}">${d.title}</span>
+            <span class="dl-card-title" title="${escapeHtml(d.title)}">${escapeHtml(d.title)}</span>
             <span class="dl-card-status-pill ${statusClass}">${statusText}</span>
           </div>
           <div class="dl-card-progress-bar">
@@ -4018,14 +4033,15 @@ function updateDownloadsUI(data) {
           </div>
           <div class="dl-card-meta-row">
             <span><strong>${progress.toFixed(1)}%</strong> (${downloadedStr} de ${totalStr})</span>
-            ${d.status === 'downloading' ? `<span>⚡ ${speedStr}</span>` : ''}
-            ${d.peersCount ? `<span>👥 ${d.peersCount} peers</span>` : ''}
+            ${(d.status === 'downloading' || speed > 0) ? `<span>⚡ ${speedStr}</span>` : ''}
+            ${peers > 0 || seeds > 0 ? `<span>👥 ${peers} peers (${seeds} seeds)</span>` : (d.status === 'checking' ? `<span>📡 Conectando a peers...</span>` : '')}
+            ${d.etaSeconds && d.etaSeconds > 0 ? `<span>⏳ ${formatEta(d.etaSeconds)}</span>` : ''}
           </div>
         </div>
         <div class="dl-card-actions">
           ${d.status === 'paused' ? `
             <button type="button" class="dl-btn" onclick="window.resumeDownload('${d.id}')">▶ Retomar</button>
-          ` : (d.status === 'downloading' ? `
+          ` : (d.status === 'downloading' || d.status === 'checking' || d.status === 'queued' ? `
             <button type="button" class="dl-btn" onclick="window.pauseDownload('${d.id}')">⏸ Pausar</button>
           ` : '')}
           <button type="button" class="dl-btn" onclick="window.openDownloadTargetFolder('${d.id}')">📂 Pasta</button>
@@ -4036,9 +4052,23 @@ function updateDownloadsUI(data) {
   }).join('');
 }
 
+function formatEta(seconds) {
+  if (!seconds || seconds <= 0) return '';
+  if (seconds < 60) return `${seconds}s restantes`;
+  const m = Math.floor(seconds / 60);
+  if (m < 60) return `${m}m restantes`;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  return `${h}h ${remM}m restantes`;
+}
+
 function formatBytesPerSec(bytes) {
   if (!bytes || bytes <= 0) return '0.0 MB/s';
   const mb = bytes / (1024 * 1024);
+  if (mb < 0.1) {
+    const kb = bytes / 1024;
+    return `${kb.toFixed(0)} KB/s`;
+  }
   return `${mb.toFixed(1)} MB/s`;
 }
 
@@ -4312,43 +4342,59 @@ async function confirmAddDownload() {
 
 window.pauseDownload = async (id) => {
   playSfx('nav');
-  await fetch('/api/downloads/pause', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id })
-  });
-  pollDownloads();
+  try {
+    await fetch('/api/downloads/pause', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, downloadId: id })
+    });
+    pollDownloads();
+  } catch (err) {
+    console.error('Erro ao pausar download:', err);
+  }
 };
 
 window.resumeDownload = async (id) => {
   playSfx('select');
-  await fetch('/api/downloads/resume', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id })
-  });
-  pollDownloads();
+  try {
+    await fetch('/api/downloads/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, downloadId: id })
+    });
+    pollDownloads();
+  } catch (err) {
+    console.error('Erro ao retomar download:', err);
+  }
 };
 
 window.cancelDownload = async (id) => {
   if (!confirm('Deseja realmente cancelar este download?')) return;
   playSfx('back');
-  await fetch('/api/downloads/cancel', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, deleteFiles: false })
-  });
-  showToast('Download cancelado');
-  pollDownloads();
+  try {
+    await fetch('/api/downloads/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, downloadId: id, deleteFiles: false })
+    });
+    showToast('Download cancelado');
+    pollDownloads();
+  } catch (err) {
+    console.error('Erro ao cancelar download:', err);
+  }
 };
 
 window.openDownloadTargetFolder = async (id) => {
   playSfx('select');
-  await fetch('/api/downloads/open-folder', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id })
-  });
+  try {
+    await fetch('/api/downloads/open-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, downloadId: id })
+    });
+  } catch (err) {
+    console.error('Erro ao abrir pasta:', err);
+  }
 };
 
 // --- REPACKS & DOWNLOAD SOURCES MODAL ---

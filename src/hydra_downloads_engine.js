@@ -41,6 +41,7 @@ class HydraDownloadsEngine {
 
     this.initNativeTorrent();
     this.startPollingLoop();
+    this.autoResumeOnStartup();
   }
 
   initNativeTorrent() {
@@ -97,8 +98,11 @@ class HydraDownloadsEngine {
         if (Array.isArray(list)) {
           for (const d of list) {
             if (d.status === 'downloading' || d.status === 'checking' || d.status === 'extracting') {
-              d.status = 'paused';
+              // Converte downloads ativos interrompidos para fila para retomada suave
+              d.status = 'queued';
               d.downloadSpeed = 0;
+              d.uploadSpeed = 0;
+              d.statusDetail = 'Aguardando inicialização...';
             }
           }
           return list;
@@ -106,6 +110,63 @@ class HydraDownloadsEngine {
       }
     } catch {}
     return [];
+  }
+
+  autoResumeOnStartup() {
+    setTimeout(async () => {
+      try {
+        const hasQueued = this.downloads.some(d => d.status === 'queued');
+        if (hasQueued) {
+          console.log('[HydraDownloads] Retomando downloads pendentes na inicialização...');
+          await this.processQueue();
+        }
+      } catch (err) {
+        console.warn('[HydraDownloads] Erro no autoResumeOnStartup:', err.message);
+      }
+    }, 1500);
+  }
+
+  getDownloadsStatusSummary() {
+    let globalDownloadSpeedBytes = 0;
+    let globalUploadSpeedBytes = 0;
+    let activeCount = 0;
+
+    const list = this.downloads.map(item => {
+      const isActive = ['downloading', 'checking', 'extracting', 'queued'].includes(item.status);
+      if (isActive) {
+        activeCount++;
+        globalDownloadSpeedBytes += (item.downloadSpeed || 0);
+        globalUploadSpeedBytes += (item.uploadSpeed || 0);
+      }
+
+      let progressPct = 0;
+      if (typeof item.progress === 'number') {
+        progressPct = item.progress <= 1 && item.progress > 0 ? item.progress * 100 : item.progress;
+      }
+      if (item.status === 'completed') {
+        progressPct = 100;
+      }
+
+      return {
+        ...item,
+        progress: Math.min(100, Math.max(0, progressPct)),
+        downloadSpeedBytes: item.downloadSpeed || 0,
+        uploadSpeedBytes: item.uploadSpeed || 0,
+        downloadedBytes: item.bytesDownloaded || 0,
+        totalBytes: item.fileSize || 0,
+        peersCount: item.numPeers || 0,
+        seedsCount: item.numSeeds || 0,
+        statusDetail: item.statusDetail || (item.status === 'checking' ? 'Obtendo metadados do torrent...' : null)
+      };
+    });
+
+    return {
+      ok: true,
+      downloads: list,
+      activeCount,
+      globalDownloadSpeedBytes,
+      globalUploadSpeedBytes
+    };
   }
 
   saveDownloadsQueue() {
@@ -473,7 +534,7 @@ class HydraDownloadsEngine {
 
     if (torrentBase64) {
       try {
-        const torrentsDir = path.join(this.appRoot, 'data', 'torrents');
+        const torrentsDir = path.join(this.rootDir, 'data', 'torrents');
         fs.mkdirSync(torrentsDir, { recursive: true });
         const safeName = (torrentFileName || `download_${Date.now()}.torrent`).replace(/[^a-zA-Z0-9._-]/g, '_');
         const torrentFilePath = path.join(torrentsDir, safeName);
@@ -495,6 +556,15 @@ class HydraDownloadsEngine {
       cleanUri.toLowerCase().endsWith('.torrent') ||
       fs.existsSync(cleanUri);
 
+    // Se o mesmo download já estiver na fila, retoma se estiver pausado ou retorna existente
+    const existing = this.downloads.find(d => d.uri === cleanUri);
+    if (existing) {
+      if (existing.status === 'paused' || existing.status === 'error') {
+        await this.resumeDownload(existing.id);
+      }
+      return existing;
+    }
+
     const id = 'dl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
     const entry = {
       id,
@@ -508,6 +578,7 @@ class HydraDownloadsEngine {
       savePath: targetDir,
       folderName: '',
       status: 'queued', // queued, checking, downloading, seeding, extracting, completed, paused, error
+      statusDetail: 'Na fila...',
       progress: 0,
       bytesDownloaded: 0,
       fileSize: 0,
@@ -541,6 +612,7 @@ class HydraDownloadsEngine {
 
     this.activeDownloadId = next.id;
     next.status = 'checking';
+    next.statusDetail = next.downloader === 'torrent' ? 'Conectando aos trackers e obtendo metadados...' : 'Iniciando download...';
     next.error = null;
     this.saveDownloadsQueue();
 
@@ -555,14 +627,15 @@ class HydraDownloadsEngine {
           save_path: next.savePath,
           trackers: DEFAULT_TRACKERS
         });
-        next.status = 'downloading';
         this.saveDownloadsQueue();
       } catch (err) {
+        console.error('[HydraDownloads] Falha ao iniciar torrent:', err.message);
         next.status = 'error';
         next.error = err.message;
+        next.statusDetail = `Erro: ${err.message}`;
         this.activeDownloadId = null;
         this.saveDownloadsQueue();
-        setTimeout(() => this.processQueue(), 500);
+        setTimeout(() => this.processQueue(), 1000);
       }
     } else {
       this.startHttpDirectDownload(next);
@@ -653,6 +726,7 @@ class HydraDownloadsEngine {
   }
 
   startPollingLoop() {
+    let saveTick = 0;
     setInterval(async () => {
       if (!this.activeDownloadId || !this.torrentInitialized) return;
       const item = this.downloads.find(d => d.id === this.activeDownloadId);
@@ -677,15 +751,26 @@ class HydraDownloadsEngine {
           item.etaSeconds = -1;
         }
 
-        // LibtorrentStatus: 1=CheckingFiles, 2=DownloadingMetadata, 3=Downloading, 4=Finished, 5=Seeding
-        if (st.status === 1 || st.status === 2 || st.status === 7) {
+        // LibtorrentStatus: 1=CheckingFiles, 2=DownloadingMetadata, 3=Downloading, 4=Finished, 5=Seeding, 7=CheckingResumeData
+        if (st.status === 1 || st.status === 7) {
           item.status = 'checking';
+          item.statusDetail = 'Verificando integridade dos arquivos...';
+        } else if (st.status === 2) {
+          item.status = 'checking';
+          item.statusDetail = 'Obtendo metadados do torrent...';
         } else if (st.status === 3) {
           item.status = 'downloading';
+          item.statusDetail = null;
         }
 
-        if (st.status === 4 || st.status === 5 || st.progress >= 1) {
+        if (st.status === 4 || st.status === 5 || (st.progress >= 1 && item.fileSize > 0)) {
           await this.finalizeCompletedDownload(item);
+        } else {
+          saveTick++;
+          if (saveTick >= 5) {
+            saveTick = 0;
+            this.saveDownloadsQueue();
+          }
         }
       } catch {}
     }, 1000);
@@ -765,6 +850,7 @@ class HydraDownloadsEngine {
   }
 
   async pauseDownload(downloadId) {
+    if (!downloadId) return null;
     const item = this.downloads.find(d => d.id === downloadId);
     if (!item) return null;
 
@@ -772,19 +858,24 @@ class HydraDownloadsEngine {
       if (item.status === 'seeding') {
         await this.torrentCall('action', { action: 'pause_seeding', game_id: item.id }).catch(() => {});
         item.status = 'completed';
+        item.statusDetail = 'Concluído';
       } else {
         await this.torrentCall('action', { action: 'pause', game_id: item.id }).catch(() => {});
         item.status = 'paused';
+        item.statusDetail = 'Download pausado';
       }
     } else if (this.activeHttpRequest && this.activeDownloadId === downloadId) {
       try { this.activeHttpRequest.destroy(); } catch {}
       this.activeHttpRequest = null;
       item.status = 'paused';
+      item.statusDetail = 'Download pausado';
     } else {
       item.status = 'paused';
+      item.statusDetail = 'Download pausado';
     }
 
     item.downloadSpeed = 0;
+    item.uploadSpeed = 0;
     if (this.activeDownloadId === downloadId) {
       this.activeDownloadId = null;
     }
@@ -794,6 +885,7 @@ class HydraDownloadsEngine {
   }
 
   async resumeDownload(downloadId) {
+    if (!downloadId) return null;
     const item = this.downloads.find(d => d.id === downloadId);
     if (!item) return null;
 
@@ -807,11 +899,13 @@ class HydraDownloadsEngine {
         trackers: DEFAULT_TRACKERS
       }).catch(() => {});
       item.status = 'seeding';
+      item.statusDetail = 'Semeando (Seed)';
       this.saveDownloadsQueue();
       return item;
     }
 
     item.status = 'queued';
+    item.statusDetail = 'Na fila...';
     item.error = null;
     this.saveDownloadsQueue();
     await this.processQueue();
@@ -819,6 +913,7 @@ class HydraDownloadsEngine {
   }
 
   async cancelDownload(downloadId, deleteFiles = false) {
+    if (!downloadId) return false;
     const item = this.downloads.find(d => d.id === downloadId);
     if (!item) return false;
 
@@ -846,6 +941,29 @@ class HydraDownloadsEngine {
     this.saveDownloadsQueue();
     this.processQueue();
     return true;
+  }
+
+  openDownloadFolder(downloadId) {
+    let target = this.getDefaultDownloadPath();
+    if (downloadId) {
+      const item = this.downloads.find(d => d.id === downloadId);
+      if (item) {
+        if (item.folderName) {
+          const itemPath = path.join(item.savePath, item.folderName);
+          if (fs.existsSync(itemPath)) {
+            target = itemPath;
+          } else if (fs.existsSync(item.savePath)) {
+            target = item.savePath;
+          }
+        } else if (item.savePath && fs.existsSync(item.savePath)) {
+          target = item.savePath;
+        }
+      }
+    }
+    try {
+      spawn('explorer.exe', [target], { detached: true, stdio: 'ignore' }).unref();
+    } catch {}
+    return target;
   }
 
   // ============================================================================

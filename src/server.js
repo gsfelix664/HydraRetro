@@ -3609,9 +3609,7 @@ const server = http.createServer(async (req, res) => {
       achievements: getGameAchievements(g)
     }));
     const totalPlayTimeSeconds = gamesList.reduce((acc, g) => acc + (g.playTimeSeconds || 0), 0);
-    const activeDlCount = (downloadsEngine.downloads || []).filter(
-      d => d.status === 'downloading' || d.status === 'checking' || d.status === 'extracting'
-    ).length;
+    const dlSummary = downloadsEngine.getDownloadsStatusSummary();
 
     return sendJson(res, 200, {
       isScanning: isLibraryScanning,
@@ -3619,9 +3617,11 @@ const server = http.createServer(async (req, res) => {
       config: db.config,
       games: gamesList,
       sessions: db.sessions.slice(0, 30),
-      downloads: downloadsEngine.downloads,
+      downloads: dlSummary.downloads,
       downloadSources: downloadsEngine.getDownloadSources(),
-      activeDownloadsCount: activeDlCount,
+      activeDownloadsCount: dlSummary.activeCount,
+      globalDownloadSpeedBytes: dlSummary.globalDownloadSpeedBytes,
+      globalUploadSpeedBytes: dlSummary.globalUploadSpeedBytes,
       isTorrentEngineReady: Boolean(downloadsEngine.nativeAddon),
       activeSession: activeSession ? {
         gameId: activeSession.gameId,
@@ -3637,7 +3637,8 @@ const server = http.createServer(async (req, res) => {
         playedCount: gamesList.filter(g => (g.playCount || 0) > 0).length,
         installedCount: gamesList.filter(g => g.installed !== false).length,
         uninstalledCount: gamesList.filter(g => g.installed === false).length,
-        downloadsCount: (downloadsEngine.downloads || []).length
+        downloadsCount: (downloadsEngine.downloads || []).length,
+        activeDownloadsCount: dlSummary.activeCount
       }
     });
   }
@@ -5525,7 +5526,7 @@ const server = http.createServer(async (req, res) => {
 
   // --- DOWNLOADS & TORRENTS ENGINE ENDPOINTS ---
   if (pathname === '/api/downloads/list' && req.method === 'GET') {
-    return sendJson(res, 200, { ok: true, downloads: downloadsEngine.downloads });
+    return sendJson(res, 200, downloadsEngine.getDownloadsStatusSummary());
   }
 
   if (pathname === '/api/downloads/start' && req.method === 'POST') {
@@ -5541,7 +5542,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/downloads/pause' && req.method === 'POST') {
     const body = await readBody(req);
     try {
-      const item = await downloadsEngine.pauseDownload(body.downloadId);
+      const id = body.downloadId || body.id;
+      const item = await downloadsEngine.pauseDownload(id);
       return sendJson(res, 200, { ok: true, download: item });
     } catch (e) {
       return sendJson(res, 400, { ok: false, error: e.message });
@@ -5551,7 +5553,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/downloads/resume' && req.method === 'POST') {
     const body = await readBody(req);
     try {
-      const item = await downloadsEngine.resumeDownload(body.downloadId);
+      const id = body.downloadId || body.id;
+      const item = await downloadsEngine.resumeDownload(id);
       return sendJson(res, 200, { ok: true, download: item });
     } catch (e) {
       return sendJson(res, 400, { ok: false, error: e.message });
@@ -5561,7 +5564,8 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/downloads/cancel' && req.method === 'POST') {
     const body = await readBody(req);
     try {
-      const ok = await downloadsEngine.cancelDownload(body.downloadId, Boolean(body.deleteFiles));
+      const id = body.downloadId || body.id;
+      const ok = await downloadsEngine.cancelDownload(id, Boolean(body.deleteFiles));
       return sendJson(res, 200, { ok });
     } catch (e) {
       return sendJson(res, 400, { ok: false, error: e.message });
@@ -5569,9 +5573,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/downloads/open-folder' && req.method === 'POST') {
-    const dlPath = downloadsEngine.getDefaultDownloadPath();
-    spawn('explorer.exe', [dlPath], { detached: true, stdio: 'ignore' }).unref();
-    return sendJson(res, 200, { ok: true, folder: dlPath });
+    const body = await readBody(req).catch(() => ({}));
+    const id = body?.downloadId || body?.id;
+    const openedPath = downloadsEngine.openDownloadFolder(id);
+    return sendJson(res, 200, { ok: true, folder: openedPath });
   }
 
   // --- DOWNLOAD SOURCES (REPACK SOURCES) ENDPOINTS ---
