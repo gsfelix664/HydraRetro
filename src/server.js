@@ -3388,177 +3388,110 @@ function launchGame(gameId, discIndex = 0) {
   }
 
   // PC, STEAM, EPIC, GOG, XBOX Handling
-  if (['PC', 'STEAM', 'EPIC', 'GOG', 'XBOX'].includes(game.consoleId)) {
-    const isXbox = game.consoleId === 'XBOX';
-    const hasExe = game.romPath && fs.existsSync(game.romPath) && game.romPath.toLowerCase().endsWith('.exe');
+  const isPcOrStore = ['PC', 'STEAM', 'EPIC', 'GOG', 'XBOX'].includes(game.consoleId) ||
+                      (game.romPath && game.romPath.toLowerCase().endsWith('.exe')) ||
+                      (game.launchUrl && /^(steam|com\.epicgames|goggalaxy|ms-gamepass):/i.test(game.launchUrl));
 
-    if (hasExe) {
-      const exePath = game.romPath;
-      const cwd = path.dirname(exePath);
-      let child = null;
-      let isDetachedShell = false;
+  if (isPcOrStore) {
+    let child = null;
+    const startedAt = Date.now();
 
-      // Xbox / Game Pass executables are protected under Windows GamingServices ACLs
-      // Direct node spawn will throw EPERM, but Windows ShellExecute (cmd /c start) succeeds seamlessly!
-      if (!isXbox) {
+    // 1. STEAM Games (Launch via official Steam URI protocol)
+    if (game.consoleId === 'STEAM' || (game.launchUrl && game.launchUrl.startsWith('steam://'))) {
+      const appId = game.steamAppId || (game.id.includes('::') ? game.id.split('::')[1] : game.id);
+      const steamUrl = game.launchUrl || `steam://rungameid/${appId}`;
+      child = spawn('cmd.exe', ['/c', 'start', '', steamUrl], { detached: true, stdio: 'ignore' });
+      child.unref();
+    }
+    // 2. EPIC Games (Legendary or Epic protocol)
+    else if (game.consoleId === 'EPIC' && game.epicAppName) {
+      const epicStatus = pcEngine.getEpicAccountStatus(DATA_DIR);
+      const legendaryPath = pcEngine.getLegendaryPath(APP_ROOT);
+      if (epicStatus.loggedIn && fs.existsSync(legendaryPath)) {
+        const configDir = pcEngine.getEpicConfigDir(DATA_DIR);
+        const env = { ...process.env, LEGENDARY_CONFIG_PATH: configDir };
         try {
-          child = spawn(exePath, [], {
-            cwd,
-            detached: false,
-            stdio: 'ignore',
-            windowsHide: false
-          });
-        } catch (spawnErr) {
-          console.warn(`Direct spawn failed for ${exePath}, falling back to Windows Shell:`, spawnErr.message);
-          child = null;
-        }
-      }
-
-      if (!child || !child.pid) {
-        try {
-          child = spawn('cmd.exe', ['/c', 'start', '', exePath], {
-            cwd,
-            detached: true,
-            stdio: 'ignore'
-          });
+          child = spawn(legendaryPath, ['launch', game.epicAppName], { env, detached: true, stdio: 'ignore' });
           child.unref();
-          isDetachedShell = true;
-        } catch (shellErr) {
-          console.error(`Shell launch failed for ${exePath}:`, shellErr);
-          throw new Error(`Falha ao executar o jogo: ${shellErr.message}`);
-        }
+        } catch (_) { child = null; }
       }
-
-      if (child && child.pid && !isDetachedShell) {
-        runFocusHelper(['focus-emu', String(child.pid)]);
-      } else {
-        runFocusHelper(['focus-emu', '0']);
-      }
-
-      const startedAt = Date.now();
-      game.playCount = (game.playCount || 0) + 1;
-      game.lastPlayedAt = new Date().toISOString();
-      saveDb(db);
-
-      const exeBaseName = path.basename(exePath).toLowerCase();
-      activeSession = {
-        gameId,
-        title: game.title,
-        consoleId: game.consoleId,
-        pid: child?.pid || 0,
-        startedAt,
-        process: isDetachedShell ? null : child,
-        exeBaseName,
-        isDetached: isDetachedShell
-      };
-
-      const interval = setInterval(() => {
-        if (!activeSession || activeSession.gameId !== gameId) {
-          clearInterval(interval);
-          return;
-        }
-        const now = Date.now();
-        const elapsedSec = Math.max(1, Math.round((now - activeSession.lastTick) / 1000));
-        activeSession.lastTick = now;
-        if (db.games[gameId]) {
-          db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + elapsedSec;
-          saveDb(db);
-        }
-
-        // For detached Xbox / PC games, monitor whether the process is still running
-        if (activeSession.isDetached && activeSession.exeBaseName) {
-          try {
-            const check = execSync(`tasklist /FI "IMAGENAME eq ${activeSession.exeBaseName}" /NH`, {
-              encoding: 'utf8',
-              stdio: ['ignore', 'pipe', 'ignore'],
-              timeout: 2000
-            });
-            if (!check.toLowerCase().includes(activeSession.exeBaseName)) {
-              clearInterval(interval);
-              finishGameSession(gameId, startedAt);
-            }
-          } catch {}
-        }
-      }, 5000);
-      activeSession.lastTick = startedAt;
-
-      if (!isDetachedShell && child) {
-        child.on('error', (err) => {
-          console.error('PC GAME SPAWN ERROR:', err);
-        });
-
-        child.on('exit', (code, signal) => {
-          console.log(`PC GAME EXITED: code=${code}, signal=${signal}`);
-          clearInterval(interval);
-          finishGameSession(gameId, startedAt);
-        });
-      }
-
-      return { status: 'launched', pid: child?.pid || 0, gameId };
-    } else {
-      let child = null;
-      const targetLaunch = game.launchUrl || game.romPath;
-
-      if (game.consoleId === 'EPIC' && game.epicAppName) {
-        const epicStatus = pcEngine.getEpicAccountStatus(DATA_DIR);
-        const legendaryPath = pcEngine.getLegendaryPath(APP_ROOT);
-        if (epicStatus.loggedIn && fs.existsSync(legendaryPath)) {
-          const configDir = pcEngine.getEpicConfigDir(DATA_DIR);
-          const env = { ...process.env, LEGENDARY_CONFIG_PATH: configDir };
-          try {
-            child = spawn(legendaryPath, ['launch', game.epicAppName], {
-              env,
-              detached: true,
-              stdio: 'ignore'
-            });
-            child.unref();
-          } catch (_) {
-            child = null;
-          }
-        }
-      }
-
       if (!child) {
-        child = spawn('cmd.exe', ['/c', 'start', '', targetLaunch], {
+        const epicUrl = game.launchUrl || `com.epicgames.launcher://apps/${game.epicAppName}?action=launch&silent=true`;
+        child = spawn('cmd.exe', ['/c', 'start', '', epicUrl], { detached: true, stdio: 'ignore' });
+        child.unref();
+      }
+    }
+    // 3. XBOX / PC Game Pass Games
+    else if (game.consoleId === 'XBOX' || (game.romPath && /XboxGames|WindowsApps/i.test(game.romPath))) {
+      let targetExe = game.romPath;
+      if (targetExe && fs.existsSync(targetExe)) {
+        const dir = path.dirname(targetExe);
+        const helper = path.join(dir, 'gamelaunchhelper.exe');
+        if (fs.existsSync(helper)) {
+          targetExe = helper;
+        }
+        child = spawn('cmd.exe', ['/c', 'start', '', targetExe], {
+          cwd: path.dirname(targetExe),
           detached: true,
           stdio: 'ignore'
         });
         child.unref();
+      } else if (game.launchUrl) {
+        child = spawn('cmd.exe', ['/c', 'start', '', game.launchUrl], { detached: true, stdio: 'ignore' });
+        child.unref();
       }
-
-      const startedAt = Date.now();
-      game.playCount = (game.playCount || 0) + 1;
-      game.lastPlayedAt = new Date().toISOString();
-      saveDb(db);
-      runFocusHelper(['focus-emu', '0']);
-
-      activeSession = {
-        gameId,
-        title: game.title,
-        consoleId: game.consoleId,
-        pid: child?.pid || 0,
-        startedAt,
-        process: null,
-        isDetached: true
-      };
-      activeSession.lastTick = startedAt;
-
-      const interval = setInterval(() => {
-        if (!activeSession || activeSession.gameId !== gameId) {
-          clearInterval(interval);
-          return;
-        }
-        const now = Date.now();
-        const elapsedSec = Math.max(1, Math.round((now - activeSession.lastTick) / 1000));
-        activeSession.lastTick = now;
-        if (db.games[gameId]) {
-          db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + elapsedSec;
-          saveDb(db);
-        }
-      }, 5000);
-
-      return { status: 'launched', pid: child?.pid || 0, gameId };
     }
+    // 4. Standalone PC Games (.EXE / Shortcuts / URL)
+    else if (game.romPath && fs.existsSync(game.romPath)) {
+      const targetExe = game.romPath;
+      const cwd = path.dirname(targetExe);
+      child = spawn('cmd.exe', ['/c', 'start', '', targetExe], {
+        cwd,
+        detached: true,
+        stdio: 'ignore'
+      });
+      child.unref();
+    } else if (game.launchUrl) {
+      child = spawn('cmd.exe', ['/c', 'start', '', game.launchUrl], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      child.unref();
+    } else {
+      throw new Error(`Executável ou link de inicialização não encontrado para: ${game.title}`);
+    }
+
+    game.playCount = (game.playCount || 0) + 1;
+    game.lastPlayedAt = new Date().toISOString();
+    saveDb(db);
+    runFocusHelper(['focus-emu', '0']);
+
+    activeSession = {
+      gameId,
+      title: game.title,
+      consoleId: game.consoleId,
+      pid: child?.pid || 0,
+      startedAt,
+      process: null,
+      isDetached: true
+    };
+    activeSession.lastTick = startedAt;
+
+    const interval = setInterval(() => {
+      if (!activeSession || activeSession.gameId !== gameId) {
+        clearInterval(interval);
+        return;
+      }
+      const now = Date.now();
+      const elapsedSec = Math.max(1, Math.round((now - activeSession.lastTick) / 1000));
+      activeSession.lastTick = now;
+      if (db.games[gameId]) {
+        db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + elapsedSec;
+        saveDb(db);
+      }
+    }, 5000);
+
+    return { status: 'launched', pid: child?.pid || 0, gameId };
   }
 
   const cCfg = db.config.consoles[game.consoleId];

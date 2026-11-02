@@ -346,6 +346,9 @@ function updateRunningBanner() {
 
 function isGameInstalled(game) {
   if (!game) return false;
+  if (typeof game === 'string') {
+    game = (appState.games || []).find(lg => lg.id === game) || { id: game };
+  }
   // If explicitly marked not installed
   if (game.installed === false || game.isInstalled === false) return false;
   // If it's a virtual catalogue item from Hydra Store / Início
@@ -367,6 +370,29 @@ function isGameInstalled(game) {
   return Boolean(game.romPath || game.launchUrl);
 }
 window.isGameInstalled = isGameInstalled;
+
+function quickPlayGame(game) {
+  if (!game) return;
+  if (typeof game === 'string') {
+    game = (appState.games || []).find(g => g.id === game);
+  }
+  if (!game) return;
+  if (isGameInstalled(game)) {
+    playSfx('launch');
+    launchSelectedGame(game.id, 0);
+  } else {
+    playSfx('select');
+    if (typeof window.openRepacksModal === 'function') {
+      window.openRepacksModal(game.title, {
+        objectId: game.steamAppId || game.objectId || game.hydraObjectId || '',
+        shop: game.shop || 'steam'
+      });
+    } else {
+      selectGame(game);
+    }
+  }
+}
+window.quickPlayGame = quickPlayGame;
 
 function getFilteredGames() {
   let list = [...(appState.games || [])];
@@ -878,7 +904,7 @@ function createGameListRowElement(game, cardWidth, cardHeight, posX, posY, index
 
   // Row selection & navigation
   card.onclick = () => {
-    selectGame(game.id, index);
+    selectGame(game);
     openGameDetails(game);
   };
 
@@ -1085,6 +1111,10 @@ function closeGameDetails() {
 window.closeGameDetails = closeGameDetails;
 
 function selectGame(game) {
+  if (!game) return;
+  if (typeof game === 'string') {
+    game = (appState.games || []).find(g => g.id === game) || { id: game, title: game };
+  }
   closeGameContextMenu();
   currentSelectedGame = game;
   selectedGameId = game.id;
@@ -2120,7 +2150,21 @@ async function launchSelectedGame(gameId, discIndex = 0) {
     return;
   }
 
-  const game = (appState.games || []).find(g => g.id === gameId) || currentSelectedGame;
+  let game = null;
+  if (gameId && typeof gameId === 'object') {
+    game = gameId;
+    gameId = game.id;
+  } else {
+    game = (appState.games || []).find(g => g.id === gameId);
+  }
+  if (!game && currentSelectedGame && (currentSelectedGame.id === gameId || !gameId)) {
+    game = currentSelectedGame;
+    gameId = game.id;
+  }
+  if (!game && typeof gameId === 'string') {
+    game = (appState.games || []).find(g => g.id === gameId || (g.title && g.title.toLowerCase() === gameId.toLowerCase()));
+  }
+
   if (!game || !isGameInstalled(game)) {
     isLaunching = false;
     showToast('Este jogo ainda não está instalado. Abrindo opções de download...');
@@ -2175,7 +2219,7 @@ async function launchSelectedGame(gameId, discIndex = 0) {
     const res = await fetch('/api/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gameId, discIndex })
+      body: JSON.stringify({ gameId: game.id, discIndex })
     });
     const data = await res.json();
 
