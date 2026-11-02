@@ -735,6 +735,15 @@ function closeGameDetails() {
   } else if (currentTab === 'SETTINGS') {
     if (azBar) azBar.classList.add('hidden');
     if (vSet) vSet.classList.remove('hidden');
+  } else if (currentTab === 'HOME') {
+    if (azBar) azBar.classList.add('hidden');
+    document.getElementById('view-home')?.classList.remove('hidden');
+  } else if (currentTab === 'DOWNLOADS') {
+    if (azBar) azBar.classList.add('hidden');
+    document.getElementById('view-downloads')?.classList.remove('hidden');
+  } else if (currentTab === 'PROFILE') {
+    if (azBar) azBar.classList.add('hidden');
+    document.getElementById('view-profile')?.classList.remove('hidden');
   } else {
     if (azBar) azBar.classList.remove('hidden');
     if (vCat) vCat.classList.remove('hidden');
@@ -762,6 +771,9 @@ function selectGame(game) {
   document.getElementById('view-catalogue')?.classList.add('hidden');
   document.getElementById('view-achievements')?.classList.add('hidden');
   document.getElementById('view-settings')?.classList.add('hidden');
+  document.getElementById('view-home')?.classList.add('hidden');
+  document.getElementById('view-downloads')?.classList.add('hidden');
+  document.getElementById('view-profile')?.classList.add('hidden');
   document.getElementById('az-bar')?.classList.add('hidden');
 
   const panel = document.getElementById('details-panel');
@@ -3395,7 +3407,7 @@ async function triggerHomeCatalogueLoad() {
     try {
       const res = await fetch(`/api/home/search?q=${encodeURIComponent(query)}&genre=${encodeURIComponent(currentHomeGenre)}&order=${encodeURIComponent(currentHomeSort)}`);
       const data = await res.json();
-      homeGamesCache = data.games || [];
+      homeGamesCache = data.games || data.items || [];
       if (homeGamesCache.length > 0) updateHomeHero(homeGamesCache[0]);
       renderHomeGrid(homeGamesCache);
     } catch {
@@ -3415,7 +3427,7 @@ async function loadHomeCategory(category) {
   try {
     const res = await fetch(`/api/home/catalogue?category=${category}`);
     const data = await res.json();
-    homeGamesCache = data.games || [];
+    homeGamesCache = data.games || data.items || [];
     if (homeGamesCache.length > 0) updateHomeHero(homeGamesCache[0]);
     renderHomeGrid(homeGamesCache);
   } catch (e) {
@@ -3514,10 +3526,10 @@ function renderHomeGrid(games) {
 
     card.innerHTML = `
       <div class="card-art-wrap">
-        <img src="${g.coverUrl || ''}" class="card-art loaded" loading="lazy" alt="${g.title}">
+        <img src="${g.coverUrl || ''}" class="card-art loaded" loading="lazy" alt="${g.title}" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'260\\' viewBox=\\'0 0 200 260\\'><rect width=\\'200\\' height=\\'260\\' fill=\\'%23161c28\\'/><text x=\\'50%\\' y=\\'50%\\' fill=\\'%23475569\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\' font-size=\\'13\\'>Sem Capa</text></svg>'">
         <div class="card-top-badges">
           <div class="card-badges-left">
-            <span class="card-console-tag ${isLocal ? 'PC' : 'SWITCH'}">${isLocal ? 'INSTALADO' : 'CATÁLOGO'}</span>
+            <span class="card-console-tag ${isLocal ? 'pc' : 'steam'}">${isLocal ? 'INSTALADO' : 'CATÁLOGO'}</span>
             ${g.rating ? `<span class="card-rating-tag">★ ${(g.rating).toFixed(1)}</span>` : ''}
           </div>
         </div>
@@ -3542,15 +3554,17 @@ function renderHomeGrid(games) {
           title: g.title,
           fileName: `${g.title}.exe`,
           consoleId: 'PC',
-          isInstalled: false,
+          isInstalled: Boolean(isLocal),
           coverUrl: g.coverUrl,
           heroUrl: g.heroUrl || g.coverUrl,
-          description: g.description,
-          developer: g.developer || 'Hydra Catalogue',
-          publisher: g.publisher || 'Acervo Oficial',
+          description: g.description || 'Título oficial do catálogo Hydra disponível para download e execução direta.',
+          developer: g.developer || 'Hydra Official',
+          publisher: g.publisher || 'Steam / Hydra',
           releaseYear: g.releaseYear || '2024',
           rating: g.rating || 4.8,
-          genres: g.genres || ['Ação', 'Aventura']
+          genres: g.genres || ['Ação', 'Aventura'],
+          objectId: g.objectId,
+          shop: g.shop || 'steam'
         };
         selectGame(virtualGame);
       }

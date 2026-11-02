@@ -729,8 +729,8 @@ class HydraDownloadsEngine {
         const objectId = String(entry.objectId || entry.id || '');
         const shop = entry.shop || 'steam';
         const coverUrl =
-          entry.libraryImageUrl ||
           entry.coverImageUrl ||
+          entry.libraryImageUrl ||
           (shop === 'steam' && objectId
             ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900.jpg`
             : '');

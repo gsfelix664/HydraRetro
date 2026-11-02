@@ -5324,7 +5324,7 @@ const server = http.createServer(async (req, res) => {
     const category = urlObj.searchParams.get('category') || 'hot';
     try {
       const items = await downloadsEngine.fetchHomeCatalogue(category);
-      return sendJson(res, 200, { ok: true, category, items });
+      return sendJson(res, 200, { ok: true, category, items, games: items });
     } catch (e) {
       return sendJson(res, 500, { ok: false, error: e.message });
     }
@@ -5342,7 +5342,7 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       const items = await downloadsEngine.searchStoreCatalogue(q, { genre, order });
-      return sendJson(res, 200, { ok: true, query: q, genre, order, items });
+      return sendJson(res, 200, { ok: true, query: q, genre, order, items, games: items });
     } catch (e) {
       return sendJson(res, 500, { ok: false, error: e.message });
     }
