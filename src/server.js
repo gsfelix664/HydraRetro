@@ -499,6 +499,32 @@ const DEFAULT_CONFIG = {
       launchArgs: 'launch "{ROM}"',
       extensions: [],
       libretroThumbRepo: ''
+    },
+    GOG: {
+      id: 'GOG',
+      name: 'GOG Galaxy',
+      shortName: 'GOG',
+      manufacturer: 'CD Projekt',
+      releaseYear: 2008,
+      romFolder: '',
+      emulatorPath: 'explorer.exe',
+      corePath: '',
+      launchArgs: '"{ROM}"',
+      extensions: ['.exe', '.lnk'],
+      libretroThumbRepo: ''
+    },
+    XBOX: {
+      id: 'XBOX',
+      name: 'Xbox / PC Game Pass',
+      shortName: 'Xbox',
+      manufacturer: 'Microsoft',
+      releaseYear: 2001,
+      romFolder: '',
+      emulatorPath: 'explorer.exe',
+      corePath: '',
+      launchArgs: '"{ROM}"',
+      extensions: ['.exe', '.lnk'],
+      libretroThumbRepo: ''
     }
   }
 };
@@ -544,7 +570,7 @@ function loadDb() {
         c.corePath = def.corePath;
       }
     }
-    for (const k of ['PC', 'STEAM', 'EPIC']) {
+    for (const k of ['PC', 'STEAM', 'EPIC', 'GOG', 'XBOX']) {
       if (!db.config.consoles[k]) {
         db.config.consoles[k] = { ...DEFAULT_CONFIG.consoles[k] };
       }
@@ -3328,6 +3354,31 @@ function runFocusHelper(args) {
   }
 }
 
+function finishGameSession(gameId, startedAt) {
+  if (activeSession && activeSession.gameId === gameId) {
+    const now = Date.now();
+    const remainingSec = Math.max(0, Math.round((now - activeSession.lastTick) / 1000));
+    const totalSessionSec = Math.max(1, Math.round((now - startedAt) / 1000));
+    if (db.games[gameId]) {
+      db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + remainingSec;
+      db.games[gameId].lastPlayedAt = new Date().toISOString();
+    }
+    db.sessions.unshift({
+      id: crypto.randomUUID(),
+      gameId,
+      title: activeSession.title || (db.games[gameId] && db.games[gameId].title) || 'Jogo',
+      consoleId: activeSession.consoleId || (db.games[gameId] && db.games[gameId].consoleId) || 'PC',
+      startedAt: new Date(startedAt).toISOString(),
+      endedAt: new Date(now).toISOString(),
+      durationSeconds: totalSessionSec
+    });
+    if (db.sessions.length > 100) db.sessions.length = 100;
+    saveDb(db);
+    activeSession = null;
+  }
+  runFocusHelper(['restore-ui']);
+}
+
 function launchGame(gameId, discIndex = 0) {
   const game = db.games[gameId];
   if (!game) throw new Error('Jogo não encontrado');
@@ -3336,20 +3387,52 @@ function launchGame(gameId, discIndex = 0) {
     activeSession = null;
   }
 
-  // PC, STEAM, EPIC Handling
-  if (['PC', 'STEAM', 'EPIC'].includes(game.consoleId)) {
-    if (game.romPath && fs.existsSync(game.romPath) && game.romPath.toLowerCase().endsWith('.exe')) {
+  // PC, STEAM, EPIC, GOG, XBOX Handling
+  if (['PC', 'STEAM', 'EPIC', 'GOG', 'XBOX'].includes(game.consoleId)) {
+    const isXbox = game.consoleId === 'XBOX';
+    const hasExe = game.romPath && fs.existsSync(game.romPath) && game.romPath.toLowerCase().endsWith('.exe');
+
+    if (hasExe) {
       const exePath = game.romPath;
       const cwd = path.dirname(exePath);
-      const child = spawn(exePath, [], {
-        cwd,
-        detached: false,
-        stdio: 'ignore',
-        windowsHide: false
-      });
+      let child = null;
+      let isDetachedShell = false;
 
-      if (child.pid) {
+      // Xbox / Game Pass executables are protected under Windows GamingServices ACLs
+      // Direct node spawn will throw EPERM, but Windows ShellExecute (cmd /c start) succeeds seamlessly!
+      if (!isXbox) {
+        try {
+          child = spawn(exePath, [], {
+            cwd,
+            detached: false,
+            stdio: 'ignore',
+            windowsHide: false
+          });
+        } catch (spawnErr) {
+          console.warn(`Direct spawn failed for ${exePath}, falling back to Windows Shell:`, spawnErr.message);
+          child = null;
+        }
+      }
+
+      if (!child || !child.pid) {
+        try {
+          child = spawn('cmd.exe', ['/c', 'start', '', exePath], {
+            cwd,
+            detached: true,
+            stdio: 'ignore'
+          });
+          child.unref();
+          isDetachedShell = true;
+        } catch (shellErr) {
+          console.error(`Shell launch failed for ${exePath}:`, shellErr);
+          throw new Error(`Falha ao executar o jogo: ${shellErr.message}`);
+        }
+      }
+
+      if (child && child.pid && !isDetachedShell) {
         runFocusHelper(['focus-emu', String(child.pid)]);
+      } else {
+        runFocusHelper(['focus-emu', '0']);
       }
 
       const startedAt = Date.now();
@@ -3357,13 +3440,16 @@ function launchGame(gameId, discIndex = 0) {
       game.lastPlayedAt = new Date().toISOString();
       saveDb(db);
 
+      const exeBaseName = path.basename(exePath).toLowerCase();
       activeSession = {
         gameId,
         title: game.title,
         consoleId: game.consoleId,
-        pid: child.pid,
+        pid: child?.pid || 0,
         startedAt,
-        process: child
+        process: isDetachedShell ? null : child,
+        exeBaseName,
+        isDetached: isDetachedShell
       };
 
       const interval = setInterval(() => {
@@ -3378,41 +3464,37 @@ function launchGame(gameId, discIndex = 0) {
           db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + elapsedSec;
           saveDb(db);
         }
+
+        // For detached Xbox / PC games, monitor whether the process is still running
+        if (activeSession.isDetached && activeSession.exeBaseName) {
+          try {
+            const check = execSync(`tasklist /FI "IMAGENAME eq ${activeSession.exeBaseName}" /NH`, {
+              encoding: 'utf8',
+              stdio: ['ignore', 'pipe', 'ignore'],
+              timeout: 2000
+            });
+            if (!check.toLowerCase().includes(activeSession.exeBaseName)) {
+              clearInterval(interval);
+              finishGameSession(gameId, startedAt);
+            }
+          } catch {}
+        }
       }, 5000);
       activeSession.lastTick = startedAt;
 
-      child.on('error', (err) => {
-        console.error('PC GAME SPAWN ERROR:', err);
-      });
+      if (!isDetachedShell && child) {
+        child.on('error', (err) => {
+          console.error('PC GAME SPAWN ERROR:', err);
+        });
 
-      child.on('exit', (code, signal) => {
-        console.log(`PC GAME EXITED: code=${code}, signal=${signal}`);
-        clearInterval(interval);
-        if (activeSession && activeSession.gameId === gameId) {
-          const now = Date.now();
-          const remainingSec = Math.max(0, Math.round((now - activeSession.lastTick) / 1000));
-          const totalSessionSec = Math.max(1, Math.round((now - startedAt) / 1000));
-          if (db.games[gameId]) {
-            db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + remainingSec;
-            db.games[gameId].lastPlayedAt = new Date().toISOString();
-          }
-          db.sessions.unshift({
-            id: crypto.randomUUID(),
-            gameId,
-            title: game.title,
-            consoleId: game.consoleId,
-            startedAt: new Date(startedAt).toISOString(),
-            endedAt: new Date(now).toISOString(),
-            durationSeconds: totalSessionSec
-          });
-          if (db.sessions.length > 100) db.sessions.length = 100;
-          saveDb(db);
-          activeSession = null;
-        }
-        runFocusHelper(['restore-ui']);
-      });
+        child.on('exit', (code, signal) => {
+          console.log(`PC GAME EXITED: code=${code}, signal=${signal}`);
+          clearInterval(interval);
+          finishGameSession(gameId, startedAt);
+        });
+      }
 
-      return { status: 'launched', pid: child.pid, gameId };
+      return { status: 'launched', pid: child?.pid || 0, gameId };
     } else {
       let child = null;
       const targetLaunch = game.launchUrl || game.romPath;
@@ -3444,10 +3526,37 @@ function launchGame(gameId, discIndex = 0) {
         child.unref();
       }
 
+      const startedAt = Date.now();
       game.playCount = (game.playCount || 0) + 1;
       game.lastPlayedAt = new Date().toISOString();
       saveDb(db);
       runFocusHelper(['focus-emu', '0']);
+
+      activeSession = {
+        gameId,
+        title: game.title,
+        consoleId: game.consoleId,
+        pid: child?.pid || 0,
+        startedAt,
+        process: null,
+        isDetached: true
+      };
+      activeSession.lastTick = startedAt;
+
+      const interval = setInterval(() => {
+        if (!activeSession || activeSession.gameId !== gameId) {
+          clearInterval(interval);
+          return;
+        }
+        const now = Date.now();
+        const elapsedSec = Math.max(1, Math.round((now - activeSession.lastTick) / 1000));
+        activeSession.lastTick = now;
+        if (db.games[gameId]) {
+          db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + elapsedSec;
+          saveDb(db);
+        }
+      }, 5000);
+
       return { status: 'launched', pid: child?.pid || 0, gameId };
     }
   }
@@ -3581,28 +3690,7 @@ function launchGame(gameId, discIndex = 0) {
   child.on('exit', (code, signal) => {
     console.log(`EMULATOR EXITED: code=${code}, signal=${signal}`);
     clearInterval(interval);
-    if (activeSession && activeSession.gameId === gameId) {
-      const now = Date.now();
-      const remainingSec = Math.max(0, Math.round((now - activeSession.lastTick) / 1000));
-      const totalSessionSec = Math.max(1, Math.round((now - startedAt) / 1000));
-      if (db.games[gameId]) {
-        db.games[gameId].playTimeSeconds = (db.games[gameId].playTimeSeconds || 0) + remainingSec;
-        db.games[gameId].lastPlayedAt = new Date().toISOString();
-      }
-      db.sessions.unshift({
-        id: crypto.randomUUID(),
-        gameId,
-        title: game.title,
-        consoleId: game.consoleId,
-        startedAt: new Date(startedAt).toISOString(),
-        endedAt: new Date(now).toISOString(),
-        durationSeconds: totalSessionSec
-      });
-      if (db.sessions.length > 100) db.sessions.length = 100;
-      saveDb(db);
-      activeSession = null;
-    }
-    runFocusHelper(['restore-ui']);
+    finishGameSession(gameId, startedAt);
   });
 
   return { status: 'launched', pid: child.pid, gameId };
@@ -3925,10 +4013,16 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/stop' && req.method === 'POST') {
-    if (activeSession && activeSession.process) {
-      try { activeSession.process.kill(); } catch {}
+    if (activeSession) {
+      if (activeSession.process) {
+        try { activeSession.process.kill(); } catch {}
+      } else if (activeSession.exeBaseName) {
+        try { execSync(`taskkill /F /IM "${activeSession.exeBaseName}"`, { stdio: 'ignore' }); } catch {}
+      }
+      finishGameSession(activeSession.gameId, activeSession.startedAt);
       activeSession = null;
     }
+    runFocusHelper(['restore-ui']);
     return sendJson(res, 200, { status: 'stopped' });
   }
 

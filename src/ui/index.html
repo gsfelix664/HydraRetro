@@ -445,6 +445,79 @@
           </div>
         </div>
 
+        <!-- Library Display Filters Toolbar (Hydra Original Style) -->
+        <div class="library-filters-bar" id="library-filters-bar">
+          <div class="lib-filter-group">
+            <span class="lib-filter-label">Status:</span>
+            <select id="lib-filter-status" class="lib-filter-select">
+              <option value="ALL">Todos os Jogos</option>
+              <option value="INSTALLED">⚡ Apenas Instalados</option>
+              <option value="NOT_INSTALLED">☁️ Não Instalados</option>
+            </select>
+          </div>
+
+          <div class="lib-filter-group">
+            <span class="lib-filter-label">Plataforma:</span>
+            <select id="lib-filter-platform" class="lib-filter-select">
+              <option value="ALL">Todas as Plataformas</option>
+              <option value="PC">🐉 Jogos Hydra (Downloads & PC)</option>
+              <option value="STEAM">🔵 Steam</option>
+              <option value="EPIC">⚫ Epic Games</option>
+              <option value="GOG">🟣 GOG Galaxy</option>
+              <option value="XBOX">🟢 Xbox / Game Pass</option>
+              <option value="PS1">PlayStation 1</option>
+              <option value="PS2">PlayStation 2</option>
+              <option value="PS3">PlayStation 3</option>
+              <option value="PSP">PlayStation Portable (PSP)</option>
+              <option value="SNES">Super Nintendo (SNES)</option>
+              <option value="N64">Nintendo 64</option>
+              <option value="GC">Nintendo GameCube</option>
+              <option value="WII">Nintendo Wii</option>
+              <option value="SWITCH">Nintendo Switch</option>
+              <option value="GBA">Game Boy Advance</option>
+              <option value="GBC">Game Boy Color</option>
+              <option value="GB">Game Boy</option>
+              <option value="GENESIS">Sega Mega Drive</option>
+              <option value="MAME">Arcade (MAME)</option>
+            </select>
+          </div>
+
+          <div class="lib-filter-group">
+            <span class="lib-filter-label">Gênero:</span>
+            <select id="lib-filter-genre" class="lib-filter-select">
+              <option value="ALL">Todos os Gêneros</option>
+            </select>
+          </div>
+
+          <div class="lib-filter-chips">
+            <button type="button" id="lib-chip-fav" class="lib-chip-btn" title="Filtrar por favoritos">
+              <span>⭐ Favoritos</span>
+            </button>
+            <button type="button" id="lib-chip-ach" class="lib-chip-btn" title="Filtrar por jogos com conquistas">
+              <span>🏆 Conquistas</span>
+            </button>
+            <button type="button" id="lib-btn-clear-filters" class="lib-chip-btn clear hidden" title="Limpar todos os filtros">
+              <span>✕ Limpar</span>
+            </button>
+          </div>
+
+          <div class="lib-filter-right">
+            <div id="lib-filtered-counter" class="lib-counter-badge">Exibindo 0 de 0 jogos</div>
+            <div class="view-mode-toggle">
+              <button type="button" id="btn-view-grid" class="view-mode-btn active" title="Visualização em Grade (Cards)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 3h7v7H3zm11 0h7v7h-7zm0 11h7v7h-7zM3 14h7v7H3z"/>
+                </svg>
+              </button>
+              <button type="button" id="btn-view-list" class="view-mode-btn" title="Visualização em Lista (Tabela/Detalhes)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div id="games-grid" class="games-grid"></div>
       </section>
 

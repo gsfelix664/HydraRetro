@@ -12,6 +12,12 @@ let searchQuery = '';
 let sortMode = 'ALPHA_ASC';
 let selectedGameId = null;
 let showInstalledOnly = false;
+let libStatusFilter = 'ALL'; // 'ALL', 'INSTALLED', 'NOT_INSTALLED'
+let libPlatformFilter = 'ALL'; // 'ALL', consoleId
+let libGenreFilter = 'ALL'; // 'ALL', genre string
+let libFavOnly = false;
+let libAchOnly = false;
+let libViewMode = 'grid'; // 'grid', 'list'
 let isLaunching = false;
 let currentHomeCategory = 'hot';
 let homeGamesCache = [];
@@ -365,18 +371,47 @@ window.isGameInstalled = isGameInstalled;
 function getFilteredGames() {
   let list = [...(appState.games || [])];
 
-  if (showInstalledOnly) {
+  // 1. Status Filter (Installed vs Not Installed / Cloud)
+  if (libStatusFilter === 'INSTALLED' || showInstalledOnly) {
     list = list.filter(g => isGameInstalled(g));
+  } else if (libStatusFilter === 'NOT_INSTALLED') {
+    list = list.filter(g => !isGameInstalled(g));
   }
 
-  if (currentTab === 'FAVORITES') {
+  // 2. Favorites Filter
+  if (libFavOnly || currentTab === 'FAVORITES') {
     list = list.filter(g => g.favorite);
-  } else if (currentTab === 'RECENT') {
-    list = list.filter(g => Boolean(g.lastPlayedAt));
-  } else if (currentTab !== 'ALL' && currentTab !== 'ACHIEVEMENTS' && currentTab !== 'SETTINGS' && currentTab !== 'HOME' && currentTab !== 'DOWNLOADS') {
-    list = list.filter(g => g.consoleId === currentTab);
   }
 
+  // 3. Achievements Filter
+  if (libAchOnly) {
+    list = list.filter(g => (g.raAchievements && g.raAchievements.length > 0) || (g.achievements && g.achievements.length > 0));
+  }
+
+  // 4. Platform Filter (From toolbar select or sidebar currentTab)
+  const effectivePlatform = (libPlatformFilter !== 'ALL') ? libPlatformFilter : (
+    ['ALL', 'FAVORITES', 'RECENT', 'ACHIEVEMENTS', 'SETTINGS', 'HOME', 'DOWNLOADS'].includes(currentTab) ? 'ALL' : currentTab
+  );
+  if (effectivePlatform !== 'ALL') {
+    list = list.filter(g => g.consoleId === effectivePlatform);
+  }
+
+  // 5. Recent Tab Filter
+  if (currentTab === 'RECENT') {
+    list = list.filter(g => Boolean(g.lastPlayedAt));
+  }
+
+  // 6. Genre Filter
+  if (libGenreFilter && libGenreFilter !== 'ALL') {
+    const qg = libGenreFilter.toLowerCase();
+    list = list.filter(g => {
+      if (Array.isArray(g.genres) && g.genres.some(ge => ge.toLowerCase().includes(qg))) return true;
+      if (typeof g.genre === 'string' && g.genre.toLowerCase().includes(qg)) return true;
+      return false;
+    });
+  }
+
+  // 7. A-Z Letter Filter
   if (currentLetter !== 'ALL') {
     list = list.filter(g => {
       const firstChar = (g.sortTitle || g.title || '').trim().charAt(0).toUpperCase();
@@ -385,9 +420,10 @@ function getFilteredGames() {
     });
   }
 
+  // 8. Search Query
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().trim();
-    list = list.filter(g => g.title.toLowerCase().includes(q) || g.fileName.toLowerCase().includes(q));
+    list = list.filter(g => (g.title && g.title.toLowerCase().includes(q)) || (g.fileName && g.fileName.toLowerCase().includes(q)));
   }
 
   const getSortKey = (g) => g._sortKey || (g._sortKey = (g.sortTitle || g.title || '').toLowerCase());
@@ -450,6 +486,86 @@ let currentCatalogueList = [];
 let lastVisibleRange = { startRow: -1, endRow: -1 };
 let virtualScrollRaf = null;
 
+function updateGenreFilterOptions() {
+  const genreSelect = document.getElementById('lib-filter-genre');
+  if (!genreSelect || !appState.games) return;
+  const currentVal = libGenreFilter || 'ALL';
+  const genresSet = new Set();
+  for (const g of appState.games) {
+    if (Array.isArray(g.genres)) {
+      g.genres.forEach(gn => {
+        if (gn && typeof gn === 'string' && gn.trim().length > 1) genresSet.add(gn.trim());
+      });
+    } else if (typeof g.genre === 'string' && g.genre.trim().length > 1) {
+      g.genre.split(/[,/;]/).forEach(gn => {
+        if (gn.trim().length > 1) genresSet.add(gn.trim());
+      });
+    }
+  }
+  const sorted = Array.from(genresSet).sort((a, b) => a.localeCompare(b));
+  let html = '<option value="ALL">Todos os Gêneros</option>';
+  for (const genre of sorted) {
+    const selected = (genre === currentVal) ? 'selected' : '';
+    html += `<option value="${escapeHtml(genre)}" ${selected}>${escapeHtml(genre)}</option>`;
+  }
+  genreSelect.innerHTML = html;
+}
+
+function updateClearFiltersButtonVisibility() {
+  const isFiltered = (libStatusFilter !== 'ALL') ||
+                     (libPlatformFilter !== 'ALL') ||
+                     (libGenreFilter !== 'ALL') ||
+                     libFavOnly ||
+                     libAchOnly ||
+                     showInstalledOnly ||
+                     (searchQuery.trim().length > 0) ||
+                     (currentLetter !== 'ALL');
+  const btnClear = document.getElementById('lib-btn-clear-filters');
+  if (btnClear) {
+    btnClear.classList.toggle('hidden', !isFiltered);
+  }
+}
+
+function resetLibraryFilters() {
+  libStatusFilter = 'ALL';
+  libPlatformFilter = 'ALL';
+  libGenreFilter = 'ALL';
+  libFavOnly = false;
+  libAchOnly = false;
+  showInstalledOnly = false;
+  searchQuery = '';
+  currentLetter = 'ALL';
+
+  const searchInp = document.getElementById('search-input');
+  if (searchInp) searchInp.value = '';
+  const clearSearchBtn = document.getElementById('clear-search');
+  if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
+
+  const selStatus = document.getElementById('lib-filter-status');
+  if (selStatus) selStatus.value = 'ALL';
+  const selPlat = document.getElementById('lib-filter-platform');
+  if (selPlat) selPlat.value = 'ALL';
+  const selGenre = document.getElementById('lib-filter-genre');
+  if (selGenre) selGenre.value = 'ALL';
+
+  const chipFav = document.getElementById('lib-chip-fav');
+  if (chipFav) chipFav.classList.remove('active');
+  const chipAch = document.getElementById('lib-chip-ach');
+  if (chipAch) chipAch.classList.remove('active');
+
+  const btnToggleInst = document.getElementById('btn-toggle-installed');
+  if (btnToggleInst) btnToggleInst.classList.remove('active');
+  const lblToggle = document.getElementById('label-toggle-installed');
+  if (lblToggle) lblToggle.textContent = 'Instalados & Nuvem';
+
+  const btnClear = document.getElementById('lib-btn-clear-filters');
+  if (btnClear) btnClear.classList.add('hidden');
+
+  document.querySelectorAll('.az-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.letter === 'ALL'));
+
+  renderCatalogue(true);
+}
+
 function renderCatalogue(resetScroll = false) {
   const viewSection = document.getElementById('view-catalogue');
   if (resetScroll && viewSection) viewSection.scrollTop = 0;
@@ -486,6 +602,13 @@ function renderCatalogue(resetScroll = false) {
   document.getElementById('current-view-title').textContent = hTitle;
   document.getElementById('current-view-subtitle').textContent = hSub;
 
+  const counterEl = document.getElementById('lib-filtered-counter');
+  if (counterEl) {
+    counterEl.textContent = `Exibindo ${filtered.length} de ${appState.games ? appState.games.length : 0} jogos`;
+  }
+  updateGenreFilterOptions();
+  updateClearFiltersButtonVisibility();
+
   lastVisibleRange = { startRow: -1, endRow: -1 };
   updateVirtualGrid(true);
 }
@@ -494,6 +617,16 @@ function getGridDimensions() {
   const grid = document.getElementById('games-grid');
   const viewSection = document.getElementById('view-catalogue');
   const availableWidth = (grid && grid.clientWidth) || (viewSection && viewSection.clientWidth - 56) || 1200;
+
+  if (libViewMode === 'list') {
+    const cols = 1;
+    const cardWidth = availableWidth;
+    const cardHeight = 72;
+    const gap = 8;
+    const rowHeight = cardHeight + gap;
+    return { availableWidth, cols, cardWidth, cardHeight, rowHeight, gap };
+  }
+
   const minColWidth = 230; // Big Picture standard (~4-5 cards em 1080p, artes imponentes)
   const gap = 24;
   const cols = Math.max(1, Math.floor((availableWidth + gap) / (minColWidth + gap)));
@@ -595,7 +728,175 @@ function updateVirtualGrid(force = false) {
   }
 }
 
+function createGameListRowElement(game, cardWidth, cardHeight, posX, posY, index = -1) {
+  const isGamepadFocused = (activeZone === 'GRID' && index === gamepadGridIndex);
+  const card = document.createElement('div');
+  card.className = `game-card game-row-item ${selectedGameId === game.id ? 'selected' : ''} ${isGamepadFocused ? 'gamepad-focused' : ''}`;
+  card.dataset.id = game.id;
+  card.dataset.index = index;
+  card.style.position = 'absolute';
+  card.style.left = `${posX}px`;
+  card.style.top = `${posY}px`;
+  card.style.width = `${cardWidth}px`;
+  card.style.height = `${cardHeight}px`;
+
+  // Cover image thumbnail
+  const img = document.createElement('img');
+  img.className = 'row-thumb';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.alt = game.title;
+  img.src = game.thumbUrl || game.coverUrl || game.fallbackCoverUrl || '';
+  img.onerror = () => {
+    if (game.fallbackCoverUrl && img.src !== window.location.origin + game.fallbackCoverUrl) {
+      img.src = game.fallbackCoverUrl;
+    }
+  };
+  card.appendChild(img);
+
+  // Main Info Column
+  const mainInfo = document.createElement('div');
+  mainInfo.className = 'row-main-info';
+
+  const titleLine = document.createElement('div');
+  titleLine.className = 'row-title-line';
+
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'row-title';
+  titleSpan.textContent = game.title;
+  titleSpan.title = game.title;
+  titleLine.appendChild(titleSpan);
+
+  const subInfo = document.createElement('div');
+  subInfo.className = 'row-sub-info';
+  const consoleTag = document.createElement('span');
+  consoleTag.className = `card-console-tag ${game.consoleId}`;
+  consoleTag.textContent = game.consoleId === 'GENESIS' ? 'MD' : (game.consoleId === 'MAME' ? 'ARC' : (game.consoleId === 'SWITCH' ? 'NSW' : game.consoleId));
+  subInfo.appendChild(consoleTag);
+
+  if (game.releaseYear) {
+    const yr = document.createElement('span');
+    yr.style.opacity = '0.7';
+    yr.textContent = game.releaseYear;
+    subInfo.appendChild(yr);
+  }
+
+  mainInfo.appendChild(titleLine);
+  mainInfo.appendChild(subInfo);
+  card.appendChild(mainInfo);
+
+  // Meta Column (Genre & Developer)
+  const metaCol = document.createElement('div');
+  metaCol.className = 'row-meta-col';
+  const genresStr = Array.isArray(game.genres) ? game.genres.slice(0, 2).join(', ') : (game.genre || 'Geral');
+  metaCol.innerHTML = `
+    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(genresStr)}</span>
+    <span style="opacity:0.6;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(game.developer || game.publisher || '')}</span>
+  `;
+  card.appendChild(metaCol);
+
+  // Stats Column (Playtime & Rating)
+  const statsCol = document.createElement('div');
+  statsCol.className = 'row-stats-col';
+  const ratingVal = (typeof game.rating === 'number' ? game.rating : 4.8).toFixed(1);
+  const timeStr = game.playTimeSeconds ? formatPlaytime(game.playTimeSeconds) : 'Nunca jogado';
+  statsCol.innerHTML = `
+    <span title="Tempo jogado" style="font-size:12px;opacity:0.8;">⏱️ ${timeStr}</span>
+    <span title="Avaliação" style="font-size:12px;color:#fbbf24;">★ ${ratingVal}</span>
+  `;
+  card.appendChild(statsCol);
+
+  // Actions Column (Play / Download, Favorite, Options)
+  const actionsCol = document.createElement('div');
+  actionsCol.className = 'row-actions-col';
+
+  const isInstalled = isGameInstalled(game);
+  if (isInstalled) {
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.className = 'row-action-btn play';
+    playBtn.innerHTML = '<span>▶ Jogar</span>';
+    playBtn.onclick = (e) => {
+      e.stopPropagation();
+      quickPlayGame(game);
+    };
+    actionsCol.appendChild(playBtn);
+  } else {
+    const dlBtn = document.createElement('button');
+    dlBtn.type = 'button';
+    dlBtn.className = 'row-action-btn download';
+    dlBtn.innerHTML = '<span>📥 Baixar</span>';
+    dlBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof window.openRepacksModal === 'function') {
+        window.openRepacksModal(game);
+      } else {
+        openGameDetails(game);
+      }
+    };
+    actionsCol.appendChild(dlBtn);
+  }
+
+  // Favorite button
+  const favBtn = document.createElement('button');
+  favBtn.type = 'button';
+  favBtn.className = `row-icon-btn ${game.favorite ? 'favorited' : ''}`;
+  favBtn.innerHTML = game.favorite ? '⭐' : '☆';
+  favBtn.title = game.favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+  favBtn.onclick = async (e) => {
+    e.stopPropagation();
+    game.favorite = !game.favorite;
+    favBtn.className = `row-icon-btn ${game.favorite ? 'favorited' : ''}`;
+    favBtn.innerHTML = game.favorite ? '⭐' : '☆';
+    playSfx('favorite');
+    try {
+      await fetch('/api/favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: game.id, favorite: game.favorite, game })
+      });
+      setBadge('badge-fav', appState.games.filter(g => g.favorite).length);
+    } catch {}
+  };
+  actionsCol.appendChild(favBtn);
+
+  // Properties / Options button
+  const propBtn = document.createElement('button');
+  propBtn.type = 'button';
+  propBtn.className = 'row-icon-btn';
+  propBtn.innerHTML = '⚙️';
+  propBtn.title = 'Propriedades do Jogo';
+  propBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (typeof window.openGamePropertiesModal === 'function') {
+      window.openGamePropertiesModal(game);
+    }
+  };
+  actionsCol.appendChild(propBtn);
+
+  card.appendChild(actionsCol);
+
+  // Row selection & navigation
+  card.onclick = () => {
+    selectGame(game.id, index);
+    openGameDetails(game);
+  };
+
+  card.ondblclick = () => {
+    if (isInstalled) {
+      quickPlayGame(game);
+    } else if (typeof window.openRepacksModal === 'function') {
+      window.openRepacksModal(game);
+    }
+  };
+
+  return card;
+}
+
 function createGameCardElement(game, cardWidth, cardHeight, posX, posY, index = -1) {
+  if (libViewMode === 'list') {
+    return createGameListRowElement(game, cardWidth, cardHeight, posX, posY, index);
+  }
   const isGamepadFocused = (activeZone === 'GRID' && index === gamepadGridIndex);
   const card = document.createElement('div');
   card.className = `game-card ${selectedGameId === game.id ? 'selected' : ''} ${isGamepadFocused ? 'gamepad-focused' : ''}`;
@@ -5530,6 +5831,16 @@ function switchTab(tab) {
   } else {
     azBar?.classList.remove('hidden');
     vCat?.classList.remove('hidden');
+    const selPlat = document.getElementById('lib-filter-platform');
+    if (selPlat) {
+      if (['PC', 'STEAM', 'EPIC', 'GOG', 'XBOX', 'PS1', 'PS2', 'PS3', 'PSP', 'SNES', 'N64', 'GC', 'WII', 'SWITCH', 'GB', 'GBC', 'GBA', 'GENESIS', 'MAME'].includes(tab)) {
+        selPlat.value = tab;
+        libPlatformFilter = tab;
+      } else if (tab === 'ALL') {
+        selPlat.value = 'ALL';
+        libPlatformFilter = 'ALL';
+      }
+    }
     renderCatalogue(true);
   }
 }
@@ -6197,11 +6508,102 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnToggleInstalled) {
     btnToggleInstalled.onclick = () => {
       showInstalledOnly = !showInstalledOnly;
+      libStatusFilter = showInstalledOnly ? 'INSTALLED' : 'ALL';
+      const selStatus = document.getElementById('lib-filter-status');
+      if (selStatus) selStatus.value = libStatusFilter;
       btnToggleInstalled.classList.toggle('active', showInstalledOnly);
       const label = document.getElementById('label-toggle-installed');
       if (label) label.textContent = showInstalledOnly ? '⚡ Apenas Instalados' : 'Instalados & Nuvem';
       playSfx('select');
       renderCatalogue(true);
+    };
+  }
+
+  // Library Display Filters Toolbar (Hydra Original Style)
+  const selLibStatus = document.getElementById('lib-filter-status');
+  if (selLibStatus) {
+    selLibStatus.onchange = () => {
+      libStatusFilter = selLibStatus.value;
+      showInstalledOnly = (libStatusFilter === 'INSTALLED');
+      if (btnToggleInstalled) btnToggleInstalled.classList.toggle('active', showInstalledOnly);
+      const label = document.getElementById('label-toggle-installed');
+      if (label) label.textContent = showInstalledOnly ? '⚡ Apenas Instalados' : 'Instalados & Nuvem';
+      playSfx('select');
+      renderCatalogue(true);
+    };
+  }
+
+  const selLibPlat = document.getElementById('lib-filter-platform');
+  if (selLibPlat) {
+    selLibPlat.onchange = () => {
+      libPlatformFilter = selLibPlat.value;
+      playSfx('select');
+      renderCatalogue(true);
+    };
+  }
+
+  const selLibGenre = document.getElementById('lib-filter-genre');
+  if (selLibGenre) {
+    selLibGenre.onchange = () => {
+      libGenreFilter = selLibGenre.value;
+      playSfx('select');
+      renderCatalogue(true);
+    };
+  }
+
+  const chipFav = document.getElementById('lib-chip-fav');
+  if (chipFav) {
+    chipFav.onclick = () => {
+      libFavOnly = !libFavOnly;
+      chipFav.classList.toggle('active', libFavOnly);
+      playSfx('select');
+      renderCatalogue(true);
+    };
+  }
+
+  const chipAch = document.getElementById('lib-chip-ach');
+  if (chipAch) {
+    chipAch.onclick = () => {
+      libAchOnly = !libAchOnly;
+      chipAch.classList.toggle('active', libAchOnly);
+      playSfx('select');
+      renderCatalogue(true);
+    };
+  }
+
+  const btnClearFilters = document.getElementById('lib-btn-clear-filters');
+  if (btnClearFilters) {
+    btnClearFilters.onclick = () => {
+      resetLibraryFilters();
+      playSfx('back');
+    };
+  }
+
+  const btnViewGrid = document.getElementById('btn-view-grid');
+  const btnViewList = document.getElementById('btn-view-list');
+  if (btnViewGrid && btnViewList) {
+    btnViewGrid.onclick = () => {
+      if (libViewMode === 'grid') return;
+      libViewMode = 'grid';
+      btnViewGrid.classList.add('active');
+      btnViewList.classList.remove('active');
+      const grid = document.getElementById('games-grid');
+      if (grid) grid.innerHTML = '';
+      lastVisibleRange = { startRow: -1, endRow: -1 };
+      playSfx('nav');
+      renderCatalogue(false);
+    };
+
+    btnViewList.onclick = () => {
+      if (libViewMode === 'list') return;
+      libViewMode = 'list';
+      btnViewList.classList.add('active');
+      btnViewGrid.classList.remove('active');
+      const grid = document.getElementById('games-grid');
+      if (grid) grid.innerHTML = '';
+      lastVisibleRange = { startRow: -1, endRow: -1 };
+      playSfx('nav');
+      renderCatalogue(false);
     };
   }
 
