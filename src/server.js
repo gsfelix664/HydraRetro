@@ -5612,18 +5612,30 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/downloads/sources/remove' && req.method === 'POST') {
     const body = await readBody(req);
-    downloadsEngine.removeDownloadSource(body.sourceId || body.url);
-    return sendJson(res, 200, { ok: true });
+    if (body.removeAll) {
+      downloadsEngine.removeAllDownloadSources();
+    } else {
+      downloadsEngine.removeDownloadSource(body.sourceId || body.url);
+    }
+    return sendJson(res, 200, { ok: true, sources: downloadsEngine.getDownloadSources() });
   }
 
   if (pathname === '/api/downloads/repacks') {
-    let title = urlObj.searchParams.get('title');
+    let title = urlObj.searchParams.get('title') || '';
+    let objectId = urlObj.searchParams.get('objectId') || '';
+    let shop = urlObj.searchParams.get('shop') || 'steam';
     if (req.method === 'POST') {
       const body = await readBody(req);
       if (body.title) title = body.title;
+      if (body.objectId) objectId = body.objectId;
+      if (body.shop) shop = body.shop;
     }
-    const repacks = downloadsEngine.searchRepacksForGame(title || '');
-    return sendJson(res, 200, { ok: true, repacks });
+    try {
+      const repacks = await downloadsEngine.searchRepacksForGame(title || '', { objectId, shop });
+      return sendJson(res, 200, { ok: true, repacks });
+    } catch (e) {
+      return sendJson(res, 500, { ok: false, error: e.message });
+    }
   }
 
   // --- GOG & XBOX SCANNERS & WINDOWS AUTO-STARTUP ---

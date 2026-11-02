@@ -156,14 +156,60 @@ class HydraDownloadsEngine {
       return await this.syncDownloadSource(existing.id);
     }
 
+    // 1. Official Hydra API endpoint POST /download-sources (Identical to Hydra Launcher)
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 15000);
+      const apiRes = await fetch(`${HYDRA_API_BASE}/download-sources`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Hydra Launcher v3.0.0',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({ url: cleanUrl }),
+        signal: controller.signal
+      });
+      clearTimeout(t);
+
+      if (apiRes.ok) {
+        const hydraSource = await apiRes.json();
+        const sourceEntry = {
+          id: hydraSource.id || ('src_' + Date.now()),
+          hydraApiId: hydraSource.id || null,
+          name: hydraSource.name || customName || cleanUrl.split('/').pop().replace(/\.json$/i, '') || 'Fonte Hydra',
+          url: cleanUrl,
+          fingerprint: hydraSource.fingerprint || '',
+          downloadCount: typeof hydraSource.downloadCount === 'number' ? hydraSource.downloadCount : 0,
+          status: hydraSource.status || 'MATCHED',
+          isRemote: true,
+          enabled: true,
+          gamesCount: typeof hydraSource.downloadCount === 'number' ? hydraSource.downloadCount : 0,
+          addedAt: new Date().toISOString(),
+          lastSyncedAt: new Date().toISOString()
+        };
+
+        if (!Array.isArray(this.sourcesCache.sources)) this.sourcesCache.sources = [];
+        this.sourcesCache.sources.unshift(sourceEntry);
+        this.saveSourcesCache();
+        return sourceEntry;
+      }
+    } catch (err) {
+      console.warn('[HydraDownloads] Aviso ao adicionar via Hydra API, tentando fallback direto:', err.message);
+    }
+
+    // 2. Fallback: Direct JSON download for local / custom sources (e.g. GitHub raw, local servers)
     const id = 'src_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
     const sourceEntry = {
       id,
-      name: customName || cleanUrl.split('/').pop().replace(/\.json$/i, '') || 'Fonte Hydra',
+      hydraApiId: null,
+      name: customName || cleanUrl.split('/').pop().replace(/\.json$/i, '') || 'Fonte Custom',
       url: cleanUrl,
+      fingerprint: '',
+      downloadCount: 0,
       enabled: true,
       gamesCount: 0,
-      status: 'syncing',
+      status: 'MATCHING',
       addedAt: new Date().toISOString(),
       lastSyncedAt: null
     };
@@ -176,14 +222,43 @@ class HydraDownloadsEngine {
   }
 
   async syncDownloadSource(sourceId) {
-    const src = (this.sourcesCache.sources || []).find(s => s.id === sourceId);
+    const src = (this.sourcesCache.sources || []).find(s => s.id === sourceId || s.hydraApiId === sourceId);
     if (!src) throw new Error('Fonte não encontrada');
 
+    // If source is registered via Hydra API, sync with official Hydra backend
+    if (src.hydraApiId || (src.id && src.id.length <= 12 && !src.id.startsWith('src_'))) {
+      try {
+        const hydraId = src.hydraApiId || src.id;
+        const res = await fetch(`${HYDRA_API_BASE}/download-sources/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'User-Agent': 'Hydra Launcher v3.0.0' },
+          body: JSON.stringify({ ids: [hydraId] })
+        });
+        if (res.ok) {
+          const list = await res.json();
+          const match = Array.isArray(list) ? list.find(s => s.id === hydraId) : null;
+          if (match) {
+            src.name = match.name || src.name;
+            src.downloadCount = typeof match.downloadCount === 'number' ? match.downloadCount : src.downloadCount;
+            src.gamesCount = src.downloadCount;
+            src.status = match.status || 'MATCHED';
+            src.fingerprint = match.fingerprint || src.fingerprint;
+            src.lastSyncedAt = new Date().toISOString();
+            this.saveSourcesCache();
+            return src;
+          }
+        }
+      } catch (err) {
+        console.warn('[HydraDownloads] Falha ao sincronizar via Hydra API:', err.message);
+      }
+    }
+
+    // Direct JSON sync fallback
     try {
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(src.url, {
-        headers: { 'User-Agent': 'HydraLauncher/3.0', Accept: 'application/json' },
+        headers: { 'User-Agent': 'Hydra Launcher v3.0.0', Accept: 'application/json' },
         signal: controller.signal
       });
       clearTimeout(t);
@@ -210,6 +285,7 @@ class HydraDownloadsEngine {
           title: String(item.title),
           normTitle: this.normalizeTitle(item.title),
           uris: uris.map(u => (typeof u === 'string' ? u : u?.uri || u?.url || '')).filter(Boolean),
+          uriGroups: item.uriGroups || [],
           fileSize: item.fileSize || item.size || 'N/D',
           uploadDate: item.uploadDate || item.date || null,
           sourceName: src.name,
@@ -221,12 +297,13 @@ class HydraDownloadsEngine {
       this.sourcesCache.itemsBySource[src.id] = normalizedItems;
 
       src.gamesCount = normalizedItems.length;
-      src.status = 'ready';
+      src.downloadCount = normalizedItems.length;
+      src.status = 'MATCHED';
       src.lastSyncedAt = new Date().toISOString();
       this.saveSourcesCache();
       return src;
     } catch (err) {
-      src.status = 'error';
+      src.status = 'FAILED';
       src.lastError = err.message;
       this.saveSourcesCache();
       throw new Error(`Falha ao sincronizar fonte "${src.name}": ${err.message}`);
@@ -234,29 +311,68 @@ class HydraDownloadsEngine {
   }
 
   async syncAllDownloadSources() {
-    const results = [];
-    for (const src of (this.sourcesCache.sources || [])) {
-      if (!src.enabled) continue;
+    const hydraIds = (this.sourcesCache.sources || [])
+      .filter(s => s.hydraApiId || (s.id && s.id.length <= 12 && !s.id.startsWith('src_')))
+      .map(s => s.hydraApiId || s.id);
+
+    if (hydraIds.length > 0) {
       try {
-        const updated = await this.syncDownloadSource(src.id);
-        results.push(updated);
+        const res = await fetch(`${HYDRA_API_BASE}/download-sources/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'User-Agent': 'Hydra Launcher v3.0.0' },
+          body: JSON.stringify({ ids: hydraIds })
+        });
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            for (const item of list) {
+              const src = this.sourcesCache.sources.find(s => (s.hydraApiId || s.id) === item.id);
+              if (src) {
+                src.name = item.name || src.name;
+                src.downloadCount = typeof item.downloadCount === 'number' ? item.downloadCount : src.downloadCount;
+                src.gamesCount = src.downloadCount;
+                src.status = item.status || 'MATCHED';
+                src.fingerprint = item.fingerprint || src.fingerprint;
+                src.lastSyncedAt = new Date().toISOString();
+              }
+            }
+            this.saveSourcesCache();
+          }
+        }
       } catch (e) {
-        results.push({ id: src.id, name: src.name, error: e.message });
+        console.warn('[HydraDownloads] Erro em syncAllDownloadSources via API:', e.message);
       }
     }
-    return results;
+
+    // Direct JSON sync for any local/custom sources
+    for (const src of (this.sourcesCache.sources || [])) {
+      if (!src.hydraApiId && (src.id.startsWith('src_') || src.id.length > 12)) {
+        try {
+          await this.syncDownloadSource(src.id);
+        } catch {}
+      }
+    }
+
+    return this.sourcesCache.sources || [];
   }
 
   removeDownloadSource(sourceId) {
-    this.sourcesCache.sources = (this.sourcesCache.sources || []).filter(s => s.id !== sourceId);
+    this.sourcesCache.sources = (this.sourcesCache.sources || []).filter(s => s.id !== sourceId && s.url !== sourceId && s.hydraApiId !== sourceId);
     if (this.sourcesCache.itemsBySource) {
       delete this.sourcesCache.itemsBySource[sourceId];
     }
     this.saveSourcesCache();
   }
 
+  removeAllDownloadSources() {
+    this.sourcesCache.sources = [];
+    this.sourcesCache.itemsBySource = {};
+    this.saveSourcesCache();
+    return true;
+  }
+
   toggleDownloadSource(sourceId, enabled) {
-    const src = (this.sourcesCache.sources || []).find(s => s.id === sourceId);
+    const src = (this.sourcesCache.sources || []).find(s => s.id === sourceId || s.hydraApiId === sourceId);
     if (src) {
       src.enabled = Boolean(enabled);
       this.saveSourcesCache();
@@ -264,27 +380,64 @@ class HydraDownloadsEngine {
     return src;
   }
 
-  searchRepacksForGame(gameTitle) {
+  async searchRepacksForGame(gameTitle, options = {}) {
+    const objectId = options.objectId || '';
+    const shop = options.shop || 'steam';
+    const repacks = [];
+
+    // 1. Query official Hydra API download-sources endpoint with active source IDs
+    const activeSources = (this.sourcesCache.sources || []).filter(s => s.enabled !== false);
+    const apiSourceIds = activeSources
+      .map(s => s.hydraApiId || s.id)
+      .filter(id => id && id.length <= 12 && !id.startsWith('src_'));
+
+    if (objectId && apiSourceIds.length > 0) {
+      try {
+        const queryParams = apiSourceIds.map(id => `downloadSourceIds[]=${encodeURIComponent(id)}`).join('&');
+        const url = `${HYDRA_API_BASE}/games/${shop}/${objectId}/download-sources?${queryParams}&take=100&skip=0`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Hydra Launcher v3.0.0', Accept: 'application/json' }
+        });
+        if (res.ok) {
+          const apiRepacks = await res.json();
+          if (Array.isArray(apiRepacks)) {
+            for (const r of apiRepacks) {
+              repacks.push({
+                id: r.id || ('rep_' + Math.random().toString(36).slice(2, 8)),
+                title: r.title,
+                fileSize: (r.fileSize || '').trim() || 'N/D',
+                uris: r.uris || [],
+                uriGroups: r.uriGroups || [],
+                uploadDate: r.uploadDate || null,
+                sourceName: r.downloadSourceName || 'Hydra Official Source',
+                sourceId: r.downloadSourceId || ''
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[HydraDownloads] Falha ao buscar repacks na Hydra API:', err.message);
+      }
+    }
+
+    // 2. Also search local itemsBySource for any custom parsed sources
     const qNorm = this.normalizeTitle(gameTitle);
-    if (!qNorm) return [];
-
-    const words = qNorm.split(' ').filter(w => w.length >= 2);
-    const matches = [];
-
-    for (const src of (this.sourcesCache.sources || [])) {
-      if (!src.enabled) continue;
-      const items = this.sourcesCache.itemsBySource?.[src.id] || [];
-      for (const item of items) {
-        if (!item.normTitle) continue;
-        if (item.normTitle.includes(qNorm) || qNorm.includes(item.normTitle)) {
-          matches.push(item);
-        } else if (words.length >= 2 && words.every(w => item.normTitle.includes(w))) {
-          matches.push(item);
+    if (qNorm) {
+      const words = qNorm.split(' ').filter(w => w.length >= 2);
+      for (const src of activeSources) {
+        const items = this.sourcesCache.itemsBySource?.[src.id] || [];
+        for (const item of items) {
+          if (!item.normTitle) continue;
+          if (item.normTitle.includes(qNorm) || qNorm.includes(item.normTitle) || (words.length >= 2 && words.every(w => item.normTitle.includes(w)))) {
+            if (!repacks.some(r => r.title === item.title)) {
+              repacks.push(item);
+            }
+          }
         }
       }
     }
 
-    return matches.slice(0, 40);
+    return repacks;
   }
 
   // ============================================================================

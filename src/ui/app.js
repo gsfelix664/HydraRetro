@@ -991,7 +991,7 @@ function selectGame(game) {
       if (btnPlayText) btnPlayText.textContent = 'BAIXAR JOGO';
       btnPlayMain.onclick = () => {
         playSfx('select');
-        openRepacksModal(game.title);
+        openRepacksModal(game.title, { objectId: game.steamAppId || game.objectId || game.id, shop: game.shop || 'steam' });
       };
     }
   } else {
@@ -1914,19 +1914,104 @@ function renderAchievementsView() {
   }
 }
 
-function renderSettingsView() {
-  const container = document.getElementById('settings-container');
-  if (!container) return;
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  // Setup subtab click listeners
-  document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.subtab === currentSettingsSubTab);
-    btn.onclick = () => {
-      currentSettingsSubTab = btn.dataset.subtab;
-      playSfx('nav');
-      renderSettingsView();
-    };
-  });
+function renderSettingsView() {
+  const sidebar = document.getElementById('settings-sidebar');
+  const panelTitle = document.getElementById('settings-panel-title');
+  const panelContent = document.getElementById('settings-panel-content');
+  const fallbackContainer = document.getElementById('settings-container');
+
+  if (!sidebar && !fallbackContainer) return;
+
+  const SETTINGS_CATEGORIES = [
+    {
+      id: 'general',
+      label: 'Geral',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0a8.2 8.2 0 0 0-.701.031C7.05.284 6.7 1.455 5.53 1.94c-.45.187-.935.244-1.424.167-.887-.138-1.748-.687-2.095-.595-.494.131-.95.344-1.36.626-.307.21-.295 1.042-.016 1.84.14.4.17.84.088 1.28-.212 1.135-.98 1.936-1.577 2.21-.42.193-.42.54-.42.54s0 .347.42.54c.597.274 1.365 1.075 1.577 2.21.082.44.052.88-.088 1.28-.279.798-.291 1.63.016 1.84.41.282.866.495 1.36.626.347.092 1.208-.457 2.095-.595.489-.077.974-.02 1.424.167 1.17.485 1.52 1.656 1.769 1.909.222.226.545.226.701.031.156-.195.509-1.367 1.679-1.852.45-.187.935-.244 1.424-.167.887.138 1.748.687 2.095.595.494-.131.95-.344 1.36-.626.307-.21.295-1.042.016-1.84-.14-.4-.17-.84-.088-1.28.212-1.135.98-1.936 1.577-2.21-.42-.193-.42-.54-.42-.54s0-.347-.42-.54c-.597-.274-1.365-1.075-1.577-2.21-.082-.44-.052-.88.088-1.28.279-.798.291-1.63-.016-1.84-.41-.282-.866-.495-1.36-.626-.347-.092-1.208.457-2.095.595-.489.077-.974.02-1.424-.167-1.17-.485-1.52-1.656-1.769-1.909C8.545.031 8.222.031 8 0Zm0 5.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"></path></svg>`
+    },
+    {
+      id: 'downloads',
+      label: 'Downloads',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"></path><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"></path></svg>`
+    },
+    {
+      id: 'sources',
+      label: 'Fontes de download',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-1.2 8.725-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 2.83 2.83l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg>`
+    },
+    {
+      id: 'folders',
+      label: 'Pastas monitoradas',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"></path></svg>`
+    },
+    {
+      id: 'integrations',
+      label: 'Lojas & integrações',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4.5 13a3.5 3.5 0 0 1-.5-6.964 5.5 5.5 0 0 1 10.457-1.396A4 4 0 0 1 13 13H4.5Z"></path></svg>`
+    },
+    {
+      id: 'emulators',
+      label: 'Emulação & saves',
+      group: 'CLÁSSICOS & RETRÔ',
+      icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="12" y2="12"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="15" x2="15.01" y1="13" y2="13"></line><line x1="18" x2="18.01" y1="11" y2="11"></line><rect width="20" height="12" x="2" y="6" rx="6"></rect></svg>`
+    },
+    {
+      id: 'account',
+      label: 'Conta & perfil',
+      group: 'USUÁRIO',
+      icon: `<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0c-.69 0-1.84.2-3.25.68A19.06 19.06 0 0 0 1.25 2.37a.75.75 0 0 0-.5.71c0 4.18 1.2 8.23 3.66 10.97A9.87 9.87 0 0 0 8 16a9.87 9.87 0 0 0 3.59-1.95c2.46-2.74 3.66-6.79 3.66-10.97a.75.75 0 0 0-.5-.71 19.06 19.06 0 0 0-3.5-1.69C9.84.2 8.69 0 8 0Zm0 1.55c.67 0 1.68.18 2.97.62a17.5 17.5 0 0 1 3.03 1.4c0 3.65-1.03 7.15-3.15 9.5A8.37 8.37 0 0 1 8 14.5a8.37 8.37 0 0 1-2.85-1.43c-2.12-2.35-3.15-5.85-3.15-9.5a17.5 17.5 0 0 1 3.03-1.4c1.29-.44 2.3-.62 2.97-.62Z"></path></svg>`
+    }
+  ];
+
+  if (!currentSettingsSubTab) currentSettingsSubTab = 'general';
+  if (currentSettingsSubTab === 'download_sources') currentSettingsSubTab = 'sources';
+
+  // Render Sidebar
+  if (sidebar) {
+    let prevGroup = undefined;
+    sidebar.innerHTML = SETTINGS_CATEGORIES.map(category => {
+      let groupHtml = '';
+      if (category.group && category.group !== prevGroup) {
+        prevGroup = category.group;
+        groupHtml = `
+          <div class="settings__sidebar-group">
+            <div class="settings__sidebar-divider"></div>
+            <span class="settings__sidebar-group-label">${category.group}</span>
+          </div>
+        `;
+      }
+      const isActive = currentSettingsSubTab === category.id;
+      return `
+        ${groupHtml}
+        <button type="button" class="settings__sidebar-button ${isActive ? 'settings__sidebar-button--active' : ''}" data-cat="${category.id}">
+          <span class="settings__sidebar-button-icon">${category.icon}</span>
+          <span class="settings__sidebar-button-label">${category.label}</span>
+        </button>
+      `;
+    }).join('');
+
+    sidebar.querySelectorAll('.settings__sidebar-button').forEach(btn => {
+      btn.onclick = () => {
+        currentSettingsSubTab = btn.dataset.cat;
+        playSfx('nav');
+        renderSettingsView();
+      };
+    });
+  }
+
+  const currentCategory = SETTINGS_CATEGORIES.find(c => c.id === currentSettingsSubTab) || SETTINGS_CATEGORIES[0];
+  if (panelTitle) {
+    panelTitle.textContent = currentCategory.label;
+  }
 
   const cfg = appState.config || {};
   const dlCfg = cfg.downloadSettings || {
@@ -2078,53 +2163,84 @@ function renderSettingsView() {
         </div>
       </div>
     `;
-  } else if (currentSettingsSubTab === 'sources') {
-    const sources = cfg.downloadSources || [];
+  } else if (currentSettingsSubTab === 'sources' || currentSettingsSubTab === 'download_sources') {
+    const numberFormatter = new Intl.NumberFormat('pt-BR');
+    let sources = window._cachedDownloadSources;
+    if (!sources && cfg.downloadSources) {
+      sources = cfg.downloadSources;
+    }
+    if (!sources) sources = [];
+
     html = `
-      <div class="settings-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-          <div>
-            <h3>📦 Fontes de Repacks & Downloads (URLs JSON)</h3>
-            <p style="font-size:12px;color:var(--text-muted);">
-              Sincronize URLs de fontes de repacks (FitGirl, DODI, SteamRip, GOG, etc.) para buscar torrents e links diretos com 1 clique direto no catálogo.
-            </p>
-          </div>
-          <button type="button" class="btn-secondary" style="color:#10b981;border-color:#10b981;" onclick="window.syncAllSourcesNow()">
-            🔄 Sincronizar Todas as Fontes Agora
+      <p class="settings-download-sources__description">
+        Hydra vai buscar links de download em todas as fontes habilitadas. A URL da fonte deve ser um link direto para um arquivo .json contendo uma lista de links.
+      </p>
+
+      <div class="settings-download-sources__header">
+        <button type="button" class="button button--outline" id="btn-sync-sources" onclick="window.syncAllDownloadSourcesUI()">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" class="settings-icon-svg"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"></path></svg>
+          <span>Sincronizar</span>
+        </button>
+
+        <div class="settings-download-sources__buttons-container">
+          <button type="button" class="button button--danger" id="btn-delete-all-sources" onclick="window.openDeleteAllSourcesModal()" ${sources.length === 0 ? 'disabled' : ''}>
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" class="settings-icon-svg"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a1.75 1.75 0 0 0 1.744 1.575h2.2c.904 0 1.66-.69 1.744-1.575l.66-6.6a.75.75 0 1 0-1.492-.15l-.66 6.6a.25.25 0 0 1-.249.225h-2.2a.25.25 0 0 1-.249-.225l-.66-6.6a.75.75 0 0 0-1.492.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path></svg>
+            <span>Remover todas</span>
+          </button>
+
+          <button type="button" class="button button--outline" id="btn-open-add-source-modal" onclick="window.openAddSourceModal()">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" class="settings-icon-svg"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7.25-3.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z"></path></svg>
+            <span>Adicionar fonte</span>
           </button>
         </div>
+      </div>
 
-        <div class="field-row" style="margin-bottom:16px;">
-          <label>Adicionar Nova URL de Fonte (JSON):</label>
-          <div class="field-input-group">
-            <input type="text" id="new-source-url" placeholder="https://raw.githubusercontent.com/.../repacks.json" class="cover-search-input">
-            <button type="button" class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.addNewDownloadSource()">
-              ➕ Adicionar Fonte
+      <ul class="settings-download-sources__list" id="settings-download-sources-list">
+        ${sources.length === 0 ? `
+          <div style="background:#121215;border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:36px 20px;text-align:center;color:#a1a1aa;">
+            <p style="margin:0 0 12px 0;font-size:14px;">Nenhuma fonte de download cadastrada ainda.</p>
+            <button type="button" class="button button--outline" onclick="window.openAddSourceModal()">
+              ➕ Adicionar primeira fonte
             </button>
           </div>
-        </div>
+        ` : sources.map(s => {
+          const isMatching = s.status === 'MATCHING' || s.status === 'PENDING_MATCHING' || s.status === 'syncing';
+          const isFailed = s.status === 'FAILED' || s.status === 'errored';
+          const badgeClass = isMatching ? 'badge--matching' : (isFailed ? 'badge--failed' : 'badge--matched');
+          const statusText = isMatching ? 'Sincronizando' : (isFailed ? 'Erro' : 'Sincronizada');
+          const count = typeof s.downloadCount === 'number' ? s.downloadCount : (s.gamesCount || 0);
 
-        <div class="repacks-list" id="sources-list-container">
-          ${sources.length === 0 ? '<div style="color:var(--text-muted);font-size:12px;padding:12px 0;">Nenhuma fonte cadastrada ainda.</div>' : ''}
-          ${sources.map(s => `
-            <div class="repack-card">
-              <div class="repack-info">
-                <span class="repack-title">${s.name || 'Fonte de Repacks'}</span>
-                <span class="repack-meta" style="font-family:monospace;font-size:11px;">${s.url}</span>
+          return `
+            <li class="settings-download-sources__item ${isMatching ? 'settings-download-sources__item--pending' : ''}">
+              <div class="settings-download-sources__item-header">
+                <div class="settings-download-sources__item-title-row">
+                  <h2>${escapeHtml(s.name || 'Fonte Hydra')}</h2>
+                  <span class="badge ${badgeClass}">
+                    ${isMatching ? '<span class="settings-download-sources__spinner">⟳</span>' : ''}
+                    ${statusText}
+                  </span>
+                </div>
+                <div class="settings-download-sources__count-wrapper">
+                  <small class="settings-download-sources__count">
+                    ${isMatching ? 'Sem informações' : `${numberFormatter.format(count)} downloads`}
+                  </small>
+                </div>
               </div>
-              <div style="display:flex;align-items:center;gap:12px;">
-                <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
-                  <input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="window.toggleSourceEnabled('${encodeURIComponent(s.url)}', this.checked)">
-                  <span>Ativa</span>
-                </label>
-                <button type="button" class="btn-secondary danger" style="padding:4px 10px;font-size:12px;" onclick="window.removeSourceByUrl('${encodeURIComponent(s.url)}')">
-                  🗑️
-                </button>
+
+              <div class="text-field-container">
+                <label class="text-field-container__label">URL da fonte</label>
+                <div class="text-field-container__text-field">
+                  <input type="text" class="text-field-container__text-field-input" value="${escapeHtml(s.url)}" readonly disabled>
+                  <button type="button" class="button button--outline button--small button--danger-text" onclick="window.removeSingleDownloadSource('${s.id || s.url}')" title="Remover fonte">
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0ZM1.5 8a6.5 6.5 0 0 1 10.435-5.096L3.404 11.435A6.471 6.471 0 0 1 1.5 8Zm1.469 5.096 8.531-8.531A6.471 6.471 0 0 1 14.5 8a6.5 6.5 0 0 1-11.531 5.096Z"></path></svg>
+                    <span>Remover</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
+            </li>
+          `;
+        }).join('')}
+      </ul>
     `;
   } else if (currentSettingsSubTab === 'folders') {
     html = `
@@ -2311,10 +2427,20 @@ function renderSettingsView() {
     `;
   }
 
-  container.innerHTML = html;
+  if (panelContent) {
+    panelContent.innerHTML = html;
+  } else if (fallbackContainer) {
+    fallbackContainer.innerHTML = html;
+  }
+
   if (currentSettingsSubTab === 'emulators') window.loadBackupsList();
   if (currentSettingsSubTab === 'integrations') window.loadStoresStatus();
   if (currentSettingsSubTab === 'folders') window.loadPcFoldersList();
+  if (currentSettingsSubTab === 'sources' || currentSettingsSubTab === 'download_sources') {
+    if (!window._cachedDownloadSourcesLoaded) {
+      window.loadDownloadSources(true);
+    }
+  }
 }
 
 window.connectRetroAchievementsEmulators = async () => {
@@ -3195,14 +3321,69 @@ window.saveDownloadConfig = async () => {
   }
 };
 
-window.addNewDownloadSource = async () => {
-  const input = document.getElementById('new-source-url');
+window.loadDownloadSources = async (rerender = false) => {
+  try {
+    const res = await fetch('/api/downloads/sources');
+    if (res.ok) {
+      const data = await res.json();
+      window._cachedDownloadSources = data.sources || [];
+      window._cachedDownloadSourcesLoaded = true;
+      if (rerender && (currentSettingsSubTab === 'sources' || currentSettingsSubTab === 'download_sources')) {
+        renderSettingsView();
+      }
+    }
+  } catch (err) {
+    console.warn('[HydraRetro] Erro ao carregar fontes:', err);
+  }
+};
+
+window.openAddSourceModal = () => {
+  const modal = document.getElementById('modal-add-download-source');
+  const input = document.getElementById('input-add-source-url');
+  const errorEl = document.getElementById('add-source-error');
+  const spinner = document.getElementById('add-source-spinner');
+  const btnText = document.getElementById('add-source-btn-text');
+  const submitBtn = document.getElementById('btn-submit-add-source');
+
+  if (input) input.value = '';
+  if (errorEl) {
+    errorEl.textContent = '';
+    errorEl.classList.add('hidden');
+  }
+  if (spinner) spinner.classList.add('hidden');
+  if (btnText) btnText.textContent = 'Adicionar fonte';
+  if (submitBtn) submitBtn.disabled = false;
+
+  modal?.classList.remove('hidden');
+  input?.focus();
+};
+
+window.closeAddSourceModal = () => {
+  document.getElementById('modal-add-download-source')?.classList.add('hidden');
+};
+
+window.submitAddDownloadSource = async () => {
+  const input = document.getElementById('input-add-source-url');
+  const errorEl = document.getElementById('add-source-error');
+  const spinner = document.getElementById('add-source-spinner');
+  const btnText = document.getElementById('add-source-btn-text');
+  const submitBtn = document.getElementById('btn-submit-add-source');
+
   const url = input?.value?.trim();
   if (!url) {
-    showToast('Informe a URL da fonte de repacks (formato JSON)');
+    if (errorEl) {
+      errorEl.textContent = 'Por favor, insira uma URL válida.';
+      errorEl.classList.remove('hidden');
+    }
     return;
   }
-  showToast('Adicionando e sincronizando fonte...');
+
+  // Set loading state
+  if (spinner) spinner.classList.remove('hidden');
+  if (btnText) btnText.textContent = 'Adicionando...';
+  if (submitBtn) submitBtn.disabled = true;
+  if (errorEl) errorEl.classList.add('hidden');
+
   try {
     const res = await fetch('/api/downloads/sources', {
       method: 'POST',
@@ -3211,60 +3392,105 @@ window.addNewDownloadSource = async () => {
     });
     const data = await res.json();
     if (res.ok && data.ok) {
-      showToast('Fonte adicionada com sucesso!');
+      window.closeAddSourceModal();
+      showToast('Fonte de download adicionada com sucesso!');
       playSfx('fav');
-      if (input) input.value = '';
+      await window.loadDownloadSources();
       await fetchState();
       renderSettingsView();
     } else {
-      showToast(data.error || 'Erro ao adicionar fonte');
+      if (errorEl) {
+        errorEl.textContent = data.error || 'Falha ao adicionar fonte de download. Tente novamente.';
+        errorEl.classList.remove('hidden');
+      }
     }
-  } catch {
-    showToast('Falha na comunicação');
+  } catch (err) {
+    if (errorEl) {
+      errorEl.textContent = 'Falha de comunicação com o servidor local.';
+      errorEl.classList.remove('hidden');
+    }
+  } finally {
+    if (spinner) spinner.classList.add('hidden');
+    if (btnText) btnText.textContent = 'Adicionar fonte';
+    if (submitBtn) submitBtn.disabled = false;
   }
 };
 
-window.toggleSourceEnabled = async (encodedUrl, enabled) => {
-  const url = decodeURIComponent(encodedUrl);
-  await fetch('/api/downloads/sources/toggle', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, enabled })
-  });
-  await fetchState();
+window.openDeleteAllSourcesModal = () => {
+  document.getElementById('modal-delete-all-sources')?.classList.remove('hidden');
 };
 
-window.removeSourceByUrl = async (encodedUrl) => {
-  const url = decodeURIComponent(encodedUrl);
-  if (!confirm('Deseja realmente remover esta fonte de download?')) return;
-  await fetch('/api/downloads/sources/remove', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url })
-  });
-  showToast('Fonte removida');
-  await fetchState();
-  renderSettingsView();
+window.closeDeleteAllSourcesModal = () => {
+  document.getElementById('modal-delete-all-sources')?.classList.add('hidden');
 };
 
-window.syncAllSourcesNow = async () => {
-  showToast('🔄 Sincronizando todas as fontes de repacks...');
+window.confirmDeleteAllSources = async () => {
+  window.closeDeleteAllSourcesModal();
+  try {
+    const res = await fetch('/api/downloads/sources/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ removeAll: true })
+    });
+    if (res.ok) {
+      showToast('Todas as fontes de download removidas');
+      playSfx('select');
+      window._cachedDownloadSources = [];
+      await window.loadDownloadSources();
+      await fetchState();
+      renderSettingsView();
+    }
+  } catch (err) {
+    showToast('Erro ao remover fontes');
+  }
+};
+
+window.removeSingleDownloadSource = async (sourceId) => {
+  try {
+    const res = await fetch('/api/downloads/sources/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceId })
+    });
+    if (res.ok) {
+      showToast('Fonte removida');
+      playSfx('select');
+      await window.loadDownloadSources();
+      await fetchState();
+      renderSettingsView();
+    }
+  } catch (err) {
+    showToast('Erro ao remover fonte');
+  }
+};
+
+window.syncAllDownloadSourcesUI = async () => {
+  showToast('Sincronizando fontes de download...');
   playSfx('select');
   try {
-    const res = await fetch('/api/downloads/sources/sync', { method: 'POST' });
-    const data = await res.json();
-    if (res.ok && data.ok) {
-      showToast(`Sucesso! ${data.totalRepacks || 0} repacks indexados no acervo!`);
+    const res = await fetch('/api/downloads/sources/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    if (res.ok) {
+      showToast('Fontes de download sincronizadas com sucesso');
       playSfx('fav');
+      await window.loadDownloadSources();
       await fetchState();
       renderSettingsView();
     } else {
-      showToast(data.error || 'Erro na sincronização');
+      showToast('Erro ao sincronizar fontes');
     }
-  } catch {
-    showToast('Falha ao sincronizar fontes');
+  } catch (err) {
+    showToast('Falha na comunicação ao sincronizar');
   }
 };
+
+// Aliases for compatibility
+window.addNewDownloadSource = window.openAddSourceModal;
+window.removeSourceByUrl = window.removeSingleDownloadSource;
+window.syncAllSourcesNow = window.syncAllDownloadSourcesUI;
 
 window.scanOfficialStores = async () => {
   showToast('🔍 Escaneando lojas oficiais (Steam, Epic, GOG, Xbox / Game Pass)...');
@@ -4126,7 +4352,7 @@ window.openDownloadTargetFolder = async (id) => {
 };
 
 // --- REPACKS & DOWNLOAD SOURCES MODAL ---
-async function openRepacksModal(gameTitle) {
+async function openRepacksModal(gameTitle, options = {}) {
   playSfx('select');
   const modal = document.getElementById('repacks-modal');
   const titleEl = document.getElementById('repacks-modal-title');
@@ -4144,7 +4370,13 @@ async function openRepacksModal(gameTitle) {
   if (closeBtn2) closeBtn2.onclick = () => closeRepacksModal();
 
   try {
-    const res = await fetch(`/api/downloads/repacks?title=${encodeURIComponent(gameTitle)}`);
+    const objectId = options.objectId || '';
+    const shop = options.shop || 'steam';
+    const queryParams = new URLSearchParams({ title: gameTitle });
+    if (objectId) queryParams.set('objectId', objectId);
+    if (shop) queryParams.set('shop', shop);
+
+    const res = await fetch(`/api/downloads/repacks?${queryParams.toString()}`);
     const data = await res.json();
     const repacks = data.repacks || [];
 
@@ -4161,10 +4393,10 @@ async function openRepacksModal(gameTitle) {
       listEl.innerHTML = repacks.map(r => `
         <div class="repack-card">
           <div class="repack-info">
-            <span class="repack-title">${r.title}</span>
+            <span class="repack-title">${escapeHtml(r.title)}</span>
             <div class="repack-meta">
-              <span class="repack-source-pill">${r.source || 'Fonte'}</span>
-              <span>${r.fileSize || formatSize(r.fileSizeBytes)}</span>
+              <span class="repack-source-pill">${escapeHtml(r.sourceName || r.source || 'Fonte')}</span>
+              <span>${r.fileSize || (r.fileSizeBytes ? formatSize(r.fileSizeBytes) : 'N/D')}</span>
               <span>${r.uris?.length || 1} links</span>
             </div>
           </div>

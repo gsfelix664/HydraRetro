@@ -468,41 +468,19 @@
         <div id="sessions-list" class="sessions-list"></div>
       </section>
 
-      <!-- Settings & System Hub View -->
+      <!-- Settings View (Hydra Launcher Authentic Split-Pane) -->
       <section id="view-settings" class="view-section hidden">
-        <div class="section-header">
-          <div>
-            <h2>⚙️ Central de Configurações & Integrações</h2>
-            <p>Gerencie opções gerais, motor de torrents, fontes de repacks, pastas monitoradas, lojas oficiais e emuladores.</p>
+        <div class="settings__container">
+          <div class="settings__content">
+            <aside class="settings__sidebar" id="settings-sidebar">
+              <!-- Rendered dynamically by renderSettingsView() -->
+            </aside>
+            <div class="settings__panel" id="settings-panel">
+              <h2 id="settings-panel-title">Geral</h2>
+              <div id="settings-panel-content" class="settings-context-panel"></div>
+            </div>
           </div>
         </div>
-
-        <!-- Sub-Tabs Navigation -->
-        <div class="settings-subnav">
-          <button type="button" class="settings-tab-btn active" data-subtab="general">
-            <span>🖥️ Geral & Inicialização</span>
-          </button>
-          <button type="button" class="settings-tab-btn" data-subtab="downloads">
-            <span>⚡ Downloads & Torrent</span>
-          </button>
-          <button type="button" class="settings-tab-btn" data-subtab="sources">
-            <span>📦 Fontes de Repacks (JSON)</span>
-          </button>
-          <button type="button" class="settings-tab-btn" data-subtab="folders">
-            <span>📁 Pastas Monitoradas</span>
-          </button>
-          <button type="button" class="settings-tab-btn" data-subtab="integrations">
-            <span>🎮 Lojas & Integrações</span>
-          </button>
-          <button type="button" class="settings-tab-btn" data-subtab="emulators">
-            <span>🕹️ Emuladores & Saves</span>
-          </button>
-          <button type="button" class="settings-tab-btn" data-subtab="account">
-            <span>👤 Conta & Perfil</span>
-          </button>
-        </div>
-
-        <div class="settings-container" id="settings-container"></div>
       </section>
 
       <!-- User Profile View (Hydra Original Style) -->
@@ -1177,6 +1155,55 @@
         <button type="button" id="btn-cancel-signout" class="btn-secondary">Cancelar</button>
         <button type="button" id="btn-confirm-signout" class="chip-btn danger">
           <span>Sair da Conta</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Download Source Modal (Hydra Launcher Style) -->
+  <div id="modal-add-download-source" class="modal-backdrop hidden">
+    <div class="modal-dialog add-download-source-modal__dialog">
+      <div class="modal-header">
+        <div>
+          <h2>Adicionar fonte de download</h2>
+          <p>Insira a URL contendo o arquivo .json</p>
+        </div>
+        <button id="close-add-source-modal" class="modal-close-btn" onclick="window.closeAddSourceModal()">✕</button>
+      </div>
+      <div class="add-download-source-modal__body">
+        <div class="form-group">
+          <label for="input-add-source-url" style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;">URL da fonte</label>
+          <input type="url" id="input-add-source-url" class="settings-text-field" placeholder="https://exemplo.com/fonte.json" autocomplete="off" spellcheck="false">
+          <div id="add-source-error" class="input-error-msg hidden" style="color:#f87171;font-size:12px;margin-top:6px;"></div>
+        </div>
+      </div>
+      <div class="modal-footer add-download-source-modal__actions">
+        <button type="button" id="btn-cancel-add-source" class="button button--outline" onclick="window.closeAddSourceModal()">Cancelar</button>
+        <button type="button" id="btn-submit-add-source" class="button button--primary" onclick="window.submitAddDownloadSource()">
+          <span id="add-source-spinner" class="settings-download-sources__spinner hidden">⟳</span>
+          <span id="add-source-btn-text">Adicionar fonte</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete All Download Sources Confirmation Modal (Hydra Launcher Style) -->
+  <div id="modal-delete-all-sources" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width:440px;">
+      <div class="modal-header">
+        <div>
+          <h2>Remover todas as fontes de download</h2>
+          <p>Confirmação de exclusão</p>
+        </div>
+        <button id="close-delete-all-sources-modal" class="modal-close-btn" onclick="window.closeDeleteAllSourcesModal()">✕</button>
+      </div>
+      <div style="padding:20px 24px;color:var(--text-secondary);font-size:13px;line-height:1.6;">
+        Você irá remover todas as fontes de download. Deseja prosseguir?
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+        <button type="button" id="btn-cancel-delete-all-sources" class="button button--outline" onclick="window.closeDeleteAllSourcesModal()">Não</button>
+        <button type="button" id="btn-confirm-delete-all-sources" class="button button--danger" onclick="window.confirmDeleteAllSources()">
+          <span>Sim, excluir tudo</span>
         </button>
       </div>
     </div>

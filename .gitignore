@@ -3,6 +3,7 @@ node_modules/
 covers/
 data/user_profile.json
 data/retro_ratings.json
+data/download_sources_cache.json
 data/webview_profile/
 data/database.json
 *.log
