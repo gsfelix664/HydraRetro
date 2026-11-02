@@ -463,9 +463,9 @@ const DEFAULT_CONFIG = {
     },
     PC: {
       id: 'PC',
-      name: 'Jogos de PC (.EXE)',
-      shortName: 'PC',
-      manufacturer: 'Microsoft Windows',
+      name: 'Jogos Hydra (Downloads & PC)',
+      shortName: 'Hydra',
+      manufacturer: 'Microsoft Windows / Hydra',
       releaseYear: 2024,
       romFolder: path.join(ROMS_DIR, 'PC'),
       emulatorPath: 'explorer.exe',

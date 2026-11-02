@@ -437,7 +437,7 @@ function renderCatalogue(resetScroll = false) {
     ALL: ['Todos os Jogos', `${filtered.length} jogos prontos para iniciar com 1 clique`],
     FAVORITES: ['⭐ Meus Favoritos', `${filtered.length} clássicos marcados como favoritos`],
     RECENT: ['🕒 Últimos Jogados', `${filtered.length} jogos com histórico recente`],
-    PC: ['🖥️ Jogos de PC & Executáveis (.EXE)', `${filtered.length} jogos de PC instalados com lançamento direto`],
+    PC: ['🐉 Jogos Hydra (Downloads & PC)', `${filtered.length} jogos adicionados (.EXE) ou baixados diretamente pelo Hydra`],
     STEAM: ['🔵 Biblioteca Steam', `${filtered.length} jogos sincronizados da Steam (Local & Conta)`],
     EPIC: ['⚫ Biblioteca Epic Games', `${filtered.length} jogos sincronizados da Epic Games (Local & Legendary)`],
     GOG: ['🟣 Biblioteca GOG Galaxy', `${filtered.length} jogos instalados do GOG Galaxy`],
@@ -1496,8 +1496,8 @@ function openSidebarContextMenu(e, tab) {
 
   if (tab === 'PC') {
     addItem('➕', 'Adicionar Executável (.EXE)', () => window.addPcExeGame());
-    addItem('📁', 'Adicionar Pasta de Jogos PC', () => window.addPcFolder());
-    addItem('🔄', 'Escanear Pastas de Jogos de PC', () => window.scanPcGamesNow());
+    addItem('📁', 'Adicionar Pasta de Jogos Hydra / PC', () => window.addPcFolder());
+    addItem('🔄', 'Escanear Pastas de Jogos Hydra / PC', () => window.scanPcGamesNow());
     addDivider();
     addItem('📂', 'Abrir Pasta ROMS\\PC', () => window.openExplorer('ROMS\\PC'));
   } else if (tab === 'STEAM') {
@@ -2385,23 +2385,23 @@ function renderSettingsView() {
   } else if (currentSettingsSubTab === 'folders') {
     html = `
       <div class="settings-card">
-        <h3>🖥️ Pastas Monitoradas de Jogos de PC (.EXE)</h3>
+        <h3>🐉 Pastas Monitoradas de Jogos Hydra (.EXE & Downloads)</h3>
         <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
-          Adicione pastas onde você costuma instalar ou salvar jogos de PC. O HydraRetro monitora novos arquivos executáveis e sincroniza capas e metadados automaticamente.
+          Adicione pastas onde você costuma instalar ou salvar jogos de PC ou títulos baixados pelo Hydra. O HydraRetro monitora novos executáveis e sincroniza capas e metadados automaticamente.
         </p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
           <button type="button" class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="window.addPcExeGame()">
             ➕ Adicionar Executável (.EXE)
           </button>
           <button type="button" class="btn-secondary" style="color:#6ee7b7;border-color:rgba(16,185,129,0.4);" onclick="window.addPcFolder()">
-            📁 Adicionar Pasta de Jogos de PC
+            📁 Adicionar Pasta de Jogos Hydra / PC
           </button>
           <button type="button" class="btn-secondary" onclick="window.openExplorer('ROMS\\\\PC')">
             📂 Abrir Pasta ROMS\\PC
           </button>
         </div>
         <div id="pc-folders-container">
-          <div style="font-size:12px;color:var(--text-dim);">Carregando pastas de PC...</div>
+          <div style="font-size:12px;color:var(--text-dim);">Carregando pastas de jogos Hydra...</div>
         </div>
       </div>
 
@@ -3025,7 +3025,7 @@ window.loadStoresStatus = async () => {
       const folders = data.pcGameFolders || appState.config?.pcGameFolders || [];
       if (folders.length > 0) {
         pcFoldersEl.innerHTML = `
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Pastas monitoradas de jogos de PC:</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Pastas monitoradas de jogos Hydra / PC:</div>
           <div style="display:flex;flex-direction:column;gap:6px;">
             ${folders.map(f => `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:6px;font-size:13px;border:1px solid var(--border-subtle);">
@@ -3038,7 +3038,7 @@ window.loadStoresStatus = async () => {
       } else {
         pcFoldersEl.innerHTML = `
           <div style="font-size:12px;color:var(--text-dim);">
-            Nenhuma pasta externa monitorada. Use os botões acima para adicionar executáveis ou pastas de jogos de PC.
+            Nenhuma pasta externa monitorada. Use os botões acima para adicionar executáveis ou pastas de jogos Hydra / PC.
           </div>
         `;
       }
@@ -5376,6 +5376,11 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
+
+  const activeBtn = document.querySelector(`.nav-btn[data-tab="${tab}"]`);
+  if (activeBtn) {
+    activeBtn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 
   const mainArea = document.querySelector('.main-area');
   if (mainArea && mainArea.scrollTop !== 0) mainArea.scrollTop = 0;

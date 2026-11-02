@@ -72,15 +72,19 @@ html, body {
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  padding: 22px 16px;
-  gap: 22px;
+  padding: 20px 14px 16px;
+  gap: 16px;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 8px 6px;
+  padding: 0 8px 4px;
+  flex-shrink: 0;
 }
 
 .brand-logo {
@@ -116,6 +120,42 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.sidebar > .nav-section {
+  flex-shrink: 0;
+}
+
+.sidebar-scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 4px;
+  margin-right: -4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.sidebar-scrollable::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+
+.sidebar-scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 .nav-label {
@@ -265,10 +305,13 @@ html, body {
   border: 1px solid rgba(132, 204, 22, 0.4);
 }
 
-.console-pill.pc {
-  background: linear-gradient(135deg, rgba(5, 150, 105, 0.25), rgba(16, 185, 129, 0.15));
+.console-pill.pc,
+.console-pill.hydra {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.3), rgba(16, 185, 129, 0.2));
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.45);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 .console-pill.steam {
@@ -288,6 +331,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .global-stats-card {

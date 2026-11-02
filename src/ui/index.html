@@ -103,108 +103,111 @@
         </button>
       </div>
 
-      <div class="nav-section">
-        <span class="nav-label">PC & LOJAS DIGITAIS</span>
-        <button class="nav-btn" data-tab="PC">
-          <span class="nav-icon console-pill pc">PC</span>
-          <span class="nav-title">Jogos de PC (.EXE)</span>
-          <span class="nav-badge" id="badge-pc">0</span>
-        </button>
-        <button class="nav-btn" data-tab="STEAM">
-          <span class="nav-icon console-pill steam">STM</span>
-          <span class="nav-title">Steam</span>
-          <span class="nav-badge" id="badge-steam">0</span>
-        </button>
-        <button class="nav-btn" data-tab="EPIC">
-          <span class="nav-icon console-pill epic">EPC</span>
-          <span class="nav-title">Epic Games</span>
-          <span class="nav-badge" id="badge-epic">0</span>
-        </button>
-        <button class="nav-btn" data-tab="GOG">
-          <span class="nav-icon console-pill" style="background:#a855f7;color:#fff;">GOG</span>
-          <span class="nav-title">GOG Galaxy</span>
-          <span class="nav-badge" id="badge-gog">0</span>
-        </button>
-        <button class="nav-btn" data-tab="XBOX">
-          <span class="nav-icon console-pill" style="background:#107c10;color:#fff;">XBX</span>
-          <span class="nav-title">Xbox / Game Pass</span>
-          <span class="nav-badge" id="badge-xbox">0</span>
-        </button>
-      </div>
+      <!-- Scrollable Container: Hydra, Lojas Digitais & Consoles -->
+      <div class="sidebar-scrollable">
+        <div class="nav-section">
+          <span class="nav-label">HYDRA & LOJAS DIGITAIS</span>
+          <button class="nav-btn" data-tab="PC" title="Jogos adicionados por fora (.EXE) ou baixados diretamente pelo Hydra">
+            <span class="nav-icon console-pill hydra">HYD</span>
+            <span class="nav-title">Jogos Hydra (Downloads & PC)</span>
+            <span class="nav-badge" id="badge-pc">0</span>
+          </button>
+          <button class="nav-btn" data-tab="STEAM">
+            <span class="nav-icon console-pill steam">STM</span>
+            <span class="nav-title">Steam</span>
+            <span class="nav-badge" id="badge-steam">0</span>
+          </button>
+          <button class="nav-btn" data-tab="EPIC">
+            <span class="nav-icon console-pill epic">EPC</span>
+            <span class="nav-title">Epic Games</span>
+            <span class="nav-badge" id="badge-epic">0</span>
+          </button>
+          <button class="nav-btn" data-tab="GOG">
+            <span class="nav-icon console-pill" style="background:#a855f7;color:#fff;">GOG</span>
+            <span class="nav-title">GOG Galaxy</span>
+            <span class="nav-badge" id="badge-gog">0</span>
+          </button>
+          <button class="nav-btn" data-tab="XBOX">
+            <span class="nav-icon console-pill" style="background:#107c10;color:#fff;">XBX</span>
+            <span class="nav-title">Xbox / Game Pass</span>
+            <span class="nav-badge" id="badge-xbox">0</span>
+          </button>
+        </div>
 
-      <div class="nav-section">
-        <span class="nav-label">CONSOLES</span>
-        <div id="console-nav-list">
-          <button class="nav-btn" data-tab="PS1">
-            <span class="nav-icon console-pill ps1">PS1</span>
-            <span class="nav-title">PlayStation 1</span>
-            <span class="nav-badge" id="badge-ps1">0</span>
-          </button>
-          <button class="nav-btn" data-tab="PS2">
-            <span class="nav-icon console-pill ps2">PS2</span>
-            <span class="nav-title">PlayStation 2</span>
-            <span class="nav-badge" id="badge-ps2">0</span>
-          </button>
-          <button class="nav-btn" data-tab="PS3">
-            <span class="nav-icon console-pill ps3">PS3</span>
-            <span class="nav-title">PlayStation 3</span>
-            <span class="nav-badge" id="badge-ps3">0</span>
-          </button>
-          <button class="nav-btn" data-tab="PSP">
-            <span class="nav-icon console-pill psp">PSP</span>
-            <span class="nav-title">PlayStation Portable</span>
-            <span class="nav-badge" id="badge-psp">0</span>
-          </button>
-          <button class="nav-btn" data-tab="SNES">
-            <span class="nav-icon console-pill snes">SNES</span>
-            <span class="nav-title">Super Nintendo</span>
-            <span class="nav-badge" id="badge-snes">0</span>
-          </button>
-          <button class="nav-btn" data-tab="N64">
-            <span class="nav-icon console-pill n64">N64</span>
-            <span class="nav-title">Nintendo 64</span>
-            <span class="nav-badge" id="badge-n64">0</span>
-          </button>
-          <button class="nav-btn" data-tab="GC">
-            <span class="nav-icon console-pill gc">GC</span>
-            <span class="nav-title">Nintendo GameCube</span>
-            <span class="nav-badge" id="badge-gc">0</span>
-          </button>
-          <button class="nav-btn" data-tab="WII">
-            <span class="nav-icon console-pill wii">WII</span>
-            <span class="nav-title">Nintendo Wii</span>
-            <span class="nav-badge" id="badge-wii">0</span>
-          </button>
-          <button class="nav-btn" data-tab="SWITCH">
-            <span class="nav-icon console-pill switch">NSW</span>
-            <span class="nav-title">Nintendo Switch</span>
-            <span class="nav-badge" id="badge-switch">0</span>
-          </button>
-          <button class="nav-btn" data-tab="GB">
-            <span class="nav-icon console-pill gb">GB</span>
-            <span class="nav-title">Game Boy</span>
-            <span class="nav-badge" id="badge-gb">0</span>
-          </button>
-          <button class="nav-btn" data-tab="GBC">
-            <span class="nav-icon console-pill gbc">GBC</span>
-            <span class="nav-title">Game Boy Color</span>
-            <span class="nav-badge" id="badge-gbc">0</span>
-          </button>
-          <button class="nav-btn" data-tab="GBA">
-            <span class="nav-icon console-pill gba">GBA</span>
-            <span class="nav-title">Game Boy Advance</span>
-            <span class="nav-badge" id="badge-gba">0</span>
-          </button>
-          <button class="nav-btn" data-tab="GENESIS">
-            <span class="nav-icon console-pill md">MD</span>
-            <span class="nav-title">Mega Drive</span>
-            <span class="nav-badge" id="badge-genesis">0</span>
-          </button>
-          <button class="nav-btn" data-tab="MAME">
-            <span class="nav-icon console-pill mame">ARC</span>
-            <span class="nav-title">Arcade / MAME</span>
-            <span class="nav-badge" id="badge-mame">0</span>
-          </button>
+        <div class="nav-section">
+          <span class="nav-label">CONSOLES</span>
+          <div id="console-nav-list">
+            <button class="nav-btn" data-tab="PS1">
+              <span class="nav-icon console-pill ps1">PS1</span>
+              <span class="nav-title">PlayStation 1</span>
+              <span class="nav-badge" id="badge-ps1">0</span>
+            </button>
+            <button class="nav-btn" data-tab="PS2">
+              <span class="nav-icon console-pill ps2">PS2</span>
+              <span class="nav-title">PlayStation 2</span>
+              <span class="nav-badge" id="badge-ps2">0</span>
+            </button>
+            <button class="nav-btn" data-tab="PS3">
+              <span class="nav-icon console-pill ps3">PS3</span>
+              <span class="nav-title">PlayStation 3</span>
+              <span class="nav-badge" id="badge-ps3">0</span>
+            </button>
+            <button class="nav-btn" data-tab="PSP">
+              <span class="nav-icon console-pill psp">PSP</span>
+              <span class="nav-title">PlayStation Portable</span>
+              <span class="nav-badge" id="badge-psp">0</span>
+            </button>
+            <button class="nav-btn" data-tab="SNES">
+              <span class="nav-icon console-pill snes">SNES</span>
+              <span class="nav-title">Super Nintendo</span>
+              <span class="nav-badge" id="badge-snes">0</span>
+            </button>
+            <button class="nav-btn" data-tab="N64">
+              <span class="nav-icon console-pill n64">N64</span>
+              <span class="nav-title">Nintendo 64</span>
+              <span class="nav-badge" id="badge-n64">0</span>
+            </button>
+            <button class="nav-btn" data-tab="GC">
+              <span class="nav-icon console-pill gc">GC</span>
+              <span class="nav-title">Nintendo GameCube</span>
+              <span class="nav-badge" id="badge-gc">0</span>
+            </button>
+            <button class="nav-btn" data-tab="WII">
+              <span class="nav-icon console-pill wii">WII</span>
+              <span class="nav-title">Nintendo Wii</span>
+              <span class="nav-badge" id="badge-wii">0</span>
+            </button>
+            <button class="nav-btn" data-tab="SWITCH">
+              <span class="nav-icon console-pill switch">NSW</span>
+              <span class="nav-title">Nintendo Switch</span>
+              <span class="nav-badge" id="badge-switch">0</span>
+            </button>
+            <button class="nav-btn" data-tab="GB">
+              <span class="nav-icon console-pill gb">GB</span>
+              <span class="nav-title">Game Boy</span>
+              <span class="nav-badge" id="badge-gb">0</span>
+            </button>
+            <button class="nav-btn" data-tab="GBC">
+              <span class="nav-icon console-pill gbc">GBC</span>
+              <span class="nav-title">Game Boy Color</span>
+              <span class="nav-badge" id="badge-gbc">0</span>
+            </button>
+            <button class="nav-btn" data-tab="GBA">
+              <span class="nav-icon console-pill gba">GBA</span>
+              <span class="nav-title">Game Boy Advance</span>
+              <span class="nav-badge" id="badge-gba">0</span>
+            </button>
+            <button class="nav-btn" data-tab="GENESIS">
+              <span class="nav-icon console-pill md">MD</span>
+              <span class="nav-title">Mega Drive</span>
+              <span class="nav-badge" id="badge-genesis">0</span>
+            </button>
+            <button class="nav-btn" data-tab="MAME">
+              <span class="nav-icon console-pill mame">ARC</span>
+              <span class="nav-title">Arcade / MAME</span>
+              <span class="nav-badge" id="badge-mame">0</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -256,7 +259,7 @@
           </button>
 
           <!-- Unified All-In-One Scan Button -->
-          <button id="btn-scan-all" class="action-chip primary" title="Escaneamento Geral Unificado: busca todas as ROMs, Jogos de PC (.EXE), Steam, Epic Games, GOG Galaxy e Xbox Game Pass de uma só vez">
+          <button id="btn-scan-all" class="action-chip primary" title="Escaneamento Geral Unificado: busca todas as ROMs, Jogos Hydra (Downloads & PC), Steam, Epic Games, GOG Galaxy e Xbox Game Pass de uma só vez">
             <span class="chip-icon">🔄</span>
             <span>Escanear Tudo</span>
           </button>
