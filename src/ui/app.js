@@ -1730,51 +1730,63 @@ function openGameContextMenu(e, game) {
     };
   }
 
-  document.getElementById('ctx-hd-art').onclick = async () => {
-    closeGameContextMenu();
-    showToast(`🎨 Buscando artes HD para ${game.title}...`);
-    try {
-      const res = await fetch('/api/steamgrid/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: game.id, apiKey: appState.config?.steamGridDbApiKey || '' })
-      });
-      if (res.ok) {
-        showToast('Artes HD aplicadas com sucesso!');
+  const ctxHdArt = document.getElementById('ctx-hd-art');
+  if (ctxHdArt) {
+    ctxHdArt.onclick = async () => {
+      closeGameContextMenu();
+      showToast(`🎨 Buscando artes HD para ${game.title}...`);
+      try {
+        const res = await fetch('/api/steamgrid/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: game.id, apiKey: appState.config?.steamGridDbApiKey || '' })
+        });
+        if (res.ok) {
+          showToast('Artes HD aplicadas com sucesso!');
+          await fetchState();
+        }
+      } catch {}
+    };
+  }
+
+  const ctxSyncAch = document.getElementById('ctx-sync-ach');
+  if (ctxSyncAch) {
+    ctxSyncAch.onclick = async () => {
+      closeGameContextMenu();
+      showToast(`🏆 Sincronizando conquistas e metadados de ${game.title}...`);
+      try {
+        await fetch('/api/metadata/enrich', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: game.id })
+        });
+        const res = await fetch('/api/achievements/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: game.id })
+        });
+        const data = await res.json();
         await fetchState();
-      }
-    } catch {}
-  };
+        showToast(`✅ ${data.officialCount || data.achievements?.length || 0} conquistas sincronizadas!`);
+      } catch {}
+    };
+  }
 
-  document.getElementById('ctx-sync-ach').onclick = async () => {
-    closeGameContextMenu();
-    showToast(`🏆 Sincronizando conquistas e metadados de ${game.title}...`);
-    try {
-      await fetch('/api/metadata/enrich', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: game.id })
-      });
-      const res = await fetch('/api/achievements/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: game.id })
-      });
-      const data = await res.json();
-      await fetchState();
-      showToast(`✅ ${data.officialCount || data.achievements?.length || 0} conquistas sincronizadas!`);
-    } catch {}
-  };
+  const ctxOpenFolder = document.getElementById('ctx-open-folder');
+  if (ctxOpenFolder) {
+    ctxOpenFolder.onclick = () => {
+      closeGameContextMenu();
+      openGameFileLocation(game.id);
+    };
+  }
 
-  document.getElementById('ctx-open-folder').onclick = () => {
-    closeGameContextMenu();
-    openGameFileLocation(game.id);
-  };
-
-  document.getElementById('ctx-remove').onclick = () => {
-    closeGameContextMenu();
-    openRemoveGameModal(game);
-  };
+  const ctxRemove = document.getElementById('ctx-remove');
+  if (ctxRemove) {
+    ctxRemove.onclick = () => {
+      closeGameContextMenu();
+      openRemoveGameModal(game);
+    };
+  }
 }
 
 function closeGameContextMenu() {
@@ -1948,8 +1960,10 @@ function openRemoveGameModal(game) {
   const modal = document.getElementById('remove-game-modal');
   if (!modal) return;
 
-  document.getElementById('remove-game-name').textContent = game.title;
-  document.getElementById('remove-file-path').textContent = game.romPath || game.fileName || '';
+  const nameEl = document.getElementById('remove-game-name');
+  if (nameEl) nameEl.textContent = game.title;
+  const pathEl = document.getElementById('remove-file-path');
+  if (pathEl) pathEl.textContent = game.romPath || game.fileName || '';
   const chk = document.getElementById('remove-delete-files-chk');
   if (chk) chk.checked = false;
 
@@ -1959,36 +1973,47 @@ function openRemoveGameModal(game) {
     modal.classList.add('hidden');
   };
 
-  document.getElementById('close-remove-modal').onclick = closeModal;
-  document.getElementById('btn-cancel-remove').onclick = closeModal;
-
-  document.getElementById('btn-confirm-remove').onclick = async () => {
-    const deleteFiles = Boolean(chk && chk.checked);
-    closeModal();
-    showToast(`Removendo ${game.title} da biblioteca...`);
-    try {
-      const res = await fetch('/api/game/remove', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId: game.id, deleteFiles })
-      });
-      const data = await res.json();
-      if (res.ok && data.ok) {
-        playSfx('back');
-        showToast(data.deletedFile ? `🗑️ ${game.title} excluído da biblioteca e do disco!` : `✅ ${game.title} removido da biblioteca!`);
-        if (selectedGameId === game.id) {
-          closeGameDetails();
-        }
-        lastGamesDataKey = '';
-        await fetchState();
-      } else {
-        showToast(data.error || 'Erro ao remover jogo');
-      }
-    } catch {
-      showToast('Falha ao comunicar com o servidor');
-    }
+  const closeBtn = document.getElementById('close-remove-modal');
+  if (closeBtn) closeBtn.onclick = closeModal;
+  const cancelBtn = document.getElementById('btn-cancel-remove');
+  if (cancelBtn) cancelBtn.onclick = closeModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
   };
+
+  const confirmBtn = document.getElementById('btn-confirm-remove');
+  if (confirmBtn) {
+    confirmBtn.onclick = async () => {
+      const deleteFiles = Boolean(chk && chk.checked);
+      closeModal();
+      showToast(`Removendo ${game.title} da biblioteca...`);
+      try {
+        const res = await fetch('/api/game/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: game.id, deleteFiles })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          playSfx('back');
+          const wasFileDeleted = Boolean(data.fileDeleted || data.deletedFile);
+          showToast(wasFileDeleted ? `🗑️ ${game.title} excluído da biblioteca e do disco!` : `✅ ${game.title} removido da biblioteca!`);
+          if (selectedGameId === game.id) {
+            closeGameDetails();
+          }
+          lastGamesDataKey = '';
+          await fetchState();
+          renderCatalogue();
+        } else {
+          showToast(data.error || 'Erro ao remover jogo');
+        }
+      } catch {
+        showToast('Falha ao comunicar com o servidor');
+      }
+    };
+  }
 }
+window.openRemoveGameModal = openRemoveGameModal;
 
 
 let currentHltbGameId = null;
@@ -4563,8 +4588,14 @@ window.removeCurrentGameFromLibrary = async () => {
     if (res.ok) {
       showToast('Jogo removido da biblioteca.');
       playSfx('select');
+      const removedId = currentPropsGameId;
       window.closeGamePropertiesModal();
+      if (selectedGameId === removedId) {
+        closeGameDetails();
+      }
+      lastGamesDataKey = '';
       await fetchState();
+      renderCatalogue();
     }
   } catch {}
 };

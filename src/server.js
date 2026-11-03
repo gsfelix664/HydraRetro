@@ -4917,6 +4917,7 @@ const server = http.createServer(async (req, res) => {
         const owned = await pcEngine.fetchSteamAccountOwnedGames(targetSteamId64, apiKey);
         for (const g of owned) {
           const groupId = 'STEAM::' + g.appId;
+          if (Array.isArray(db.config.removedGames) && db.config.removedGames.includes(groupId)) continue;
           const existing = db.games[groupId];
           syncedCount++;
 
@@ -5056,6 +5057,7 @@ const server = http.createServer(async (req, res) => {
         for (const g of epicGames) {
           if (!g.appName) continue;
           const groupId = 'EPIC::' + g.appName;
+          if (Array.isArray(db.config.removedGames) && db.config.removedGames.includes(groupId)) continue;
           const existing = db.games[groupId];
           syncedCount++;
 
@@ -5242,21 +5244,52 @@ const server = http.createServer(async (req, res) => {
     }
 
     let fileDeleted = false;
-    if (deleteFiles && game.romPath && fs.existsSync(game.romPath)) {
-      try {
-        const stat = fs.statSync(game.romPath);
-        if (stat.isFile()) {
-          fs.unlinkSync(game.romPath);
-          fileDeleted = true;
+    if (deleteFiles) {
+      if (game.romPath && fs.existsSync(game.romPath)) {
+        try {
+          const stat = fs.statSync(game.romPath);
+          if (stat.isFile()) {
+            fs.unlinkSync(game.romPath);
+            fileDeleted = true;
+
+            const ext = path.extname(game.romPath).toLowerCase();
+            if (ext === '.cue') {
+              const baseNoExt = game.romPath.slice(0, -ext.length);
+              const possibleBin = baseNoExt + '.bin';
+              if (fs.existsSync(possibleBin)) {
+                try {
+                  fs.unlinkSync(possibleBin);
+                } catch (e) {
+                  console.error('Error deleting companion bin:', e.message);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error deleting game file:', err.message);
         }
-      } catch (err) {
-        console.error('Error deleting game file:', err.message);
+      }
+
+      if (Array.isArray(game.discs)) {
+        for (const disc of game.discs) {
+          if (disc.romPath && disc.romPath !== game.romPath && fs.existsSync(disc.romPath)) {
+            try {
+              const dStat = fs.statSync(disc.romPath);
+              if (dStat.isFile()) {
+                fs.unlinkSync(disc.romPath);
+                fileDeleted = true;
+              }
+            } catch (err) {
+              console.error('Error deleting disc file:', err.message);
+            }
+          }
+        }
       }
     }
 
     delete db.games[gameId];
     saveDb(db);
-    return sendJson(res, 200, { ok: true, removedId: gameId, fileDeleted });
+    return sendJson(res, 200, { ok: true, removedId: gameId, fileDeleted, deletedFile: fileDeleted });
   }
 
   if (pathname === '/api/game/open-location' && req.method === 'POST') {
